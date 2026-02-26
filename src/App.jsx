@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { 
   LogOut, Plus, Ticket, X, CheckCircle2, Loader2, CreditCard, 
-  User, Phone, ChevronLeft, Trash2, Download, Eye, FileText, Image as ImageIcon
+  User, Phone, ChevronLeft, Trash2, Download, Eye, FileText, Image as ImageIcon, Edit3
 } from 'lucide-react';
 
 const ESTADOS = {
@@ -81,7 +81,6 @@ const AdminPanel = () => {
   const [stats, setStats] = useState({ recaudado: 0, vendidos: 0, pendientes: 0 });
   const [loadingAction, setLoadingAction] = useState(false);
 
-  // Estados Venta Manual
   const [showManualAssign, setShowManualAssign] = useState(false);
   const [manualData, setManualData] = useState({ 
     numeros: '', nombre: '', apellido: '', telefono: '', estado: 'apartado' 
@@ -113,26 +112,15 @@ const AdminPanel = () => {
     let publicUrl = null;
 
     try {
-      // 1. Subir Imagen si existe
       if (imageFile) {
         const fileExt = imageFile.name.split('.').pop();
         const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `${fileName}`;
-
-        let { error: uploadError } = await supabase.storage
-          .from('rifas_premios')
-          .upload(filePath, imageFile);
-
+        const { error: uploadError } = await supabase.storage.from('rifas_premios').upload(fileName, imageFile);
         if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabase.storage
-          .from('rifas_premios')
-          .getPublicUrl(filePath);
-        
+        const { data: urlData } = supabase.storage.from('rifas_premios').getPublicUrl(fileName);
         publicUrl = urlData.publicUrl;
       }
 
-      // 2. Crear Rifa
       const { data, error } = await supabase.from('rifas').insert([{
         nombre: newRifa.nombre, descripcion: newRifa.descripcion,
         precio: newRifa.precio, cantidad_numeros: newRifa.cantidad,
@@ -141,21 +129,50 @@ const AdminPanel = () => {
 
       if (error) throw error;
 
-      // 3. Crear Números
       const numEntries = Array.from({ length: newRifa.cantidad }, (_, i) => ({
         id_rifa: data[0].id_rifa, numero: i + 1, estado: 'disponible'
       }));
       await supabase.from('numeros').insert(numEntries);
 
-      alert("Rifa creada con éxito");
+      alert("Rifa creada");
       setView('list');
       fetchRifas();
       calculateStats();
-    } catch (err) {
-      alert("Error: " + err.message);
-    } finally {
-      setLoadingAction(false);
-    }
+      setImageFile(null);
+    } catch (err) { alert("Error: " + err.message); }
+    finally { setLoadingAction(false); }
+  };
+
+  const handleEditRifa = async (e) => {
+    e.preventDefault();
+    setLoadingAction(true);
+    let publicUrl = selectedRifa.imagen_url;
+
+    try {
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('rifas_premios').upload(fileName, imageFile);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from('rifas_premios').getPublicUrl(fileName);
+        publicUrl = urlData.publicUrl;
+      }
+
+      const { error } = await supabase.from('rifas').update({
+        nombre: selectedRifa.nombre,
+        descripcion: selectedRifa.descripcion,
+        fecha_fin: selectedRifa.fecha_fin,
+        imagen_url: publicUrl
+      }).eq('id_rifa', selectedRifa.id_rifa);
+
+      if (error) throw error;
+
+      alert("Rifa actualizada");
+      setView('list');
+      fetchRifas();
+      setImageFile(null);
+    } catch (err) { alert("Error al editar: " + err.message); }
+    finally { setLoadingAction(false); }
   };
 
   const openRifaDetail = async (rifa) => {
@@ -182,10 +199,8 @@ const AdminPanel = () => {
     try {
       const numerosArray = manualData.numeros.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
       if (numerosArray.length === 0) throw new Error("Ingresa números válidos");
-
       let { data: usuario } = await supabase.from('usuarios').select('id_usuario').eq('telefono', manualData.telefono).maybeSingle();
       let clienteId = usuario?.id_usuario;
-
       if (!clienteId) {
         const { data: newUser, error: createError } = await supabase.from('usuarios').insert([{
           nombre: manualData.nombre, apellido: manualData.apellido,
@@ -194,28 +209,22 @@ const AdminPanel = () => {
         if (createError) throw createError;
         clienteId = newUser.id_usuario;
       }
-
       const { error: updateError } = await supabase.from('numeros').update({
         estado: manualData.estado, comprador_id: clienteId, referencia_pago: 'VENTA_MANUAL'
       }).eq('id_rifa', selectedRifa.id_rifa).in('numero', numerosArray);
-
       if (updateError) throw updateError;
-
       alert("Asignación completada");
       setShowManualAssign(false);
       openRifaDetail(selectedRifa);
       calculateStats();
-    } catch (err) {
-      alert("Error: " + err.message);
-    } finally {
-      setLoadingAction(false);
-    }
+    } catch (err) { alert("Error: " + err.message); }
+    finally { setLoadingAction(false); }
   };
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       <nav className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
-        <h1 className="font-black italic text-xl tracking-tighter">RIFAPRO ADMIN</h1>
+        <h1 className="font-black italic text-xl">RIFAPRO ADMIN</h1>
         <button onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }} className="text-red-500 p-2 hover:bg-red-50 rounded-xl transition-all">
           <LogOut size={22}/>
         </button>
@@ -253,7 +262,10 @@ const AdminPanel = () => {
                     <h3 className="font-bold uppercase text-sm leading-tight">{r.nombre}</h3>
                     <p className="text-[10px] text-slate-400">Finaliza: {r.fecha_fin}</p>
                   </div>
-                  <button onClick={async () => { if(window.confirm("¿Borrar rifa?")) { await supabase.from('rifas').delete().eq('id_rifa', r.id_rifa); fetchRifas(); calculateStats(); } }} className="text-slate-300 hover:text-red-500 p-2"><Trash2 size={18}/></button>
+                  <div className="flex gap-1">
+                    <button onClick={() => { setSelectedRifa(r); setView('edit'); }} className="text-blue-500 hover:bg-blue-50 p-2 rounded-lg transition-all"><Edit3 size={18}/></button>
+                    <button onClick={async () => { if(window.confirm("¿Borrar rifa?")) { await supabase.from('rifas').delete().eq('id_rifa', r.id_rifa); fetchRifas(); calculateStats(); } }} className="text-slate-300 hover:text-red-500 p-2"><Trash2 size={18}/></button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -261,17 +273,16 @@ const AdminPanel = () => {
         )}
 
         {view === 'detail' && selectedRifa && (
-          <div className="space-y-6 animate-in fade-in duration-500">
+          <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <button onClick={() => setView('list')} className="flex items-center gap-1 text-sm font-bold text-slate-400"><ChevronLeft size={16}/> Volver</button>
                 <div className="flex gap-2">
                   <button onClick={() => setShowManualAssign(true)} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md"><Plus size={14}/> Venta Manual</button>
-                  <button onClick={() => window.print()} className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2"><Download size={14}/> PDF</button>
                 </div>
             </div>
             <div className="bg-white p-6 rounded-3xl border shadow-sm flex gap-4 items-center">
                 {selectedRifa.imagen_url && <img src={selectedRifa.imagen_url} className="w-20 h-20 rounded-2xl object-cover shadow-md" />}
-                <h2 className="text-2xl font-black uppercase italic tracking-tighter">{selectedRifa.nombre}</h2>
+                <h2 className="text-2xl font-black uppercase italic">{selectedRifa.nombre}</h2>
             </div>
             <div className="grid grid-cols-6 sm:grid-cols-10 gap-2">
               {numsRifa.map(n => (
@@ -284,27 +295,45 @@ const AdminPanel = () => {
           </div>
         )}
 
-        {view === 'create' && (
-          <div className="bg-white p-6 rounded-3xl shadow-sm border animate-in slide-in-from-bottom-4">
+        {(view === 'create' || view === 'edit') && (
+          <div className="bg-white p-6 rounded-3xl shadow-sm border">
             <button onClick={() => setView('list')} className="mb-4 flex items-center gap-1 text-sm font-bold text-slate-400"><ChevronLeft size={16}/> Volver</button>
-            <h2 className="text-xl font-black mb-4 uppercase italic">Configurar Nuevo Sorteo</h2>
-            <form onSubmit={crearRifa} className="space-y-4">
+            <h2 className="text-xl font-black mb-4 uppercase italic">{view === 'create' ? 'Nueva Rifa' : 'Editar Rifa'}</h2>
+            <form onSubmit={view === 'create' ? crearRifa : handleEditRifa} className="space-y-4">
               <div className="flex justify-center">
-                <label className="w-full flex flex-col items-center px-4 py-6 bg-slate-50 text-blue-500 rounded-3xl border-2 border-dashed border-blue-200 cursor-pointer hover:bg-blue-50 transition-all">
+                <label className="w-full flex flex-col items-center px-4 py-6 bg-slate-50 text-blue-500 rounded-3xl border-2 border-dashed border-blue-200 cursor-pointer hover:bg-blue-50">
                   <ImageIcon size={32} className="mb-2"/>
-                  <span className="text-[10px] font-black uppercase">{imageFile ? imageFile.name : 'Subir Foto del Premio'}</span>
+                  <span className="text-[10px] font-black uppercase">{imageFile ? imageFile.name : (view === 'edit' ? 'Cambiar Foto' : 'Subir Foto')}</span>
                   <input type='file' accept="image/*" className="hidden" onChange={(e) => setImageFile(e.target.files[0])} />
                 </label>
               </div>
-              <input type="text" placeholder="Nombre de la Rifa" className="w-full p-3 bg-slate-50 rounded-xl border outline-none focus:border-blue-500" required onChange={e => setNewRifa({...newRifa, nombre: e.target.value})} />
-              <textarea placeholder="Descripción del premio..." className="w-full p-3 bg-slate-50 rounded-xl border outline-none focus:border-blue-500" onChange={e => setNewRifa({...newRifa, descripcion: e.target.value})} />
+              <input type="text" placeholder="Nombre" className="w-full p-3 bg-slate-50 rounded-xl border outline-none" required 
+                value={view === 'edit' ? selectedRifa.nombre : newRifa.nombre}
+                onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, nombre: e.target.value}) : setNewRifa({...newRifa, nombre: e.target.value})} />
+              
+              <textarea placeholder="Descripción" className="w-full p-3 bg-slate-50 rounded-xl border outline-none" 
+                value={view === 'edit' ? selectedRifa.descripcion : newRifa.descripcion}
+                onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, descripcion: e.target.value}) : setNewRifa({...newRifa, descripcion: e.target.value})} />
+              
               <div className="grid grid-cols-2 gap-4">
-                <input type="number" placeholder="Cantidad Números" className="w-full p-3 bg-slate-50 rounded-xl border" onChange={e => setNewRifa({...newRifa, cantidad: e.target.value})} />
-                <input type="number" step="0.01" placeholder="Precio Ticket $" className="w-full p-3 bg-slate-50 rounded-xl border" onChange={e => setNewRifa({...newRifa, precio: parseFloat(e.target.value)})} />
+                <input type="number" placeholder="Cant. Números" disabled={view === 'edit'} className="w-full p-3 bg-slate-50 rounded-xl border disabled:opacity-50" 
+                  value={view === 'edit' ? selectedRifa.cantidad_numeros : newRifa.cantidad}
+                  onChange={e => setNewRifa({...newRifa, cantidad: e.target.value})} />
+                
+                <input type="number" step="0.01" placeholder="Precio $" disabled={view === 'edit'} className="w-full p-3 bg-slate-50 rounded-xl border disabled:opacity-50" 
+                  value={view === 'edit' ? selectedRifa.precio : newRifa.precio}
+                  onChange={e => setNewRifa({...newRifa, precio: parseFloat(e.target.value)})} />
               </div>
-              <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border font-bold" required onChange={e => setNewRifa({...newRifa, fecha: e.target.value})} />
-              <button disabled={loadingAction} className="w-full bg-blue-600 text-white p-4 rounded-2xl font-black uppercase shadow-lg disabled:opacity-50">
-                {loadingAction ? <Loader2 className="animate-spin mx-auto"/> : 'Lanzar Rifa Ahora'}
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 ml-2">FECHA DE SORTEO / FIN</label>
+                <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border font-bold" required 
+                  value={view === 'edit' ? selectedRifa.fecha_fin : newRifa.fecha}
+                  onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, fecha_fin: e.target.value}) : setNewRifa({...newRifa, fecha: e.target.value})} />
+              </div>
+
+              <button disabled={loadingAction} className="w-full bg-blue-600 text-white p-4 rounded-2xl font-black uppercase shadow-lg">
+                {loadingAction ? <Loader2 className="animate-spin mx-auto"/> : (view === 'create' ? 'Lanzar Rifa' : 'Guardar Cambios')}
               </button>
             </form>
           </div>
@@ -316,7 +345,7 @@ const AdminPanel = () => {
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-[2.5rem] w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between mb-6">
-              <h3 className="text-xl font-black uppercase italic tracking-tighter">Venta Directa</h3>
+              <h3 className="text-xl font-black uppercase italic">Venta Directa</h3>
               <button onClick={() => setShowManualAssign(false)}><X/></button>
             </div>
             <form onSubmit={handleManualAssignment} className="space-y-4">
@@ -328,8 +357,8 @@ const AdminPanel = () => {
               </div>
               <input type="tel" placeholder="Teléfono" required className="w-full p-3 bg-slate-50 rounded-xl border" onChange={e => setManualData({...manualData, telefono: e.target.value})} />
               <select className="w-full p-3 bg-slate-50 rounded-xl border font-bold" onChange={e => setManualData({...manualData, estado: e.target.value})}>
-                <option value="apartado">🟡 REVISIÓN (Por confirmar)</option>
-                <option value="pagado">🔴 VENDIDO (Pagado)</option>
+                <option value="apartado">🟡 REVISIÓN</option>
+                <option value="pagado">🔴 VENDIDO</option>
               </select>
               <button className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black uppercase text-xs">
                 {loadingAction ? <Loader2 className="animate-spin mx-auto" /> : 'Confirmar Venta'}
@@ -405,7 +434,7 @@ const ClienteView = ({ userId }) => {
         <h1 className="font-black italic text-xl tracking-tighter">RIFAPRO</h1>
         <div className="flex gap-3 items-center">
           <button onClick={() => setView(view === 'rifas' ? 'mis-tickets' : 'rifas')} className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-4 py-2 rounded-2xl">
-            {view === 'rifas' ? 'Mis Tickets' : 'Ver Sorteos'}
+            {view === 'rifas' ? 'Mis Tickets' : 'Sorteos'}
           </button>
           <button onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }} className="text-slate-300 hover:text-red-500 transition-all">
             <LogOut size={22}/>
@@ -416,12 +445,12 @@ const ClienteView = ({ userId }) => {
       <main className="p-4 max-w-2xl mx-auto">
         {view === 'mis-tickets' ? (
           <div className="space-y-4">
-            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Mis Tickets</h2>
-            {myTickets.length === 0 && <p className="text-center py-20 text-slate-400 text-sm">Aún no tienes tickets comprados.</p>}
+            <h2 className="text-xs font-black text-slate-400 uppercase">Mis Tickets</h2>
+            {myTickets.length === 0 && <p className="text-center py-20 text-slate-400 text-sm">Aún no tienes tickets.</p>}
             {myTickets.map(t => (
-              <div key={t.id_numero} className="bg-white p-5 rounded-2xl border flex justify-between items-center shadow-sm">
+              <div key={t.id_numero} className="bg-white p-5 rounded-2xl border flex justify-between items-center">
                 <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{t.rifas?.nombre}</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase">{t.rifas?.nombre}</p>
                   <p className="text-lg font-black italic">#{t.numero}</p>
                 </div>
                 <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${ESTADOS[t.estado].bg} ${ESTADOS[t.estado].text}`}>
@@ -432,16 +461,16 @@ const ClienteView = ({ userId }) => {
           </div>
         ) : !selectedRifa ? (
             <div className="space-y-4">
-                <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Sorteos Activos</h2>
+                <h2 className="text-xs font-black text-slate-400 uppercase">Sorteos Activos</h2>
                 {rifas.map(r => (
-                    <div key={r.id_rifa} onClick={() => selectRifa(r)} className="bg-white p-4 rounded-[2rem] border hover:border-blue-500 cursor-pointer transition-all shadow-sm flex gap-4 items-center">
+                    <div key={r.id_rifa} onClick={() => selectRifa(r)} className="bg-white p-4 rounded-[2rem] border hover:border-blue-500 cursor-pointer shadow-sm flex gap-4 items-center">
                         {r.imagen_url ? (
                           <img src={r.imagen_url} className="w-20 h-20 rounded-2xl object-cover bg-slate-50" />
                         ) : (
                           <div className="w-20 h-20 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-200"><ImageIcon size={32}/></div>
                         )}
                         <div className="flex-1">
-                          <h3 className="text-lg font-black uppercase italic leading-none mb-1">{r.nombre}</h3>
+                          <h3 className="text-lg font-black uppercase italic leading-none">{r.nombre}</h3>
                           <p className="text-[11px] text-slate-400 mb-2 line-clamp-1">{r.descripcion}</p>
                           <div className="text-blue-600 font-black text-sm">${r.precio} USD</div>
                         </div>
@@ -449,11 +478,11 @@ const ClienteView = ({ userId }) => {
                 ))}
             </div>
         ) : (
-            <div className="pb-32 animate-in fade-in duration-500">
+            <div className="pb-32">
                 <button onClick={() => setSelectedRifa(null)} className="mb-4 flex items-center gap-1 font-bold text-slate-400 text-sm"><ChevronLeft size={16}/> Volver</button>
                 <div className="bg-white p-6 rounded-[2.5rem] border mb-6 shadow-sm">
                     {selectedRifa.imagen_url && <img src={selectedRifa.imagen_url} className="w-full h-48 object-cover rounded-3xl mb-4 shadow-inner" />}
-                    <h2 className="text-2xl font-black uppercase italic tracking-tighter leading-tight">{selectedRifa.nombre}</h2>
+                    <h2 className="text-2xl font-black uppercase italic leading-tight">{selectedRifa.nombre}</h2>
                     <p className="text-xs text-slate-400 my-2">{selectedRifa.descripcion}</p>
                     <p className="text-blue-600 font-black">${selectedRifa.precio} USD por ticket</p>
                 </div>
@@ -467,18 +496,18 @@ const ClienteView = ({ userId }) => {
                             className={`aspect-square rounded-xl text-xs font-black border-2 transition-all
                                 ${n.estado === 'pagado' ? 'bg-red-500 border-red-600 text-white' : 
                                   n.estado === 'apartado' ? 'bg-yellow-400 border-yellow-500 text-yellow-900' : 
-                                  cart.includes(n.id_numero) ? 'bg-blue-600 border-blue-700 text-white scale-90 shadow-lg' : 'bg-green-500 border-green-600 text-white'}`}>
+                                  cart.includes(n.id_numero) ? 'bg-blue-600 border-blue-700 text-white scale-90' : 'bg-green-500 border-green-600 text-white'}`}>
                             {n.numero}
                         </button>
                     ))}
                 </div>
                 {cart.length > 0 && (
-                    <div className="fixed bottom-6 left-4 right-4 bg-slate-900 text-white p-6 rounded-[2.5rem] flex justify-between items-center shadow-2xl animate-in slide-in-from-bottom-8">
+                    <div className="fixed bottom-6 left-4 right-4 bg-slate-900 text-white p-6 rounded-[2.5rem] flex justify-between items-center shadow-2xl">
                         <div>
                             <p className="text-[10px] font-bold text-slate-400 uppercase">{cart.length} Tickets</p>
                             <p className="text-2xl font-black">${(cart.length * selectedRifa.precio).toFixed(2)}</p>
                         </div>
-                        <button onClick={() => setShowPay(true)} className="bg-blue-600 px-8 py-3 rounded-2xl font-black uppercase text-xs hover:bg-blue-700 transition-all">Pagar Ahora</button>
+                        <button onClick={() => setShowPay(true)} className="bg-blue-600 px-8 py-3 rounded-2xl font-black uppercase text-xs">Pagar</button>
                     </div>
                 )}
             </div>
@@ -488,17 +517,17 @@ const ClienteView = ({ userId }) => {
       {showPay && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-sm">
-                <h3 className="text-xl font-black mb-4 uppercase italic">Reportar Pago</h3>
-                <div className="bg-blue-50 p-5 rounded-2xl mb-4 border border-blue-100 text-xs text-blue-800 leading-relaxed">
-                    Envía el pago a:<br/><b>Pago Móvil Ejemplo Bank</b><br/>0412-0000000 / V-12345678
+                <h3 className="text-xl font-black mb-4 uppercase">Reportar Pago</h3>
+                <div className="bg-blue-50 p-5 rounded-2xl mb-4 text-xs text-blue-800 leading-relaxed">
+                    Envía el pago a:<br/><b>Banco Central</b><br/>0412-0000000 / V-12345678
                 </div>
-                <input type="text" maxLength="4" placeholder="Últimos 4 de Referencia" className="w-full p-4 bg-slate-50 border rounded-2xl mb-4 outline-none focus:border-blue-500 font-bold" 
+                <input type="text" maxLength="4" placeholder="Ref (4 dígitos)" className="w-full p-4 bg-slate-50 border rounded-2xl mb-4 font-bold" 
                     onChange={e => setPayData({ref: e.target.value})} />
                 <button onClick={async () => {
                     if(!payData.ref) return alert("Falta referencia");
                     const { error } = await supabase.from('numeros').update({ estado: 'apartado', comprador_id: userId, referencia_pago: payData.ref }).in('id_numero', cart);
-                    if(!error) { alert("¡Reporte enviado! Espera la confirmación."); setSelectedRifa(null); setShowPay(false); fetchMyTickets(); }
-                }} className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black uppercase text-xs">Enviar Reporte</button>
+                    if(!error) { alert("¡Enviado!"); setSelectedRifa(null); setShowPay(false); fetchMyTickets(); }
+                }} className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black uppercase text-xs">Enviar</button>
                 <button onClick={() => setShowPay(false)} className="w-full mt-2 text-slate-400 font-bold text-xs uppercase">Cancelar</button>
             </div>
         </div>
