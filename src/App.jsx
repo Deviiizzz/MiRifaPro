@@ -359,66 +359,25 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Obtener sesión inicial de forma segura
-    const initializeAuth = async () => {
-      const { data: { session: initialSession } } = await supabase.auth.getSession();
-      setSession(initialSession);
-      if (initialSession) {
-        await checkRole(initialSession.user.id);
-      } else {
-        setLoading(false);
-      }
-    };
-
-    initializeAuth();
-
-    // 2. Escuchar cambios de estado (Login/Logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      setSession(newSession);
-      
-      if (newSession) {
-        setLoading(true); // Activamos carga mientras validamos el rol
-        await checkRole(newSession.user.id);
-      } else {
-        setRole(null);
-        setLoading(false);
-      }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) checkRole(session.user.id);
+      else setLoading(false);
     });
-
-    return () => subscription.unsubscribe();
+    supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) checkRole(session.user.id);
+      else { setRole(null); setLoading(false); }
+    });
   }, []);
 
   const checkRole = async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .from('usuarios')
-        .select('rol')
-        .eq('id_usuario', userId)
-        .single();
-
-      if (error) throw error;
-      setRole(data?.rol || 'cliente');
-    } catch (err) {
-      console.error("Error validando rol:", err);
-      setRole('cliente'); // Fallback por defecto
-    } finally {
-      setLoading(false); // IMPORTANTE: Solo aquí dejamos de cargar
-    }
+    const { data } = await supabase.from('usuarios').select('rol').eq('id_usuario', userId).single();
+    setRole(data?.rol || 'cliente');
+    setLoading(false);
   };
 
-  // Renderizado condicional robusto
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
-        <Loader2 className="animate-spin text-blue-600 mb-4" size={50}/>
-        <p className="text-slate-400 font-medium animate-pulse">Cargando perfil...</p>
-      </div>
-    );
-  }
-
-  if (!session) {
-    return <Auth onLogin={(s) => setSession(s)} />;
-  }
-
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={40}/></div>;
+  if (!session) return <Auth onLogin={setSession} />;
   return role === 'admin' ? <AdminPanel /> : <ClienteView userId={session.user.id} />;
 }
