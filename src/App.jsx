@@ -429,11 +429,18 @@ const ClienteView = ({ userId }) => {
   };
 
   const fetchMyTickets = async () => {
-    const { data } = await supabase.from('numeros')
-      .select('*, rifas(*)')
+    // CORRECCIÓN: Usamos la relación explícita id_rifa para traer la información de la rifa
+    const { data, error } = await supabase
+      .from('numeros')
+      .select(`
+        *,
+        rifas (*)
+      `)
       .eq('comprador_id', userId)
       .order('creado_en', { ascending: false });
-    setMyTickets(data || []);
+
+    if (error) console.error("Error en fetchMyTickets:", error);
+    else setMyTickets(data || []);
   };
 
   const selectRifa = async (rifa) => {
@@ -443,10 +450,15 @@ const ClienteView = ({ userId }) => {
     setCart([]);
   };
 
-  // Agrupar tickets para el historial detallado
+  // Agrupar tickets para el historial detallado con validación de datos
   const ticketsPorRifa = myTickets.reduce((acc, t) => {
+    // Si por alguna razón la rifa no viene cargada, no procesamos este ticket para evitar el error
+    if (!t.rifas) return acc;
+    
     const rifaId = t.id_rifa;
-    if (!acc[rifaId]) acc[rifaId] = { info: t.rifas, numeros: [] };
+    if (!acc[rifaId]) {
+      acc[rifaId] = { info: t.rifas, numeros: [] };
+    }
     acc[rifaId].numeros.push(t);
     return acc;
   }, {});
@@ -468,22 +480,32 @@ const ClienteView = ({ userId }) => {
         {view === 'mis-tickets' && (
           <div className="space-y-6">
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Mis Participaciones</h2>
-            {Object.keys(ticketsPorRifa).length === 0 && <div className="text-center py-20 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200 text-slate-400 italic">No tienes tickets todavía.</div>}
-            {Object.values(ticketsPorRifa).map(grupo => (
-              <div key={grupo.info.id_rifa} className="bg-white rounded-[2.5rem] border shadow-sm overflow-hidden">
-                <div className="bg-slate-900 p-5 text-white flex justify-between items-center">
-                  <div><h3 className="font-black uppercase text-xs italic leading-tight">{grupo.info.nombre}</h3><p className="text-[9px] text-slate-400 uppercase font-bold tracking-widest">Sorteo Verificado</p></div>
-                  <button onClick={() => setViewTicket(grupo)} className="bg-blue-600 p-3 rounded-2xl hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20"><Download size={18}/></button>
-                </div>
-                <div className="p-5 flex flex-wrap gap-2">
-                  {grupo.numeros.map(n => (
-                    <div key={n.id_numero} className="text-center">
-                      <div className={`text-sm font-black w-12 h-12 flex items-center justify-center rounded-2xl border-2 ${ESTADOS[n.estado].bg} ${ESTADOS[n.estado].text} ${ESTADOS[n.estado].border}`}>#{n.numero}</div>
-                    </div>
-                  ))}
-                </div>
+            {Object.keys(ticketsPorRifa).length === 0 ? (
+              <div className="text-center py-20 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200 text-slate-400 italic">
+                No tienes tickets todavía.
               </div>
-            ))}
+            ) : (
+              Object.values(ticketsPorRifa).map(grupo => (
+                <div key={grupo.info.id_rifa} className="bg-white rounded-[2.5rem] border shadow-sm overflow-hidden">
+                  <div className="bg-slate-900 p-5 text-white flex justify-between items-center">
+                    <div>
+                      <h3 className="font-black uppercase text-xs italic leading-tight">{grupo.info.nombre}</h3>
+                      <p className="text-[9px] text-slate-400 uppercase font-bold tracking-widest">Sorteo Verificado</p>
+                    </div>
+                    <button onClick={() => setViewTicket(grupo)} className="bg-blue-600 p-3 rounded-2xl hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20">
+                      <Download size={18}/>
+                    </button>
+                  </div>
+                  <div className="p-5 flex flex-wrap gap-2">
+                    {grupo.numeros.map(n => (
+                      <div key={n.id_numero} className={`text-sm font-black w-12 h-12 flex items-center justify-center rounded-2xl border-2 ${ESTADOS[n.estado].bg} ${ESTADOS[n.estado].text} ${ESTADOS[n.estado].border}`}>
+                        #{n.numero}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         )}
 
