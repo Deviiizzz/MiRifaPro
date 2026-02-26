@@ -363,7 +363,13 @@ const AdminPanel = () => {
             <div className="bg-blue-600 p-2 rounded-xl text-white"><Building2 size={18}/></div>
             <h1 className="font-black italic text-xl text-blue-600 tracking-tighter uppercase">AlexCars' Edition ADMIN</h1>
         </div>
-        <button onClick={async () => { await supabase.auth.signOut(); }} className="text-red-500 p-2 bg-red-50 rounded-xl transition-all hover:bg-red-100 flex items-center gap-2 text-xs font-black">
+        <button 
+          onClick={async () => { 
+            await supabase.auth.signOut(); 
+            window.location.href = '/'; 
+          }} 
+          className="text-red-500 p-2 bg-red-50 rounded-xl transition-all hover:bg-red-100 flex items-center gap-2 text-xs font-black"
+        >
           <LogOut size={18}/> SALIR
         </button>
       </nav>
