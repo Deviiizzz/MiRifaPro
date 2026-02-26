@@ -7,7 +7,7 @@ import {
 
 // Librerías para documentos
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable'; // Cambio aquí: importación directa
 import * as XLSX from 'xlsx';
 
 const ESTADOS = {
@@ -138,7 +138,6 @@ const AdminPanel = () => {
     return acc;
   }, {});
 
-  // --- FUNCIÓN EXCEL ADMIN ---
   const exportarExcel = () => {
     const dataParaExcel = [];
     Object.values(clientesAgrupados).forEach(cliente => {
@@ -464,30 +463,45 @@ const ClienteView = ({ userId }) => {
     setCart([]);
   };
 
-  // --- FUNCIÓN PDF CLIENTE ---
+  // --- FUNCIÓN PDF CLIENTE (VERSION CORREGIDA) ---
   const descargarComprobante = () => {
-    const misNumeros = nums.filter(n => n.comprador_id === userId);
-    if (misNumeros.length === 0) return alert("No tienes números en esta rifa.");
+    try {
+      const misNumeros = nums.filter(n => n.comprador_id === userId);
+      if (misNumeros.length === 0) return alert("No tienes números en esta rifa.");
 
-    const doc = new jsPDF();
-    doc.setFontSize(22);
-    doc.setTextColor(37, 99, 235);
-    doc.text("RIFAPRO - COMPROBANTE", 105, 20, { align: 'center' });
-    
-    doc.setFontSize(14);
-    doc.setTextColor(50);
-    doc.text(selectedRifa.nombre, 105, 30, { align: 'center' });
+      const doc = new jsPDF();
 
-    const rows = misNumeros.map(n => [`#${n.numero}`, n.estado.toUpperCase(), n.referencia_pago || 'N/A']);
-    
-    doc.autoTable({
-      startY: 40,
-      head: [['Ticket', 'Estado', 'Referencia']],
-      body: rows,
-      headStyles: { fillColor: [37, 99, 235] }
-    });
+      // Título y Estilo
+      doc.setFontSize(22);
+      doc.setTextColor(37, 99, 235);
+      doc.text("RIFAPRO - COMPROBANTE", 105, 20, { align: 'center' });
+      
+      doc.setFontSize(14);
+      doc.setTextColor(50);
+      doc.text(selectedRifa.nombre, 105, 30, { align: 'center' });
 
-    doc.save(`Tickets_${selectedRifa.nombre}.pdf`);
+      // Preparar filas
+      const tableRows = misNumeros.map(n => [
+        `#${n.numero}`, 
+        n.estado.toUpperCase(), 
+        n.referencia_pago || 'N/A'
+      ]);
+
+      // LLAMADA DIRECTA A autoTable
+      autoTable(doc, {
+        startY: 40,
+        head: [['Número', 'Estado', 'Referencia']],
+        body: tableRows,
+        headStyles: { fillColor: [37, 99, 235] },
+        theme: 'striped',
+        styles: { halign: 'center' }
+      });
+
+      doc.save(`Tickets_${selectedRifa.nombre.replace(/\s+/g, '_')}.pdf`);
+    } catch (error) {
+      console.error("Error al generar PDF:", error);
+      alert("Hubo un problema al generar el PDF.");
+    }
   };
 
   return (
