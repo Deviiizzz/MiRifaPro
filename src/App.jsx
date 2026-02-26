@@ -5,6 +5,11 @@ import {
   User, Phone, ChevronLeft, Trash2, Download, Eye, EyeOff, FileText, Image as ImageIcon, Edit3, Printer
 } from 'lucide-react';
 
+// Librerías para documentos
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import * as XLSX from 'xlsx';
+
 const ESTADOS = {
   disponible: { bg: 'bg-green-500', border: 'border-green-600', text: 'text-white', label: 'Libre' },
   apartado: { bg: 'bg-yellow-400', border: 'border-yellow-500', text: 'text-yellow-900', label: 'Revision' },
@@ -117,20 +122,6 @@ const AdminPanel = () => {
     setView('detail');
   };
 
-  const aprobarTodoElCliente = async (clienteId) => {
-    if(!window.confirm("¿Aprobar todos los números pendientes de este cliente?")) return;
-    setLoadingAction(true);
-    const { error } = await supabase
-      .from('numeros')
-      .update({ estado: 'pagado' })
-      .eq('id_rifa', selectedRifa.id_rifa)
-      .eq('comprador_id', clienteId)
-      .eq('estado', 'apartado');
-    
-    if(!error) openRifaDetail(selectedRifa);
-    setLoadingAction(false);
-  };
-
   const clientesAgrupados = numsRifa.reduce((acc, n) => {
     if (n.comprador_id) {
       const id = n.comprador_id;
@@ -146,6 +137,45 @@ const AdminPanel = () => {
     }
     return acc;
   }, {});
+
+  // --- FUNCIÓN EXCEL ADMIN ---
+  const exportarExcel = () => {
+    const dataParaExcel = [];
+    Object.values(clientesAgrupados).forEach(cliente => {
+      cliente.numeros.forEach(num => {
+        dataParaExcel.push({
+          Rifa: selectedRifa.nombre,
+          Nombre: cliente.info?.nombre,
+          Apellido: cliente.info?.apellido,
+          Telefono: cliente.info?.telefono,
+          Numero_Ticket: num.numero,
+          Estado: num.estado,
+          Referencia: num.referencia_pago
+        });
+      });
+    });
+
+    if (dataParaExcel.length === 0) return alert("No hay datos para exportar.");
+
+    const ws = XLSX.utils.json_to_sheet(dataParaExcel);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Participantes");
+    XLSX.writeFile(wb, `Reporte_Rifa_${selectedRifa.nombre}.xlsx`);
+  };
+
+  const aprobarTodoElCliente = async (clienteId) => {
+    if(!window.confirm("¿Aprobar todos los números pendientes de este cliente?")) return;
+    setLoadingAction(true);
+    const { error } = await supabase
+      .from('numeros')
+      .update({ estado: 'pagado' })
+      .eq('id_rifa', selectedRifa.id_rifa)
+      .eq('comprador_id', clienteId)
+      .eq('estado', 'apartado');
+    
+    if(!error) openRifaDetail(selectedRifa);
+    setLoadingAction(false);
+  };
 
   const crearRifa = async (e) => {
     e.preventDefault();
@@ -301,7 +331,12 @@ const AdminPanel = () => {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <button onClick={() => setView('list')} className="flex items-center gap-1 text-sm font-bold text-slate-400"><ChevronLeft size={16}/> Volver</button>
-                <button onClick={() => setShowManualAssign(true)} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md"><Plus size={14}/> Venta Manual</button>
+                <div className="flex gap-2">
+                  <button onClick={exportarExcel} className="bg-green-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md hover:bg-green-700 transition-all">
+                    <FileText size={14}/> Reporte Excel
+                  </button>
+                  <button onClick={() => setShowManualAssign(true)} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md"><Plus size={14}/> Venta Manual</button>
+                </div>
             </div>
 
             <div className="flex flex-col lg:flex-row gap-6">
@@ -429,6 +464,32 @@ const ClienteView = ({ userId }) => {
     setCart([]);
   };
 
+  // --- FUNCIÓN PDF CLIENTE ---
+  const descargarComprobante = () => {
+    const misNumeros = nums.filter(n => n.comprador_id === userId);
+    if (misNumeros.length === 0) return alert("No tienes números en esta rifa.");
+
+    const doc = new jsPDF();
+    doc.setFontSize(22);
+    doc.setTextColor(37, 99, 235);
+    doc.text("RIFAPRO - COMPROBANTE", 105, 20, { align: 'center' });
+    
+    doc.setFontSize(14);
+    doc.setTextColor(50);
+    doc.text(selectedRifa.nombre, 105, 30, { align: 'center' });
+
+    const rows = misNumeros.map(n => [`#${n.numero}`, n.estado.toUpperCase(), n.referencia_pago || 'N/A']);
+    
+    doc.autoTable({
+      startY: 40,
+      head: [['Ticket', 'Estado', 'Referencia']],
+      body: rows,
+      headStyles: { fillColor: [37, 99, 235] }
+    });
+
+    doc.save(`Tickets_${selectedRifa.nombre}.pdf`);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
       <header className="bg-white p-4 border-b flex justify-between items-center sticky top-0 z-20 shadow-sm">
@@ -457,11 +518,18 @@ const ClienteView = ({ userId }) => {
           <div className="pb-32">
             <div className="flex justify-between items-center mb-4">
               <button onClick={() => setSelectedRifa(null)} className="flex items-center gap-1 font-bold text-slate-400 text-sm"><ChevronLeft size={16}/> Volver</button>
-              <button 
-                onClick={() => setHideSold(!hideSold)} 
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-sm ${hideSold ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 border'}`}>
-                {hideSold ? <Eye size={14}/> : <EyeOff size={14}/>} {hideSold ? 'Ver Todo' : 'Limpiar Grilla'}
-              </button>
+              <div className="flex gap-2">
+                {nums.some(n => n.comprador_id === userId) && (
+                  <button onClick={descargarComprobante} className="flex items-center gap-2 bg-white border px-4 py-2 rounded-full text-[10px] font-black uppercase text-blue-600 shadow-sm">
+                    <Download size={14}/> Mis Tickets
+                  </button>
+                )}
+                <button 
+                  onClick={() => setHideSold(!hideSold)} 
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-sm ${hideSold ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 border'}`}>
+                  {hideSold ? <Eye size={14}/> : <EyeOff size={14}/>} {hideSold ? 'Ver Todo' : 'Limpiar'}
+                </button>
+              </div>
             </div>
             
             <div className="bg-white p-6 rounded-[2.5rem] border mb-6 shadow-sm relative overflow-hidden">
@@ -498,7 +566,7 @@ const ClienteView = ({ userId }) => {
       {/* MODAL PAGO */}
       {showPay && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-8 rounded-[3rem] w-full max-w-sm">
+          <div className="bg-white p-8 rounded-[3rem] w-full max-sm:p-6 w-full max-w-sm">
             <h3 className="text-2xl font-black mb-4 uppercase italic text-blue-600">Pagar</h3>
             <div className="bg-blue-50 p-5 rounded-2xl mb-5 text-[11px] text-blue-800 leading-relaxed border border-blue-100 font-bold uppercase text-center">Transfiere a:<br/>BANCO CENTRAL<br/>0412-0000000 / V-12345678</div>
             <input type="text" maxLength="4" placeholder="Últimos 4 dígitos Ref." className="w-full p-5 bg-slate-50 border-2 rounded-2xl mb-5 font-black text-center outline-none focus:border-blue-500 text-lg" onChange={e => setPayData({ref: e.target.value})} />
