@@ -888,6 +888,7 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // 1. Si está cargando, mostramos el spinner
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
         <div className="bg-white p-10 rounded-[3rem] shadow-2xl flex flex-col items-center border border-slate-100">
@@ -897,7 +898,16 @@ export default function App() {
     </div>
   );
 
-  if (!session) return <Auth onLogin={setSession} />;
+  // 2. Si NO hay sesión, mostramos el Login (Auth)
+  if (!session) {
+    return <Auth onLogin={setSession} />;
+  }
   
-  return role === 'admin' ? <AdminPanel /> : <ClienteView userId={session.user.id} />;
+  // 3. Si hay sesión, decidimos qué vista mostrar con precaución
+  if (role === 'admin') {
+    return <AdminPanel />;
+  } else {
+    // Solo renderizamos ClienteView si session.user existe
+    return <ClienteView userId={session.user?.id} />;
+  }
 }
