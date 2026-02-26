@@ -363,13 +363,7 @@ const AdminPanel = () => {
             <div className="bg-blue-600 p-2 rounded-xl text-white"><Building2 size={18}/></div>
             <h1 className="font-black italic text-xl text-blue-600 tracking-tighter uppercase">AlexCars' Edition ADMIN</h1>
         </div>
-        <button 
-          onClick={async () => { 
-            await supabase.auth.signOut(); 
-            window.location.href = '/'; 
-          }} 
-          className="text-red-500 p-2 bg-red-50 rounded-xl transition-all hover:bg-red-100 flex items-center gap-2 text-xs font-black"
-        >
+        <button onClick={async () => { await supabase.auth.signOut(); }} className="text-red-500 p-2 bg-red-50 rounded-xl transition-all hover:bg-red-100 flex items-center gap-2 text-xs font-black">
           <LogOut size={18}/> SALIR
         </button>
       </nav>
@@ -699,13 +693,7 @@ const ClienteView = ({ userId }) => {
             <div className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-100"><Trophy size={20}/></div>
             <h1 className="font-black italic text-2xl tracking-tighter text-blue-600 uppercase">AlexCars' Edition</h1>
         </div>
-        <button 
-          onClick={async () => { 
-            await supabase.auth.signOut(); 
-            window.location.href = '/'; 
-          }} 
-          className="p-3 text-slate-300 bg-slate-50 rounded-2xl hover:text-red-500 hover:bg-red-50 transition-all"
-        >
+        <button onClick={async () => { await supabase.auth.signOut(); }} className="p-3 text-slate-300 bg-slate-50 rounded-2xl hover:text-red-500 hover:bg-red-50 transition-all">
           <LogOut size={22}/>
         </button>
       </header>
@@ -865,49 +853,26 @@ export default function App() {
     try {
       const { data } = await supabase.from('usuarios').select('rol').eq('id_usuario', userId).single();
       setRole(data?.rol || 'cliente');
-    } catch { 
-      setRole('cliente'); 
-    } finally { 
-      setLoading(false); 
-    }
+    } catch { setRole('cliente'); } finally { setLoading(false); }
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setLoading(true);
-      if (session) {
-        setSession(session);
-        await checkRole(session.user.id);
-      } else {
-        setSession(null);
-        setRole(null);
-      }
-      setLoading(false);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session); if (session) checkRole(session.user.id); else setLoading(false);
     });
-
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSession(s); if (s) checkRole(s.user.id); else { setRole(null); setLoading(false); }
+    });
     return () => subscription.unsubscribe();
   }, []);
 
-  // 1. Si está cargando, mostramos el spinner
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
         <div className="bg-white p-10 rounded-[3rem] shadow-2xl flex flex-col items-center border border-slate-100">
-            <Loader2 className="animate-spin text-blue-600 mb-4" size={48}/>
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] animate-pulse">Cargando AlexCars' Edition...</p>
+            <Loader2 className="animate-spin text-blue-600 mb-4" size={48}/><p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] animate-pulse">Cargando AlexCars' Edition...</p>
         </div>
     </div>
   );
-
-  // 2. Si NO hay sesión, mostramos el Login (Auth)
-  if (!session) {
-    return <Auth onLogin={setSession} />;
-  }
-  
-  // 3. Si hay sesión, decidimos qué vista mostrar con precaución
-  if (role === 'admin') {
-    return <AdminPanel />;
-  } else {
-    // Solo renderizamos ClienteView si session.user existe
-    return <ClienteView userId={session.user?.id} />;
-  }
+  if (!session) return <Auth onLogin={setSession} />;
+  return role === 'admin' ? <AdminPanel /> : <ClienteView userId={session.user.id} />;
 }
