@@ -1,33 +1,62 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import { LogOut, Plus, Trash2, Ticket, ShoppingCart, X, CheckCircle2, Loader2, CreditCard, ShieldCheck, Clock, User } from 'lucide-react';
+import { LogOut, Plus, Trash2, Ticket, ShoppingCart, X, CheckCircle2, Loader2, CreditCard, ShieldCheck, Clock, User, UserPlus } from 'lucide-react';
 
-// --- LOGIN ---
-const Login = ({ onLogin }) => {
+// --- COMPONENTE DE ACCESO (LOGIN Y REGISTRO) ---
+const Auth = ({ onLogin }) => {
+  const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e) => {
+  const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) alert("Error: " + error.message);
-    else onLogin(data.user);
+    
+    if (isRegistering) {
+      // PROCESO DE REGISTRO
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        alert("Error al registrar: " + error.message);
+      } else {
+        // Al registrarse, creamos automáticamente su perfil de cliente en la tabla usuarios
+        const { error: dbError } = await supabase
+          .from('usuarios')
+          .insert([{ id_usuario: data.user.id, email: email, rol: 'cliente' }]);
+        
+        if (dbError) console.error("Error creando perfil:", dbError);
+        alert("¡Registro exitoso! Ya puedes iniciar sesión.");
+        setIsRegistering(false);
+      }
+    } else {
+      // PROCESO DE LOGIN
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) alert("Error: " + error.message);
+      else onLogin(data.user);
+    }
     setLoading(false);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
       <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-slate-200">
-        <h2 className="text-4xl font-black text-center mb-8 text-slate-800 tracking-tighter italic">RIFAPRO</h2>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <input type="email" placeholder="Email" className="w-full p-4 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500" onChange={(e) => setEmail(e.target.value)} required />
-          <input type="password" placeholder="Contraseña" className="w-full p-4 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500" onChange={(e) => setPassword(e.target.value)} required />
-          <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white p-4 rounded-xl font-bold hover:bg-blue-600 transition-all flex justify-center">
-            {loading ? <Loader2 className="animate-spin" /> : "ACCEDER"}
+        <h2 className="text-4xl font-black text-center mb-2 text-slate-800 tracking-tighter italic">RIFAPRO</h2>
+        <p className="text-center text-slate-500 mb-8">{isRegistering ? 'Crea tu cuenta de comprador' : 'Gestión profesional de sorteos'}</p>
+        
+        <form onSubmit={handleAuth} className="space-y-4">
+          <input type="email" placeholder="Correo Electrónico" className="w-full p-4 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500" onChange={(e) => setEmail(e.target.value)} required />
+          <input type="password" placeholder="Contraseña (mín. 6 caracteres)" className="w-full p-4 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500" onChange={(e) => setPassword(e.target.value)} required />
+          <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white p-4 rounded-xl font-bold hover:bg-blue-600 transition-all flex justify-center items-center gap-2">
+            {loading ? <Loader2 className="animate-spin" /> : (isRegistering ? <><UserPlus size={20}/> REGISTRARME</> : 'ENTRAR')}
           </button>
         </form>
+
+        <button 
+          onClick={() => setIsRegistering(!isRegistering)} 
+          className="w-full mt-6 text-sm font-bold text-blue-600 hover:underline text-center"
+        >
+          {isRegistering ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate aquí'}
+        </button>
       </div>
     </div>
   );
@@ -261,6 +290,6 @@ export default function App() {
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={50}/></div>;
-  if (!session) return <Login onLogin={setSession} />;
+  if (!session) return <Auth onLogin={setSession} />; // <--- CAMBIADO AQUÍ
   return role === 'admin' ? <AdminPanel /> : <ClienteView userEmail={session.user.email} />;
 }
