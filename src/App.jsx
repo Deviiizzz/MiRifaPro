@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { 
   LogOut, Plus, Ticket, X, CheckCircle2, Loader2, CreditCard, 
-  User, Phone, ChevronLeft, Trash2, Download, Eye, FileText 
+  User, Phone, ChevronLeft, Trash2, Download, Eye, FileText, Image as ImageIcon
 } from 'lucide-react';
 
-// --- ESTILOS DE COLORES POR ESTADO ---
 const ESTADOS = {
   disponible: { bg: 'bg-green-500', border: 'border-green-600', text: 'text-white', label: 'Libre' },
   apartado: { bg: 'bg-yellow-400', border: 'border-yellow-500', text: 'text-yellow-900', label: 'Revision' },
@@ -77,6 +76,7 @@ const AdminPanel = () => {
   const [selectedRifa, setSelectedRifa] = useState(null);
   const [numsRifa, setNumsRifa] = useState([]);
   const [newRifa, setNewRifa] = useState({ nombre: '', descripcion: '', cantidad: 100, precio: 0, fecha: '' });
+  const [imageFile, setImageFile] = useState(null);
   const [numDetail, setNumDetail] = useState(null);
   const [stats, setStats] = useState({ recaudado: 0, vendidos: 0, pendientes: 0 });
   const [loadingAction, setLoadingAction] = useState(false);
@@ -109,21 +109,52 @@ const AdminPanel = () => {
 
   const crearRifa = async (e) => {
     e.preventDefault();
-    const { data, error } = await supabase.from('rifas').insert([{
-      nombre: newRifa.nombre, descripcion: newRifa.descripcion,
-      precio: newRifa.precio, cantidad_numeros: newRifa.cantidad,
-      fecha_fin: newRifa.fecha, estado: 'activa'
-    }]).select();
+    setLoadingAction(true);
+    let publicUrl = null;
 
-    if (!error) {
+    try {
+      // 1. Subir Imagen si existe
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        let { error: uploadError } = await supabase.storage
+          .from('rifas_premios')
+          .upload(filePath, imageFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('rifas_premios')
+          .getPublicUrl(filePath);
+        
+        publicUrl = urlData.publicUrl;
+      }
+
+      // 2. Crear Rifa
+      const { data, error } = await supabase.from('rifas').insert([{
+        nombre: newRifa.nombre, descripcion: newRifa.descripcion,
+        precio: newRifa.precio, cantidad_numeros: newRifa.cantidad,
+        fecha_fin: newRifa.fecha, estado: 'activa', imagen_url: publicUrl
+      }]).select();
+
+      if (error) throw error;
+
+      // 3. Crear Números
       const numEntries = Array.from({ length: newRifa.cantidad }, (_, i) => ({
         id_rifa: data[0].id_rifa, numero: i + 1, estado: 'disponible'
       }));
       await supabase.from('numeros').insert(numEntries);
+
       alert("Rifa creada con éxito");
       setView('list');
       fetchRifas();
       calculateStats();
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      setLoadingAction(false);
     }
   };
 
@@ -152,11 +183,9 @@ const AdminPanel = () => {
       const numerosArray = manualData.numeros.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
       if (numerosArray.length === 0) throw new Error("Ingresa números válidos");
 
-      // Buscar si el usuario ya existe
       let { data: usuario } = await supabase.from('usuarios').select('id_usuario').eq('telefono', manualData.telefono).maybeSingle();
       let clienteId = usuario?.id_usuario;
 
-      // Si no existe, crear (id_usuario se genera solo en la DB)
       if (!clienteId) {
         const { data: newUser, error: createError } = await supabase.from('usuarios').insert([{
           nombre: manualData.nombre, apellido: manualData.apellido,
@@ -166,7 +195,6 @@ const AdminPanel = () => {
         clienteId = newUser.id_usuario;
       }
 
-      // Actualizar tickets
       const { error: updateError } = await supabase.from('numeros').update({
         estado: manualData.estado, comprador_id: clienteId, referencia_pago: 'VENTA_MANUAL'
       }).eq('id_rifa', selectedRifa.id_rifa).in('numero', numerosArray);
@@ -187,7 +215,7 @@ const AdminPanel = () => {
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       <nav className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
-        <h1 className="font-black italic text-xl">RIFAPRO ADMIN</h1>
+        <h1 className="font-black italic text-xl tracking-tighter">RIFAPRO ADMIN</h1>
         <button onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }} className="text-red-500 p-2 hover:bg-red-50 rounded-xl transition-all">
           <LogOut size={22}/>
         </button>
@@ -213,12 +241,17 @@ const AdminPanel = () => {
 
             <button onClick={() => setView('create')} className="w-full bg-blue-600 text-white p-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg hover:bg-blue-700 transition-all"><Plus/> Nueva Rifa</button>
             
-            <div className="grid gap-3">
+            <div className="grid gap-4">
               {rifas.map(r => (
-                <div key={r.id_rifa} className="bg-white p-5 rounded-2xl shadow-sm border flex justify-between items-center">
+                <div key={r.id_rifa} className="bg-white p-4 rounded-3xl shadow-sm border flex items-center gap-4">
+                  {r.imagen_url ? (
+                    <img src={r.imagen_url} className="w-16 h-16 rounded-2xl object-cover bg-slate-100" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-300"><ImageIcon size={24}/></div>
+                  )}
                   <div onClick={() => openRifaDetail(r)} className="cursor-pointer flex-1">
-                    <h3 className="font-bold uppercase">{r.nombre}</h3>
-                    <p className="text-xs text-slate-400">Fin: {r.fecha_fin}</p>
+                    <h3 className="font-bold uppercase text-sm leading-tight">{r.nombre}</h3>
+                    <p className="text-[10px] text-slate-400">Finaliza: {r.fecha_fin}</p>
                   </div>
                   <button onClick={async () => { if(window.confirm("¿Borrar rifa?")) { await supabase.from('rifas').delete().eq('id_rifa', r.id_rifa); fetchRifas(); calculateStats(); } }} className="text-slate-300 hover:text-red-500 p-2"><Trash2 size={18}/></button>
                 </div>
@@ -228,7 +261,7 @@ const AdminPanel = () => {
         )}
 
         {view === 'detail' && selectedRifa && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-in fade-in duration-500">
             <div className="flex justify-between items-center">
                 <button onClick={() => setView('list')} className="flex items-center gap-1 text-sm font-bold text-slate-400"><ChevronLeft size={16}/> Volver</button>
                 <div className="flex gap-2">
@@ -236,8 +269,9 @@ const AdminPanel = () => {
                   <button onClick={() => window.print()} className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2"><Download size={14}/> PDF</button>
                 </div>
             </div>
-            <div className="bg-white p-6 rounded-3xl border shadow-sm">
-                <h2 className="text-2xl font-black uppercase italic">{selectedRifa.nombre}</h2>
+            <div className="bg-white p-6 rounded-3xl border shadow-sm flex gap-4 items-center">
+                {selectedRifa.imagen_url && <img src={selectedRifa.imagen_url} className="w-20 h-20 rounded-2xl object-cover shadow-md" />}
+                <h2 className="text-2xl font-black uppercase italic tracking-tighter">{selectedRifa.nombre}</h2>
             </div>
             <div className="grid grid-cols-6 sm:grid-cols-10 gap-2">
               {numsRifa.map(n => (
@@ -251,18 +285,27 @@ const AdminPanel = () => {
         )}
 
         {view === 'create' && (
-          <div className="bg-white p-6 rounded-3xl shadow-sm border">
+          <div className="bg-white p-6 rounded-3xl shadow-sm border animate-in slide-in-from-bottom-4">
             <button onClick={() => setView('list')} className="mb-4 flex items-center gap-1 text-sm font-bold text-slate-400"><ChevronLeft size={16}/> Volver</button>
-            <h2 className="text-xl font-black mb-4 uppercase">Nueva Rifa</h2>
+            <h2 className="text-xl font-black mb-4 uppercase italic">Configurar Nuevo Sorteo</h2>
             <form onSubmit={crearRifa} className="space-y-4">
-              <input type="text" placeholder="Nombre" className="w-full p-3 bg-slate-50 rounded-xl border outline-none focus:border-blue-500" required onChange={e => setNewRifa({...newRifa, nombre: e.target.value})} />
-              <textarea placeholder="Premios / Descripción" className="w-full p-3 bg-slate-50 rounded-xl border outline-none focus:border-blue-500" onChange={e => setNewRifa({...newRifa, descripcion: e.target.value})} />
-              <div className="grid grid-cols-2 gap-4">
-                <input type="number" placeholder="Números" className="w-full p-3 bg-slate-50 rounded-xl border" onChange={e => setNewRifa({...newRifa, cantidad: e.target.value})} />
-                <input type="number" step="0.01" placeholder="Precio $" className="w-full p-3 bg-slate-50 rounded-xl border" onChange={e => setNewRifa({...newRifa, precio: parseFloat(e.target.value)})} />
+              <div className="flex justify-center">
+                <label className="w-full flex flex-col items-center px-4 py-6 bg-slate-50 text-blue-500 rounded-3xl border-2 border-dashed border-blue-200 cursor-pointer hover:bg-blue-50 transition-all">
+                  <ImageIcon size={32} className="mb-2"/>
+                  <span className="text-[10px] font-black uppercase">{imageFile ? imageFile.name : 'Subir Foto del Premio'}</span>
+                  <input type='file' accept="image/*" className="hidden" onChange={(e) => setImageFile(e.target.files[0])} />
+                </label>
               </div>
-              <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border" required onChange={e => setNewRifa({...newRifa, fecha: e.target.value})} />
-              <button className="w-full bg-blue-600 text-white p-4 rounded-xl font-black uppercase shadow-lg">Lanzar Sorteo</button>
+              <input type="text" placeholder="Nombre de la Rifa" className="w-full p-3 bg-slate-50 rounded-xl border outline-none focus:border-blue-500" required onChange={e => setNewRifa({...newRifa, nombre: e.target.value})} />
+              <textarea placeholder="Descripción del premio..." className="w-full p-3 bg-slate-50 rounded-xl border outline-none focus:border-blue-500" onChange={e => setNewRifa({...newRifa, descripcion: e.target.value})} />
+              <div className="grid grid-cols-2 gap-4">
+                <input type="number" placeholder="Cantidad Números" className="w-full p-3 bg-slate-50 rounded-xl border" onChange={e => setNewRifa({...newRifa, cantidad: e.target.value})} />
+                <input type="number" step="0.01" placeholder="Precio Ticket $" className="w-full p-3 bg-slate-50 rounded-xl border" onChange={e => setNewRifa({...newRifa, precio: parseFloat(e.target.value)})} />
+              </div>
+              <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border font-bold" required onChange={e => setNewRifa({...newRifa, fecha: e.target.value})} />
+              <button disabled={loadingAction} className="w-full bg-blue-600 text-white p-4 rounded-2xl font-black uppercase shadow-lg disabled:opacity-50">
+                {loadingAction ? <Loader2 className="animate-spin mx-auto"/> : 'Lanzar Rifa Ahora'}
+              </button>
             </form>
           </div>
         )}
@@ -273,31 +316,21 @@ const AdminPanel = () => {
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-[2.5rem] w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between mb-6">
-              <h3 className="text-xl font-black uppercase italic">Venta Directa</h3>
+              <h3 className="text-xl font-black uppercase italic tracking-tighter">Venta Directa</h3>
               <button onClick={() => setShowManualAssign(false)}><X/></button>
             </div>
             <form onSubmit={handleManualAssignment} className="space-y-4">
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 ml-2">NÚMEROS (Ej: 1, 5, 20)</label>
-                <input type="text" required placeholder="Separados por coma" className="w-full p-3 bg-slate-50 rounded-xl border outline-none"
-                  onChange={e => setManualData({...manualData, numeros: e.target.value})} />
-              </div>
+              <input type="text" required placeholder="Números (Ej: 1, 5, 20)" className="w-full p-3 bg-slate-50 rounded-xl border outline-none"
+                onChange={e => setManualData({...manualData, numeros: e.target.value})} />
               <div className="grid grid-cols-2 gap-3">
-                <input type="text" placeholder="Nombre" required className="p-3 bg-slate-50 rounded-xl border outline-none"
-                  onChange={e => setManualData({...manualData, nombre: e.target.value})} />
-                <input type="text" placeholder="Apellido" required className="p-3 bg-slate-50 rounded-xl border outline-none"
-                  onChange={e => setManualData({...manualData, apellido: e.target.value})} />
+                <input type="text" placeholder="Nombre" required className="p-3 bg-slate-50 rounded-xl border" onChange={e => setManualData({...manualData, nombre: e.target.value})} />
+                <input type="text" placeholder="Apellido" required className="p-3 bg-slate-50 rounded-xl border" onChange={e => setManualData({...manualData, apellido: e.target.value})} />
               </div>
-              <input type="tel" placeholder="Teléfono" required className="w-full p-3 bg-slate-50 rounded-xl border outline-none"
-                onChange={e => setManualData({...manualData, telefono: e.target.value})} />
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 ml-2">ESTADO DE VENTA</label>
-                <select className="w-full p-3 bg-slate-50 rounded-xl border font-bold"
-                  onChange={e => setManualData({...manualData, estado: e.target.value})}>
-                  <option value="apartado">🟡 REVISIÓN (Por confirmar)</option>
-                  <option value="pagado">🔴 VENDIDO (Pagado)</option>
-                </select>
-              </div>
+              <input type="tel" placeholder="Teléfono" required className="w-full p-3 bg-slate-50 rounded-xl border" onChange={e => setManualData({...manualData, telefono: e.target.value})} />
+              <select className="w-full p-3 bg-slate-50 rounded-xl border font-bold" onChange={e => setManualData({...manualData, estado: e.target.value})}>
+                <option value="apartado">🟡 REVISIÓN (Por confirmar)</option>
+                <option value="pagado">🔴 VENDIDO (Pagado)</option>
+              </select>
               <button className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black uppercase text-xs">
                 {loadingAction ? <Loader2 className="animate-spin mx-auto" /> : 'Confirmar Venta'}
               </button>
@@ -369,10 +402,10 @@ const ClienteView = ({ userId }) => {
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white p-4 border-b flex justify-between items-center sticky top-0 z-20 shadow-sm">
-        <h1 className="font-black italic text-xl">RIFAPRO</h1>
+        <h1 className="font-black italic text-xl tracking-tighter">RIFAPRO</h1>
         <div className="flex gap-3 items-center">
-          <button onClick={() => setView(view === 'rifas' ? 'mis-tickets' : 'rifas')} className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-3 py-2 rounded-xl">
-            {view === 'rifas' ? 'Mis Tickets' : 'Sorteos'}
+          <button onClick={() => setView(view === 'rifas' ? 'mis-tickets' : 'rifas')} className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-4 py-2 rounded-2xl">
+            {view === 'rifas' ? 'Mis Tickets' : 'Ver Sorteos'}
           </button>
           <button onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }} className="text-slate-300 hover:text-red-500 transition-all">
             <LogOut size={22}/>
@@ -401,18 +434,27 @@ const ClienteView = ({ userId }) => {
             <div className="space-y-4">
                 <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Sorteos Activos</h2>
                 {rifas.map(r => (
-                    <div key={r.id_rifa} onClick={() => selectRifa(r)} className="bg-white p-6 rounded-3xl border hover:border-blue-500 cursor-pointer transition-all shadow-sm">
-                        <h3 className="text-xl font-black uppercase italic">{r.nombre}</h3>
-                        <p className="text-sm text-slate-400 mb-3 line-clamp-2">{r.descripcion}</p>
-                        <div className="text-blue-600 font-black">${r.precio} USD</div>
+                    <div key={r.id_rifa} onClick={() => selectRifa(r)} className="bg-white p-4 rounded-[2rem] border hover:border-blue-500 cursor-pointer transition-all shadow-sm flex gap-4 items-center">
+                        {r.imagen_url ? (
+                          <img src={r.imagen_url} className="w-20 h-20 rounded-2xl object-cover bg-slate-50" />
+                        ) : (
+                          <div className="w-20 h-20 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-200"><ImageIcon size={32}/></div>
+                        )}
+                        <div className="flex-1">
+                          <h3 className="text-lg font-black uppercase italic leading-none mb-1">{r.nombre}</h3>
+                          <p className="text-[11px] text-slate-400 mb-2 line-clamp-1">{r.descripcion}</p>
+                          <div className="text-blue-600 font-black text-sm">${r.precio} USD</div>
+                        </div>
                     </div>
                 ))}
             </div>
         ) : (
-            <div className="pb-32">
+            <div className="pb-32 animate-in fade-in duration-500">
                 <button onClick={() => setSelectedRifa(null)} className="mb-4 flex items-center gap-1 font-bold text-slate-400 text-sm"><ChevronLeft size={16}/> Volver</button>
-                <div className="bg-white p-6 rounded-3xl border mb-6 shadow-sm">
-                    <h2 className="text-2xl font-black uppercase italic">{selectedRifa.nombre}</h2>
+                <div className="bg-white p-6 rounded-[2.5rem] border mb-6 shadow-sm">
+                    {selectedRifa.imagen_url && <img src={selectedRifa.imagen_url} className="w-full h-48 object-cover rounded-3xl mb-4 shadow-inner" />}
+                    <h2 className="text-2xl font-black uppercase italic tracking-tighter leading-tight">{selectedRifa.nombre}</h2>
+                    <p className="text-xs text-slate-400 my-2">{selectedRifa.descripcion}</p>
                     <p className="text-blue-600 font-black">${selectedRifa.precio} USD por ticket</p>
                 </div>
                 <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
@@ -425,18 +467,18 @@ const ClienteView = ({ userId }) => {
                             className={`aspect-square rounded-xl text-xs font-black border-2 transition-all
                                 ${n.estado === 'pagado' ? 'bg-red-500 border-red-600 text-white' : 
                                   n.estado === 'apartado' ? 'bg-yellow-400 border-yellow-500 text-yellow-900' : 
-                                  cart.includes(n.id_numero) ? 'bg-blue-600 border-blue-700 text-white scale-90' : 'bg-green-500 border-green-600 text-white'}`}>
+                                  cart.includes(n.id_numero) ? 'bg-blue-600 border-blue-700 text-white scale-90 shadow-lg' : 'bg-green-500 border-green-600 text-white'}`}>
                             {n.numero}
                         </button>
                     ))}
                 </div>
                 {cart.length > 0 && (
-                    <div className="fixed bottom-6 left-4 right-4 bg-slate-900 text-white p-6 rounded-[2.5rem] flex justify-between items-center shadow-2xl">
+                    <div className="fixed bottom-6 left-4 right-4 bg-slate-900 text-white p-6 rounded-[2.5rem] flex justify-between items-center shadow-2xl animate-in slide-in-from-bottom-8">
                         <div>
                             <p className="text-[10px] font-bold text-slate-400 uppercase">{cart.length} Tickets</p>
                             <p className="text-2xl font-black">${(cart.length * selectedRifa.precio).toFixed(2)}</p>
                         </div>
-                        <button onClick={() => setShowPay(true)} className="bg-blue-600 px-8 py-3 rounded-2xl font-black uppercase text-xs">Pagar</button>
+                        <button onClick={() => setShowPay(true)} className="bg-blue-600 px-8 py-3 rounded-2xl font-black uppercase text-xs hover:bg-blue-700 transition-all">Pagar Ahora</button>
                     </div>
                 )}
             </div>
@@ -446,17 +488,17 @@ const ClienteView = ({ userId }) => {
       {showPay && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-sm">
-                <h3 className="text-xl font-black mb-4 uppercase">Confirmar Reporte</h3>
+                <h3 className="text-xl font-black mb-4 uppercase italic">Reportar Pago</h3>
                 <div className="bg-blue-50 p-5 rounded-2xl mb-4 border border-blue-100 text-xs text-blue-800 leading-relaxed">
                     Envía el pago a:<br/><b>Pago Móvil Ejemplo Bank</b><br/>0412-0000000 / V-12345678
                 </div>
-                <input type="text" maxLength="4" placeholder="Referencia (4 dígitos)" className="w-full p-4 bg-slate-50 border rounded-2xl mb-4 outline-none focus:border-blue-500" 
+                <input type="text" maxLength="4" placeholder="Últimos 4 de Referencia" className="w-full p-4 bg-slate-50 border rounded-2xl mb-4 outline-none focus:border-blue-500 font-bold" 
                     onChange={e => setPayData({ref: e.target.value})} />
                 <button onClick={async () => {
                     if(!payData.ref) return alert("Falta referencia");
                     const { error } = await supabase.from('numeros').update({ estado: 'apartado', comprador_id: userId, referencia_pago: payData.ref }).in('id_numero', cart);
-                    if(!error) { alert("¡Enviado!"); setSelectedRifa(null); setShowPay(false); fetchMyTickets(); }
-                }} className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black uppercase text-xs">Reportar Pago</button>
+                    if(!error) { alert("¡Reporte enviado! Espera la confirmación."); setSelectedRifa(null); setShowPay(false); fetchMyTickets(); }
+                }} className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black uppercase text-xs">Enviar Reporte</button>
                 <button onClick={() => setShowPay(false)} className="w-full mt-2 text-slate-400 font-bold text-xs uppercase">Cancelar</button>
             </div>
         </div>
