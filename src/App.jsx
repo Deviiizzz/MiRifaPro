@@ -699,7 +699,13 @@ const ClienteView = ({ userId }) => {
             <div className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-100"><Trophy size={20}/></div>
             <h1 className="font-black italic text-2xl tracking-tighter text-blue-600 uppercase">AlexCars' Edition</h1>
         </div>
-        <button onClick={async () => { await supabase.auth.signOut(); }} className="p-3 text-slate-300 bg-slate-50 rounded-2xl hover:text-red-500 hover:bg-red-50 transition-all">
+        <button 
+          onClick={async () => { 
+            await supabase.auth.signOut(); 
+            window.location.href = '/'; 
+          }} 
+          className="p-3 text-slate-300 bg-slate-50 rounded-2xl hover:text-red-500 hover:bg-red-50 transition-all"
+        >
           <LogOut size={22}/>
         </button>
       </header>
