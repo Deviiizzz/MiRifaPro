@@ -106,6 +106,47 @@ const AdminPanel = () => {
     setRifas(data || []);
   };
 
+  const openRifaDetail = async (rifa) => {
+    setSelectedRifa(rifa);
+    const { data } = await supabase.from('numeros')
+      .select('*, usuarios(id_usuario, nombre, apellido, telefono)')
+      .eq('id_rifa', rifa.id_rifa)
+      .order('numero', { ascending: true });
+    setNumsRifa(data || []);
+    setView('detail');
+  };
+
+  const aprobarTodoElCliente = async (clienteId) => {
+    if(!window.confirm("¿Aprobar todos los números pendientes de este cliente?")) return;
+    setLoadingAction(true);
+    const { error } = await supabase
+      .from('numeros')
+      .update({ estado: 'pagado' })
+      .eq('id_rifa', selectedRifa.id_rifa)
+      .eq('comprador_id', clienteId)
+      .eq('estado', 'apartado');
+    
+    if(!error) openRifaDetail(selectedRifa);
+    setLoadingAction(false);
+  };
+
+  // Agrupar números por cliente para el panel derecho
+  const clientesAgrupados = numsRifa.reduce((acc, n) => {
+    if (n.comprador_id) {
+      const id = n.comprador_id;
+      if (!acc[id]) {
+        acc[id] = {
+          info: n.usuarios,
+          numeros: [],
+          tienePendientes: false
+        };
+      }
+      acc[id].numeros.push(n);
+      if (n.estado === 'apartado') acc[id].tienePendientes = true;
+    }
+    return acc;
+  }, {});
+
   const crearRifa = async (e) => {
     e.preventDefault();
     setLoadingAction(true);
@@ -175,13 +216,6 @@ const AdminPanel = () => {
     finally { setLoadingAction(false); }
   };
 
-  const openRifaDetail = async (rifa) => {
-    setSelectedRifa(rifa);
-    const { data } = await supabase.from('numeros').select('*, usuarios(nombre, apellido, telefono)').eq('id_rifa', rifa.id_rifa).order('numero', { ascending: true });
-    setNumsRifa(data || []);
-    setView('detail');
-  };
-
   const handleActionNumber = async (numId, nuevoEstado) => {
     const updateData = nuevoEstado === 'disponible' 
       ? { estado: 'disponible', comprador_id: null, referencia_pago: null } 
@@ -222,7 +256,7 @@ const AdminPanel = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
+    <div className="min-h-screen bg-slate-50 pb-20 text-slate-800">
       <nav className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
         <h1 className="font-black italic text-xl">RIFAPRO ADMIN</h1>
         <button onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }} className="text-red-500 p-2 hover:bg-red-50 rounded-xl transition-all">
@@ -230,9 +264,9 @@ const AdminPanel = () => {
         </button>
       </nav>
 
-      <main className="p-4 max-w-4xl mx-auto">
+      <main className="p-4 max-w-[1400px] mx-auto">
         {view === 'list' && (
-          <div className="space-y-6">
+          <div className="max-w-4xl mx-auto space-y-6">
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-white p-4 rounded-3xl border shadow-sm">
                 <p className="text-[9px] font-bold text-slate-400 uppercase">Recaudado</p>
@@ -276,34 +310,84 @@ const AdminPanel = () => {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <button onClick={() => setView('list')} className="flex items-center gap-1 text-sm font-bold text-slate-400"><ChevronLeft size={16}/> Volver</button>
-                <div className="flex gap-2">
-                  <button onClick={() => setShowManualAssign(true)} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md"><Plus size={14}/> Venta Manual</button>
+                <button onClick={() => setShowManualAssign(true)} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md"><Plus size={14}/> Venta Manual</button>
+            </div>
+
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* IZQUIERDA: GRILLA DE NÚMEROS */}
+              <div className="lg:w-2/3 space-y-4">
+                <div className="bg-white p-6 rounded-3xl border shadow-sm flex gap-4 items-center">
+                    {selectedRifa.imagen_url && <img src={selectedRifa.imagen_url} className="w-14 h-14 rounded-xl object-cover" />}
+                    <h2 className="text-xl font-black uppercase italic">{selectedRifa.nombre}</h2>
                 </div>
-            </div>
-            <div className="bg-white p-6 rounded-3xl border shadow-sm flex gap-4 items-center">
-                {selectedRifa.imagen_url && <img src={selectedRifa.imagen_url} className="w-20 h-20 rounded-2xl object-cover shadow-md" />}
-                <h2 className="text-2xl font-black uppercase italic">{selectedRifa.nombre}</h2>
-            </div>
-            <div className="grid grid-cols-6 sm:grid-cols-10 gap-2">
-              {numsRifa.map(n => (
-                <button key={n.id_numero} onClick={() => n.estado !== 'disponible' && setNumDetail(n)}
-                  className={`aspect-square rounded-lg text-[10px] font-bold border-2 transition-all ${ESTADOS[n.estado].bg} ${ESTADOS[n.estado].border} ${ESTADOS[n.estado].text}`}>
-                  {n.numero}
-                </button>
-              ))}
+                
+                <div className="bg-white p-6 rounded-3xl border shadow-sm">
+                  <div className="grid grid-cols-6 md:grid-cols-10 gap-2">
+                    {numsRifa.map(n => (
+                      <button key={n.id_numero} onClick={() => n.estado !== 'disponible' && setNumDetail(n)}
+                        className={`aspect-square rounded-lg text-[10px] font-bold border-2 transition-all ${ESTADOS[n.estado].bg} ${ESTADOS[n.estado].border} ${ESTADOS[n.estado].text}`}>
+                        {n.numero}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* DERECHA: PANEL DE PARTICIPANTES */}
+              <div className="lg:w-1/3">
+                <div className="bg-white p-6 rounded-3xl border shadow-sm sticky top-24 max-h-[80vh] overflow-y-auto">
+                  <h3 className="text-xs font-black uppercase text-slate-400 mb-4 tracking-widest">Participantes</h3>
+                  
+                  <div className="space-y-4">
+                    {Object.values(clientesAgrupados).length === 0 && (
+                      <p className="text-center text-slate-400 text-xs py-10 italic">Nadie jugando aún...</p>
+                    )}
+
+                    {Object.values(clientesAgrupados).map((item) => (
+                      <div key={item.info?.id_usuario} className={`p-4 rounded-2xl border-2 transition-all ${item.tienePendientes ? 'border-yellow-200 bg-yellow-50/30 shadow-sm' : 'border-slate-100'}`}>
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <p className="font-bold text-sm uppercase leading-tight">{item.info?.nombre} {item.info?.apellido}</p>
+                            <p className="text-[10px] text-slate-500 font-medium flex items-center gap-1 mt-0.5"><Phone size={10}/> {item.info?.telefono}</p>
+                          </div>
+                          {item.tienePendientes && (
+                            <button 
+                              onClick={() => aprobarTodoElCliente(item.info?.id_usuario)}
+                              className="bg-green-600 text-white text-[9px] font-black px-2 py-1 rounded-lg shadow-sm hover:bg-green-700 uppercase"
+                            >
+                              Aprobar Todo
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {item.numeros.map(n => (
+                            <span key={n.id_numero} className={`text-[9px] font-bold px-2 py-0.5 rounded-md ${n.estado === 'apartado' ? 'bg-yellow-400 text-yellow-900 animate-pulse' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
+                              #{n.numero} {n.estado === 'apartado' && '⚡'}
+                            </span>
+                          ))}
+                        </div>
+                        {item.tienePendientes && (
+                          <p className="text-[8px] font-black text-yellow-600 uppercase mt-2 italic">* Pendiente de verificación</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {(view === 'create' || view === 'edit') && (
-          <div className="bg-white p-6 rounded-3xl shadow-sm border">
+          <div className="bg-white p-6 rounded-3xl shadow-sm border max-w-2xl mx-auto">
             <button onClick={() => setView('list')} className="mb-4 flex items-center gap-1 text-sm font-bold text-slate-400"><ChevronLeft size={16}/> Volver</button>
             <h2 className="text-xl font-black mb-4 uppercase italic">{view === 'create' ? 'Nueva Rifa' : 'Editar Rifa'}</h2>
             <form onSubmit={view === 'create' ? crearRifa : handleEditRifa} className="space-y-4">
               <div className="flex justify-center">
                 <label className="w-full flex flex-col items-center px-4 py-6 bg-slate-50 text-blue-500 rounded-3xl border-2 border-dashed border-blue-200 cursor-pointer hover:bg-blue-50">
                   <ImageIcon size={32} className="mb-2"/>
-                  <span className="text-[10px] font-black uppercase">{imageFile ? imageFile.name : (view === 'edit' ? 'Cambiar Foto' : 'Subir Foto')}</span>
+                  <span className="text-[10px] font-black uppercase tracking-tight">{imageFile ? imageFile.name : (view === 'edit' ? 'Cambiar Foto del Premio' : 'Subir Foto del Premio')}</span>
                   <input type='file' accept="image/*" className="hidden" onChange={(e) => setImageFile(e.target.files[0])} />
                 </label>
               </div>
@@ -316,24 +400,29 @@ const AdminPanel = () => {
                 onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, descripcion: e.target.value}) : setNewRifa({...newRifa, descripcion: e.target.value})} />
               
               <div className="grid grid-cols-2 gap-4">
-                <input type="number" placeholder="Cant. Números" disabled={view === 'edit'} className="w-full p-3 bg-slate-50 rounded-xl border disabled:opacity-50" 
-                  value={view === 'edit' ? selectedRifa.cantidad_numeros : newRifa.cantidad}
-                  onChange={e => setNewRifa({...newRifa, cantidad: e.target.value})} />
-                
-                <input type="number" step="0.01" placeholder="Precio $" disabled={view === 'edit'} className="w-full p-3 bg-slate-50 rounded-xl border disabled:opacity-50" 
-                  value={view === 'edit' ? selectedRifa.precio : newRifa.precio}
-                  onChange={e => setNewRifa({...newRifa, precio: parseFloat(e.target.value)})} />
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-slate-400 ml-1 uppercase">Cantidad Números</label>
+                  <input type="number" disabled={view === 'edit'} className="w-full p-3 bg-slate-50 rounded-xl border disabled:opacity-50 font-bold" 
+                    value={view === 'edit' ? selectedRifa.cantidad_numeros : newRifa.cantidad}
+                    onChange={e => setNewRifa({...newRifa, cantidad: e.target.value})} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-slate-400 ml-1 uppercase">Precio Ticket</label>
+                  <input type="number" step="0.01" disabled={view === 'edit'} className="w-full p-3 bg-slate-50 rounded-xl border disabled:opacity-50 font-bold" 
+                    value={view === 'edit' ? selectedRifa.precio : newRifa.precio}
+                    onChange={e => setNewRifa({...newRifa, precio: parseFloat(e.target.value)})} />
+                </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 ml-2">FECHA DE SORTEO / FIN</label>
+                <label className="text-[9px] font-bold text-slate-400 ml-1 uppercase">Fecha de Sorteo</label>
                 <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border font-bold" required 
                   value={view === 'edit' ? selectedRifa.fecha_fin : newRifa.fecha}
                   onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, fecha_fin: e.target.value}) : setNewRifa({...newRifa, fecha: e.target.value})} />
               </div>
 
-              <button disabled={loadingAction} className="w-full bg-blue-600 text-white p-4 rounded-2xl font-black uppercase shadow-lg">
-                {loadingAction ? <Loader2 className="animate-spin mx-auto"/> : (view === 'create' ? 'Lanzar Rifa' : 'Guardar Cambios')}
+              <button disabled={loadingAction} className="w-full bg-blue-600 text-white p-4 rounded-2xl font-black uppercase shadow-lg hover:bg-blue-700 transition-all flex justify-center items-center">
+                {loadingAction ? <Loader2 className="animate-spin" /> : (view === 'create' ? 'Lanzar Rifa Ahora' : 'Guardar Cambios')}
               </button>
             </form>
           </div>
@@ -357,18 +446,18 @@ const AdminPanel = () => {
               </div>
               <input type="tel" placeholder="Teléfono" required className="w-full p-3 bg-slate-50 rounded-xl border" onChange={e => setManualData({...manualData, telefono: e.target.value})} />
               <select className="w-full p-3 bg-slate-50 rounded-xl border font-bold" onChange={e => setManualData({...manualData, estado: e.target.value})}>
-                <option value="apartado">🟡 REVISIÓN</option>
-                <option value="pagado">🔴 VENDIDO</option>
+                <option value="apartado">🟡 REVISIÓN (PENDIENTE)</option>
+                <option value="pagado">🔴 VENDIDO (PAGADO)</option>
               </select>
               <button className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black uppercase text-xs">
-                {loadingAction ? <Loader2 className="animate-spin mx-auto" /> : 'Confirmar Venta'}
+                {loadingAction ? <Loader2 className="animate-spin mx-auto" /> : 'Confirmar Registro'}
               </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* Detalle Ticket */}
+      {/* Detalle Ticket Individual */}
       {numDetail && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl">
@@ -378,14 +467,14 @@ const AdminPanel = () => {
             </div>
             <div className="space-y-3 mb-6">
                 <p className="text-sm"><strong>Cliente:</strong> {numDetail.usuarios?.nombre} {numDetail.usuarios?.apellido}</p>
-                <p className="text-sm"><strong>Tel:</strong> {numDetail.usuarios?.telefono}</p>
-                <p className="text-sm"><strong>Ref:</strong> {numDetail.referencia_pago || 'S/N'}</p>
+                <p className="text-sm"><strong>Teléfono:</strong> {numDetail.usuarios?.telefono}</p>
+                <p className="text-sm"><strong>Referencia:</strong> {numDetail.referencia_pago || 'S/N'}</p>
                 <div className="p-3 bg-blue-50 rounded-xl text-blue-700 text-xs font-bold uppercase text-center">Estado: {numDetail.estado}</div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => handleActionNumber(numDetail.id_numero, 'disponible')} className="bg-red-50 text-red-600 p-3 rounded-xl font-bold text-xs uppercase">Anular</button>
+                <button onClick={() => handleActionNumber(numDetail.id_numero, 'disponible')} className="bg-red-50 text-red-600 p-3 rounded-xl font-bold text-xs uppercase">Liberar / Anular</button>
                 {numDetail.estado === 'apartado' && (
-                    <button onClick={() => handleActionNumber(numDetail.id_numero, 'pagado')} className="bg-green-600 text-white p-3 rounded-xl font-bold text-xs uppercase shadow-md">Aprobar</button>
+                    <button onClick={() => handleActionNumber(numDetail.id_numero, 'pagado')} className="bg-green-600 text-white p-3 rounded-xl font-bold text-xs uppercase shadow-md">Confirmar Pago</button>
                 )}
             </div>
           </div>
@@ -395,7 +484,7 @@ const AdminPanel = () => {
   );
 };
 
-// --- VISTA CLIENTE ---
+// --- VISTA CLIENTE (Igual) ---
 const ClienteView = ({ userId }) => {
   const [rifas, setRifas] = useState([]);
   const [selectedRifa, setSelectedRifa] = useState(null);
@@ -442,15 +531,15 @@ const ClienteView = ({ userId }) => {
         </div>
       </header>
 
-      <main className="p-4 max-w-2xl mx-auto">
+      <main className="p-4 max-w-2xl mx-auto text-slate-800">
         {view === 'mis-tickets' ? (
           <div className="space-y-4">
             <h2 className="text-xs font-black text-slate-400 uppercase">Mis Tickets</h2>
-            {myTickets.length === 0 && <p className="text-center py-20 text-slate-400 text-sm">Aún no tienes tickets.</p>}
+            {myTickets.length === 0 && <p className="text-center py-20 text-slate-400 text-sm italic">Aún no tienes tickets comprados.</p>}
             {myTickets.map(t => (
-              <div key={t.id_numero} className="bg-white p-5 rounded-2xl border flex justify-between items-center">
+              <div key={t.id_numero} className="bg-white p-5 rounded-2xl border flex justify-between items-center shadow-sm">
                 <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase">{t.rifas?.nombre}</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{t.rifas?.nombre}</p>
                   <p className="text-lg font-black italic">#{t.numero}</p>
                 </div>
                 <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${ESTADOS[t.estado].bg} ${ESTADOS[t.estado].text}`}>
@@ -461,17 +550,17 @@ const ClienteView = ({ userId }) => {
           </div>
         ) : !selectedRifa ? (
             <div className="space-y-4">
-                <h2 className="text-xs font-black text-slate-400 uppercase">Sorteos Activos</h2>
+                <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Sorteos Activos</h2>
                 {rifas.map(r => (
-                    <div key={r.id_rifa} onClick={() => selectRifa(r)} className="bg-white p-4 rounded-[2rem] border hover:border-blue-500 cursor-pointer shadow-sm flex gap-4 items-center">
+                    <div key={r.id_rifa} onClick={() => selectRifa(r)} className="bg-white p-4 rounded-[2rem] border hover:border-blue-500 cursor-pointer shadow-sm flex gap-4 items-center transition-all group">
                         {r.imagen_url ? (
-                          <img src={r.imagen_url} className="w-20 h-20 rounded-2xl object-cover bg-slate-50" />
+                          <img src={r.imagen_url} className="w-20 h-20 rounded-2xl object-cover bg-slate-50 group-hover:scale-105 transition-all" />
                         ) : (
                           <div className="w-20 h-20 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-200"><ImageIcon size={32}/></div>
                         )}
                         <div className="flex-1">
                           <h3 className="text-lg font-black uppercase italic leading-none">{r.nombre}</h3>
-                          <p className="text-[11px] text-slate-400 mb-2 line-clamp-1">{r.descripcion}</p>
+                          <p className="text-[11px] text-slate-400 mt-1 mb-2 line-clamp-1">{r.descripcion}</p>
                           <div className="text-blue-600 font-black text-sm">${r.precio} USD</div>
                         </div>
                     </div>
@@ -479,14 +568,14 @@ const ClienteView = ({ userId }) => {
             </div>
         ) : (
             <div className="pb-32">
-                <button onClick={() => setSelectedRifa(null)} className="mb-4 flex items-center gap-1 font-bold text-slate-400 text-sm"><ChevronLeft size={16}/> Volver</button>
+                <button onClick={() => setSelectedRifa(null)} className="mb-4 flex items-center gap-1 font-bold text-slate-400 text-sm hover:text-slate-600"><ChevronLeft size={16}/> Volver</button>
                 <div className="bg-white p-6 rounded-[2.5rem] border mb-6 shadow-sm">
                     {selectedRifa.imagen_url && <img src={selectedRifa.imagen_url} className="w-full h-48 object-cover rounded-3xl mb-4 shadow-inner" />}
                     <h2 className="text-2xl font-black uppercase italic leading-tight">{selectedRifa.nombre}</h2>
-                    <p className="text-xs text-slate-400 my-2">{selectedRifa.descripcion}</p>
-                    <p className="text-blue-600 font-black">${selectedRifa.precio} USD por ticket</p>
+                    <p className="text-[11px] text-slate-400 my-2 leading-relaxed">{selectedRifa.descripcion}</p>
+                    <p className="text-blue-600 font-black text-sm">${selectedRifa.precio} USD por ticket</p>
                 </div>
-                <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
+                <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 bg-white p-6 rounded-[2.5rem] border">
                     {nums.map(n => (
                         <button key={n.id_numero} 
                             onClick={() => {
@@ -496,18 +585,18 @@ const ClienteView = ({ userId }) => {
                             className={`aspect-square rounded-xl text-xs font-black border-2 transition-all
                                 ${n.estado === 'pagado' ? 'bg-red-500 border-red-600 text-white' : 
                                   n.estado === 'apartado' ? 'bg-yellow-400 border-yellow-500 text-yellow-900' : 
-                                  cart.includes(n.id_numero) ? 'bg-blue-600 border-blue-700 text-white scale-90' : 'bg-green-500 border-green-600 text-white'}`}>
+                                  cart.includes(n.id_numero) ? 'bg-blue-600 border-blue-700 text-white scale-90' : 'bg-green-500 border-green-600 text-white hover:bg-green-400'}`}>
                             {n.numero}
                         </button>
                     ))}
                 </div>
                 {cart.length > 0 && (
-                    <div className="fixed bottom-6 left-4 right-4 bg-slate-900 text-white p-6 rounded-[2.5rem] flex justify-between items-center shadow-2xl">
+                    <div className="fixed bottom-6 left-4 right-4 bg-slate-900 text-white p-6 rounded-[2.5rem] flex justify-between items-center shadow-2xl animate-in fade-in slide-in-from-bottom-4">
                         <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase">{cart.length} Tickets</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{cart.length} Seleccionados</p>
                             <p className="text-2xl font-black">${(cart.length * selectedRifa.precio).toFixed(2)}</p>
                         </div>
-                        <button onClick={() => setShowPay(true)} className="bg-blue-600 px-8 py-3 rounded-2xl font-black uppercase text-xs">Pagar</button>
+                        <button onClick={() => setShowPay(true)} className="bg-blue-600 px-8 py-3 rounded-2xl font-black uppercase text-xs hover:bg-blue-700 transition-all">Pagar Ahora</button>
                     </div>
                 )}
             </div>
@@ -516,19 +605,19 @@ const ClienteView = ({ userId }) => {
 
       {showPay && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-sm">
-                <h3 className="text-xl font-black mb-4 uppercase">Reportar Pago</h3>
-                <div className="bg-blue-50 p-5 rounded-2xl mb-4 text-xs text-blue-800 leading-relaxed">
-                    Envía el pago a:<br/><b>Banco Central</b><br/>0412-0000000 / V-12345678
+            <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-sm animate-in zoom-in-95">
+                <h3 className="text-xl font-black mb-4 uppercase italic">Reportar Pago</h3>
+                <div className="bg-blue-50 p-5 rounded-2xl mb-4 text-xs text-blue-800 leading-relaxed border border-blue-100">
+                    Sigue las instrucciones de pago:<br/><b>Banco Central</b><br/>0412-0000000 / V-12345678
                 </div>
-                <input type="text" maxLength="4" placeholder="Ref (4 dígitos)" className="w-full p-4 bg-slate-50 border rounded-2xl mb-4 font-bold" 
+                <input type="text" maxLength="4" placeholder="Últimos 4 dígitos Ref." className="w-full p-4 bg-slate-50 border rounded-2xl mb-4 font-bold text-center outline-none focus:border-blue-500" 
                     onChange={e => setPayData({ref: e.target.value})} />
                 <button onClick={async () => {
-                    if(!payData.ref) return alert("Falta referencia");
+                    if(!payData.ref) return alert("Por favor ingresa la referencia");
                     const { error } = await supabase.from('numeros').update({ estado: 'apartado', comprador_id: userId, referencia_pago: payData.ref }).in('id_numero', cart);
-                    if(!error) { alert("¡Enviado!"); setSelectedRifa(null); setShowPay(false); fetchMyTickets(); }
-                }} className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black uppercase text-xs">Enviar</button>
-                <button onClick={() => setShowPay(false)} className="w-full mt-2 text-slate-400 font-bold text-xs uppercase">Cancelar</button>
+                    if(!error) { alert("¡Pago reportado! Espera la validación."); setSelectedRifa(null); setShowPay(false); fetchMyTickets(); }
+                }} className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black uppercase text-xs hover:bg-black transition-all shadow-lg">Enviar para Revisión</button>
+                <button onClick={() => setShowPay(false)} className="w-full mt-2 text-slate-400 font-bold text-xs uppercase py-2">Cancelar</button>
             </div>
         </div>
       )}
