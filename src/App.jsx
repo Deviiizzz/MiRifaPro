@@ -27,7 +27,7 @@ const Auth = ({ onLogin }) => {
   const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const finalEmail = `${formData.telefono}@rifapro.com`;
+    const finalEmail = `${formData.telefono}@alexcars.com`;
 
     if (isRegistering) {
       const { data, error } = await supabase.auth.signUp({ email: finalEmail, password: formData.password });
@@ -59,7 +59,7 @@ const Auth = ({ onLogin }) => {
                 <Trophy size={40} className="text-white"/>
             </div>
         </div>
-        <h2 className="text-4xl font-black text-center mb-1 italic tracking-tighter text-blue-600">RIFAPRO</h2>
+        <h2 className="text-4xl font-black text-center mb-1 italic tracking-tighter text-blue-600 uppercase">AlexCars' Edition</h2>
         <p className="text-center text-slate-400 text-[10px] mb-8 font-black uppercase tracking-[0.2em]">Sistema Profesional de Sorteos</p>
         
         <form onSubmit={handleAuth} className="space-y-4">
@@ -179,8 +179,6 @@ const AdminPanel = () => {
       alert(`¡SORTEO REALIZADO! 🎉 El ticket ganador es el #${ganador.numero}`);
       const updatedRifa = { ...selectedRifa, estado: 'finalizada', id_ganador: ganador.id_numero };
       setSelectedRifa(updatedRifa);
-      
-      // Actualizamos la rifa localmente en la lista
       setRifas(rifas.map(r => r.id_rifa === updatedRifa.id_rifa ? updatedRifa : r));
     } else {
       alert("Error al realizar el sorteo: " + error.message);
@@ -322,24 +320,18 @@ const AdminPanel = () => {
   const exportToPDF = () => {
     const doc = new jsPDF();
     doc.text(`Participantes - ${selectedRifa.nombre}`, 14, 15);
-    
-    const tableData = numsRifa
-      .filter(n => n.comprador_id)
-      .map(n => [
+    const tableData = numsRifa.filter(n => n.comprador_id).map(n => [
         `${n.usuarios?.nombre} ${n.usuarios?.apellido}`,
         n.usuarios?.telefono || 'N/A',
         n.numero,
         n.estado.toUpperCase()
       ]);
-
     autoTable(doc, { head: [['Nombre', 'Teléfono', 'Ticket #', 'Estado']], body: tableData, startY: 20 });
     doc.save(`Rifa_${selectedRifa.nombre}.pdf`);
   };
 
   const exportToExcel = () => {
-    const data = numsRifa
-      .filter(n => n.comprador_id)
-      .map(n => ({
+    const data = numsRifa.filter(n => n.comprador_id).map(n => ({
         Nombre: `${n.usuarios?.nombre} ${n.usuarios?.apellido}`,
         Telefono: n.usuarios?.telefono,
         Ticket: n.numero,
@@ -369,7 +361,7 @@ const AdminPanel = () => {
       <nav className="bg-white border-b border-slate-200 p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
         <div className="flex items-center gap-2">
             <div className="bg-blue-600 p-2 rounded-xl text-white"><Building2 size={18}/></div>
-            <h1 className="font-black italic text-xl text-blue-600 tracking-tighter">RIFAPRO ADMIN</h1>
+            <h1 className="font-black italic text-xl text-blue-600 tracking-tighter uppercase">AlexCars' Edition ADMIN</h1>
         </div>
         <button onClick={async () => { await supabase.auth.signOut(); }} className="text-red-500 p-2 bg-red-50 rounded-xl transition-all hover:bg-red-100 flex items-center gap-2 text-xs font-black">
           <LogOut size={18}/> SALIR
@@ -439,7 +431,6 @@ const AdminPanel = () => {
                 <div className="flex flex-wrap gap-2">
                     <button onClick={exportToPDF} className="bg-slate-900 text-white p-3 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2"><FileText size={16}/> PDF</button>
                     <button onClick={exportToExcel} className="bg-green-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2"><Download size={16}/> EXCEL</button>
-                    
                     {selectedRifa.estado === 'activa' && (
                         <>
                             <button onClick={() => setShowManualAssign(true)} className="bg-blue-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 shadow-lg shadow-blue-100"><Plus size={16}/> Venta Manual</button>
@@ -453,7 +444,6 @@ const AdminPanel = () => {
 
             <div className="flex flex-col lg:flex-row gap-6">
               <div className="lg:w-2/3 space-y-4">
-                {/* BANNER DEL GANADOR SI LA RIFA FINALIZÓ */}
                 {selectedRifa.estado === 'finalizada' && ticketGanador && (
                     <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-yellow-200 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden border-4 border-yellow-300">
                         <div className="bg-white/20 p-5 rounded-3xl backdrop-blur-sm animate-celebration relative z-10"><Crown size={56} className="text-white drop-shadow-md"/></div>
@@ -483,17 +473,11 @@ const AdminPanel = () => {
                       let btnClass = `aspect-square rounded-xl text-[10px] font-black border-2 transition-all shadow-sm ${ESTADOS[n.estado].bg} ${ESTADOS[n.estado].border} ${ESTADOS[n.estado].text}`;
                       if (n.estado !== 'disponible') btnClass += ' scale-95';
                       else btnClass += ' hover:scale-105';
-                      
-                      // Highlight el ganador en la grilla
                       if (selectedRifa.estado === 'finalizada' && n.id_numero === selectedRifa.id_ganador) {
                           btnClass = 'aspect-square rounded-xl text-[10px] font-black border-4 bg-yellow-400 border-yellow-500 text-white shadow-lg shadow-yellow-200 scale-110 animate-pulse z-10';
                       }
-
                       return (
-                        <button key={n.id_numero} onClick={() => n.estado !== 'disponible' && setNumDetail(n)}
-                            className={btnClass}>
-                            {n.numero}
-                        </button>
+                        <button key={n.id_numero} onClick={() => n.estado !== 'disponible' && setNumDetail(n)} className={btnClass}>{n.numero}</button>
                       )
                     })}
                   </div>
@@ -532,12 +516,6 @@ const AdminPanel = () => {
                         </div>
                       </div>
                     )})}
-                    {Object.values(clientesAgrupados).length === 0 && (
-                        <div className="text-center py-10">
-                            <Ticket size={40} className="mx-auto text-slate-100 mb-2"/>
-                            <p className="text-[10px] font-black text-slate-300 uppercase">No hay participantes aún</p>
-                        </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -547,10 +525,8 @@ const AdminPanel = () => {
 
         {(view === 'create' || view === 'edit') && (
           <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-100 max-w-2xl mx-auto">
-            {/* Formulario Crear/Editar igual que antes */}
             <button onClick={() => setView('list')} className="mb-6 flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest"><ChevronLeft size={18}/> Cancelar</button>
             <h2 className="text-3xl font-black mb-8 uppercase italic text-slate-900 tracking-tighter">{view === 'create' ? 'Nueva Rifa' : 'Editar Sorteo'}</h2>
-            
             <form onSubmit={view === 'create' ? crearRifa : handleEditRifa} className="space-y-6">
               <div className="flex justify-center">
                 <label className="group w-full flex flex-col items-center px-4 py-8 bg-slate-50 text-blue-500 rounded-[2rem] border-4 border-dashed border-slate-200 cursor-pointer hover:border-blue-300 hover:bg-blue-50 transition-all">
@@ -561,7 +537,6 @@ const AdminPanel = () => {
                   <input type='file' accept="image/*" className="hidden" onChange={(e) => setImageFile(e.target.files[0])} />
                 </label>
               </div>
-
               <div className="space-y-4">
                   <div className="space-y-1">
                     <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Nombre del Premio</label>
@@ -569,14 +544,12 @@ const AdminPanel = () => {
                         value={view === 'edit' ? selectedRifa.nombre : newRifa.nombre}
                         onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, nombre: e.target.value}) : setNewRifa({...newRifa, nombre: e.target.value})} />
                   </div>
-
                   <div className="space-y-1">
                     <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Descripción Detallada</label>
                     <textarea placeholder="Cuéntale a tus clientes sobre el sorteo..." className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-100 outline-none focus:border-blue-500 font-bold h-32" 
                         value={view === 'edit' ? selectedRifa.descripcion : newRifa.descripcion}
                         onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, descripcion: e.target.value}) : setNewRifa({...newRifa, descripcion: e.target.value})} />
                   </div>
-
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                         <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Cant. Números</label>
@@ -587,13 +560,11 @@ const AdminPanel = () => {
                         <input type="number" step="0.01" disabled={view === 'edit'} className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-100 font-black text-lg text-green-600" value={view === 'edit' ? selectedRifa.precio : newRifa.precio} onChange={e => setNewRifa({...newRifa, precio: parseFloat(e.target.value)})} />
                     </div>
                   </div>
-
                   <div className="space-y-1 bg-blue-50 p-4 rounded-3xl border border-blue-100">
                     <label className="text-[10px] font-black text-blue-400 ml-2 uppercase flex items-center gap-2"><Calendar size={14}/> Fecha de Finalización</label>
                     <input type="date" className="w-full p-4 bg-white rounded-2xl border-none outline-none font-black text-blue-600 uppercase" value={view === 'edit' ? selectedRifa.fecha_fin : newRifa.fecha} onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, fecha_fin: e.target.value}) : setNewRifa({...newRifa, fecha: e.target.value})} />
                   </div>
               </div>
-
               <button disabled={loadingAction} className="w-full bg-blue-600 text-white p-6 rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
                 {loadingAction ? <Loader2 className="animate-spin" /> : 'Confirmar Sorteo'}
               </button>
@@ -602,20 +573,15 @@ const AdminPanel = () => {
         )}
       </main>
 
-      {/* Modal Venta Manual */}
       {showManualAssign && (
         <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
-           {/* ... Contenido igual del Modal Venta Manual ... */}
            <div className="bg-white p-8 rounded-[3rem] w-full max-w-md shadow-2xl">
             <div className="flex justify-between items-center mb-8">
                 <h3 className="text-2xl font-black uppercase italic text-slate-900 tracking-tighter">Venta Directa</h3>
                 <button onClick={() => setShowManualAssign(false)} className="text-slate-300 hover:text-slate-900"><X/></button>
             </div>
             <form onSubmit={handleManualAssignment} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Tickets (Separar por comas)</label>
-                <input type="text" required placeholder="Ej: 1, 5, 20" className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-bold" onChange={e => setManualData({...manualData, numeros: e.target.value})} />
-              </div>
+              <input type="text" required placeholder="Tickets (Separar por comas)" className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-bold" onChange={e => setManualData({...manualData, numeros: e.target.value})} />
               <div className="grid grid-cols-2 gap-3">
                 <input type="text" placeholder="Nombre" required className="p-4 bg-slate-50 rounded-2xl border border-slate-100 font-bold" onChange={e => setManualData({...manualData, nombre: e.target.value})} />
                 <input type="text" placeholder="Apellido" required className="p-4 bg-slate-50 rounded-2xl border border-slate-100 font-bold" onChange={e => setManualData({...manualData, apellido: e.target.value})} />
@@ -631,16 +597,13 @@ const AdminPanel = () => {
         </div>
       )}
 
-      {/* Detalle Ticket Individual (Modal Admin) */}
       {numDetail && (
         <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
           <div className="bg-white p-8 rounded-[3.5rem] w-full max-w-sm shadow-2xl relative overflow-hidden">
             <div className={`absolute top-0 left-0 right-0 h-2 ${ESTADOS[numDetail.estado].bg}`}></div>
-            
             {selectedRifa?.estado === 'finalizada' && numDetail.id_numero === selectedRifa.id_ganador && (
                 <div className="absolute top-0 left-0 right-0 h-8 bg-yellow-400 flex items-center justify-center text-yellow-900 text-[10px] font-black uppercase animate-pulse"><Crown size={12} className="mr-1"/> TICKET GANADOR</div>
             )}
-
             <div className={`flex justify-between items-center mb-6 ${selectedRifa?.estado === 'finalizada' && numDetail.id_numero === selectedRifa.id_ganador ? 'mt-6' : ''}`}>
                 <h3 className="text-3xl font-black italic uppercase text-slate-900 tracking-tighter">Ticket #{numDetail.numero}</h3>
                 <button onClick={() => setNumDetail(null)} className="text-slate-300 hover:text-slate-900"><X/></button>
@@ -696,13 +659,11 @@ const ClienteView = ({ userId }) => {
   }, [userId]);
 
   const fetchRifas = async () => {
-    // Traemos todas las rifas (activas y finalizadas) para que puedan ver los resultados
     const { data } = await supabase.from('rifas').select('*').order('estado', { ascending: true }).order('creado_en', { ascending: false });
     setRifas(data || []);
   };
 
   const fetchMisNumeros = async () => {
-    // Traemos los números de este cliente para saber si ganó alguna de la lista
     const { data } = await supabase.from('numeros').select('id_numero, id_rifa, numero').eq('comprador_id', userId);
     setMisNumeros(data || []);
   };
@@ -717,16 +678,11 @@ const ClienteView = ({ userId }) => {
   const reportarPago = async () => {
     if(!payData.ref || payData.ref.length < 4) return alert("Ingresa los últimos 4 dígitos de la referencia");
     const { error } = await supabase.from('numeros').update({ 
-        estado: 'apartado', 
-        comprador_id: userId, 
-        referencia_pago: payData.ref 
+        estado: 'apartado', comprador_id: userId, referencia_pago: payData.ref 
     }).in('id_numero', cart);
-    
     if(!error) { 
         alert("¡Reporte de pago enviado! Tu ticket estará en revisión."); 
-        setSelectedRifa(null); 
-        setShowPay(false); 
-        setPaymentMethod(null);
+        setSelectedRifa(null); setShowPay(false); setPaymentMethod(null);
     }
   };
 
@@ -735,7 +691,7 @@ const ClienteView = ({ userId }) => {
       <header className="bg-white p-5 border-b border-slate-100 flex justify-between items-center sticky top-0 z-20 shadow-sm">
         <div className="flex items-center gap-2">
             <div className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-100"><Trophy size={20}/></div>
-            <h1 className="font-black italic text-2xl tracking-tighter text-blue-600">RIFAPRO</h1>
+            <h1 className="font-black italic text-2xl tracking-tighter text-blue-600 uppercase">AlexCars' Edition</h1>
         </div>
         <button onClick={async () => { await supabase.auth.signOut(); }} className="p-3 text-slate-300 bg-slate-50 rounded-2xl hover:text-red-500 hover:bg-red-50 transition-all">
           <LogOut size={22}/>
@@ -750,25 +706,17 @@ const ClienteView = ({ userId }) => {
                 <h2 className="text-3xl font-black italic uppercase leading-none mb-2">¡Mucha Suerte!</h2>
                 <p className="text-blue-100 text-xs font-bold uppercase tracking-widest opacity-80">Elige un sorteo y participa ahora</p>
             </div>
-
             <div className="flex items-center gap-4 px-2">
                 <div className="h-px bg-slate-200 flex-1"></div>
                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Sorteos</h3>
                 <div className="h-px bg-slate-200 flex-1"></div>
             </div>
-
             {rifas.map(r => {
               const isFinished = r.estado === 'finalizada';
               const iWon = isFinished && r.id_ganador && misNumeros.some(n => n.id_numero === r.id_ganador);
-              
-              // Si el cliente ganó, estilizamos la tarjeta de la lista de forma especial
-              const cardClasses = iWon 
-                ? "bg-gradient-to-r from-yellow-100 to-yellow-50 border-yellow-400 shadow-md" 
-                : "bg-white border-slate-100 hover:border-blue-500 shadow-sm";
-
+              const cardClasses = iWon ? "bg-gradient-to-r from-yellow-100 to-yellow-50 border-yellow-400 shadow-md" : "bg-white border-slate-100 hover:border-blue-500 shadow-sm";
               return (
               <div key={r.id_rifa} onClick={() => selectRifa(r)} className={`p-5 rounded-[2.8rem] border flex gap-5 items-center transition-all group active:scale-95 cursor-pointer relative overflow-hidden ${cardClasses}`}>
-                
                 <img src={r.imagen_url || 'https://via.placeholder.com/150'} className={`w-24 h-24 rounded-[2rem] object-cover bg-slate-50 shadow-xl shadow-slate-200 group-hover:rotate-3 transition-transform ${isFinished && !iWon ? 'grayscale opacity-70' : ''}`} />
                 <div className="flex-1 z-10">
                   <h3 className="text-xl font-black uppercase italic leading-none text-slate-800">{r.nombre}</h3>
@@ -776,17 +724,10 @@ const ClienteView = ({ userId }) => {
                     <span className="bg-green-100 text-green-600 text-[10px] font-black px-2 py-1 rounded-lg">${r.precio} USD</span>
                     <span className="text-[10px] text-slate-400 font-bold uppercase">{r.cantidad_numeros} Números</span>
                   </div>
-                  
                   <div className="mt-4 flex items-center justify-between">
                       {isFinished ? (
-                          iWon ? (
-                            <div className="text-yellow-600 font-black text-[10px] uppercase flex items-center gap-1 bg-yellow-100 px-3 py-1.5 rounded-full"><Crown size={14}/> ¡GANASTE! Ver Detalles</div>
-                          ) : (
-                            <div className="text-slate-400 font-black text-[10px] uppercase bg-slate-100 px-3 py-1.5 rounded-full">Sorteo Finalizado</div>
-                          )
-                      ) : (
-                          <div className="text-blue-600 font-black text-[10px] uppercase flex items-center gap-1">Participar <ChevronLeft size={14} className="rotate-180"/></div>
-                      )}
+                          iWon ? (<div className="text-yellow-600 font-black text-[10px] uppercase flex items-center gap-1 bg-yellow-100 px-3 py-1.5 rounded-full"><Crown size={14}/> ¡GANASTE! Ver Detalles</div>) : (<div className="text-slate-400 font-black text-[10px] uppercase bg-slate-100 px-3 py-1.5 rounded-full">Sorteo Finalizado</div>)
+                      ) : (<div className="text-blue-600 font-black text-[10px] uppercase flex items-center gap-1">Participar <ChevronLeft size={14} className="rotate-180"/></div>)}
                   </div>
                 </div>
                 {iWon && <Star size={100} className="absolute -right-6 -bottom-6 text-yellow-200 opacity-50 rotate-45"/>}
@@ -795,98 +736,58 @@ const ClienteView = ({ userId }) => {
           </div>
         ) : (
           <div className="pb-40">
-            {/* LÓGICA DE VISUALIZACIÓN DE SORTEO (GANADOR/PERDEDOR) */}
             {(() => {
                 const isFinished = selectedRifa.estado === 'finalizada';
                 const elTicketGanador = isFinished ? nums.find(n => n.id_numero === selectedRifa.id_ganador) : null;
                 const iWonThisRifa = elTicketGanador && elTicketGanador.comprador_id === userId;
-
                 return (
                     <>
                         <div className="flex justify-between items-center mb-6 pt-2">
                           <button onClick={() => setSelectedRifa(null)} className="flex items-center gap-2 font-black text-slate-400 text-[10px] uppercase tracking-widest px-4 py-2 bg-white rounded-full border border-slate-100 shadow-sm"><ChevronLeft size={16}/> Atrás</button>
-                          
                           {!isFinished && (
-                              <button 
-                                onClick={() => setHideSold(!hideSold)} 
-                                className={`flex items-center gap-2 px-6 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-md ${hideSold ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-white text-slate-500 border border-slate-200'}`}>
+                              <button onClick={() => setHideSold(!hideSold)} className={`flex items-center gap-2 px-6 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-md ${hideSold ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-white text-slate-500 border border-slate-200'}`}>
                                 {hideSold ? <Eye size={16}/> : <EyeOff size={16}/>} {hideSold ? 'Ver Todo' : 'Ver Libres'}
                               </button>
                           )}
                         </div>
-
-                        {/* MENSAJE PARA EL GANADOR (CSS FIREWORKS Y ANIMACIONES APLICADAS AQUÍ) */}
                         {isFinished && iWonThisRifa && (
                             <div className="fireworks-bg bg-yellow-500 p-8 rounded-[3rem] text-white shadow-2xl shadow-yellow-200 mb-8 text-center border-4 border-yellow-300 relative overflow-hidden">
-                                <div className="animate-celebration inline-block mb-4 bg-white/20 p-5 rounded-[2rem] backdrop-blur-md">
-                                    <Crown size={64} className="text-yellow-100 drop-shadow-lg"/>
-                                </div>
+                                <div className="animate-celebration inline-block mb-4 bg-white/20 p-5 rounded-[2rem] backdrop-blur-md"><Crown size={64} className="text-yellow-100 drop-shadow-lg"/></div>
                                 <h2 className="text-4xl font-black italic uppercase leading-none mb-2 drop-shadow-md">¡FELICIDADES!</h2>
                                 <p className="text-yellow-100 text-sm font-bold uppercase tracking-widest drop-shadow-sm mb-6">Eres el afortunado ganador</p>
-                                <div className="bg-white text-yellow-600 font-black text-3xl py-4 px-10 rounded-full inline-block shadow-lg border-2 border-yellow-100">
-                                    TICKET #{elTicketGanador?.numero}
-                                </div>
+                                <div className="bg-white text-yellow-600 font-black text-3xl py-4 px-10 rounded-full inline-block shadow-lg border-2 border-yellow-100">TICKET #{elTicketGanador?.numero}</div>
                                 <p className="text-[10px] text-yellow-100 mt-6 font-bold uppercase">Nos pondremos en contacto contigo pronto.</p>
                             </div>
                         )}
-
-                        {/* MENSAJE PARA EL RESTO (PERDEDORES) CUANDO FINALIZA */}
                         {isFinished && !iWonThisRifa && elTicketGanador && (
                             <div className="bg-slate-100 p-8 rounded-[3rem] text-slate-500 text-center mb-8 border border-slate-200">
-                                <Trophy size={40} className="mx-auto mb-4 opacity-40"/>
-                                <h3 className="text-2xl font-black uppercase italic tracking-tighter text-slate-600 mb-2">Sorteo Finalizado</h3>
+                                <Trophy size={40} className="mx-auto mb-4 opacity-40"/><h3 className="text-2xl font-black uppercase italic tracking-tighter text-slate-600 mb-2">Sorteo Finalizado</h3>
                                 <p className="text-xs font-bold">El ticket ganador fue el <span className="text-slate-800 font-black px-3 py-1 bg-white rounded-xl border border-slate-300 ml-1 text-sm">#{elTicketGanador.numero}</span></p>
                                 <p className="text-[10px] uppercase font-bold text-slate-400 mt-4 tracking-widest">¡Suerte para la próxima!</p>
                             </div>
                         )}
-                        
                         {!isFinished && (
                             <div className="bg-white p-8 rounded-[3rem] border border-slate-100 mb-8 shadow-sm relative overflow-hidden">
                               <div className="absolute top-6 right-8 bg-blue-600 text-white text-[10px] font-black px-4 py-2 rounded-2xl shadow-lg shadow-blue-100">${selectedRifa.precio} USD</div>
                               <h2 className="text-3xl font-black uppercase italic leading-none text-slate-900 pr-20">{selectedRifa.nombre}</h2>
-                              <div className="flex items-center gap-2 mt-4 text-slate-400 font-bold text-xs">
-                                <Calendar size={14} className="text-blue-500"/> Finaliza el: {selectedRifa.fecha_fin}
-                              </div>
-                              <div className="mt-6 p-4 bg-slate-50 rounded-[1.5rem] border border-slate-50">
-                                <p className="text-[11px] text-slate-500 leading-relaxed font-bold uppercase tracking-tight">{selectedRifa.descripcion}</p>
-                              </div>
+                              <div className="flex items-center gap-2 mt-4 text-slate-400 font-bold text-xs"><Calendar size={14} className="text-blue-500"/> Finaliza el: {selectedRifa.fecha_fin}</div>
+                              <div className="mt-6 p-4 bg-slate-50 rounded-[1.5rem] border border-slate-50"><p className="text-[11px] text-slate-500 leading-relaxed font-bold uppercase tracking-tight">{selectedRifa.descripcion}</p></div>
                             </div>
                         )}
-
-                        {/* GRILLA DE NÚMEROS CLIENTE */}
                         <div className={`grid grid-cols-5 sm:grid-cols-8 gap-3 bg-white p-6 rounded-[3rem] shadow-inner ${isFinished ? 'opacity-70 pointer-events-none border border-slate-200' : 'border border-slate-100'}`}>
                           {nums.map(n => {
                             const isMine = n.comprador_id === userId;
                             const isSelected = cart.includes(n.id_numero);
-                            
                             let bgColor = 'bg-green-500 border-green-600';
                             if (n.estado === 'pagado') bgColor = 'bg-slate-200 border-slate-300 text-slate-400';
                             if (n.estado === 'apartado') bgColor = 'bg-red-600 border-red-700 text-white';
                             if (isMine) bgColor = 'bg-blue-600 border-blue-700 text-white shadow-xl shadow-blue-100 z-10';
                             if (isSelected) bgColor = 'bg-slate-900 border-black text-white scale-110 z-10';
-
-                            // Si la rifa finalizó y este es el ticket ganador, lo pintamos de dorado para todos
-                            if (isFinished && n.id_numero === selectedRifa.id_ganador) {
-                                bgColor = 'bg-yellow-400 border-yellow-500 text-white shadow-lg shadow-yellow-200 scale-110 z-20 animate-pulse';
-                            }
-
+                            if (isFinished && n.id_numero === selectedRifa.id_ganador) bgColor = 'bg-yellow-400 border-yellow-500 text-white shadow-lg shadow-yellow-200 scale-110 z-20 animate-pulse';
                             if (hideSold && n.estado !== 'disponible' && !isMine && !isFinished) return null;
-
                             return (
-                              <button key={n.id_numero} 
-                                disabled={(n.estado !== 'disponible' && !isMine) || isFinished} 
-                                onClick={() => { 
-                                    if(n.estado === 'disponible' && !isFinished) {
-                                        setCart(prev => prev.includes(n.id_numero) ? prev.filter(id => id !== n.id_numero) : [...prev, n.id_numero]);
-                                    }
-                                }}
-                                className={`aspect-square rounded-[1.2rem] text-[10px] font-black border-2 transition-all relative flex items-center justify-center ${bgColor} ${!isFinished && isMine ? 'scale-105' : ''}`}>
-                                {n.numero}
-                                {isMine && !isFinished && (
-                                    <div className="absolute -top-2 -right-2 bg-white text-blue-600 rounded-full border-2 border-blue-600 p-0.5 shadow-md">
-                                        <CheckCircle2 size={10} strokeWidth={4}/>
-                                    </div>
-                                )}
+                              <button key={n.id_numero} disabled={(n.estado !== 'disponible' && !isMine) || isFinished} onClick={() => { if(n.estado === 'disponible' && !isFinished) setCart(prev => prev.includes(n.id_numero) ? prev.filter(id => id !== n.id_numero) : [...prev, n.id_numero]); }} className={`aspect-square rounded-[1.2rem] text-[10px] font-black border-2 transition-all relative flex items-center justify-center ${bgColor} ${!isFinished && isMine ? 'scale-105' : ''}`}>
+                                {n.numero}{isMine && !isFinished && (<div className="absolute -top-2 -right-2 bg-white text-blue-600 rounded-full border-2 border-blue-600 p-0.5 shadow-md"><CheckCircle2 size={10} strokeWidth={4}/></div>)}
                               </button>
                             );
                           })}
@@ -894,34 +795,24 @@ const ClienteView = ({ userId }) => {
                     </>
                 )
             })()}
-
             {cart.length > 0 && selectedRifa.estado === 'activa' && (
               <div className="fixed bottom-8 left-4 right-4 bg-slate-900 text-white p-7 rounded-[3rem] flex justify-between items-center shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-40 border border-slate-800">
                 <div className="flex items-center gap-4">
                     <div className="bg-slate-800 p-3 rounded-2xl text-blue-500 shadow-inner"><Ticket/></div>
-                    <div>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{cart.length} Seleccionados</p>
-                        <p className="text-3xl font-black italic tracking-tighter">${(cart.length * selectedRifa.precio).toFixed(2)}</p>
-                    </div>
+                    <div><p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{cart.length} Seleccionados</p><p className="text-3xl font-black italic tracking-tighter">${(cart.length * selectedRifa.precio).toFixed(2)}</p></div>
                 </div>
-                <button onClick={() => setShowPay(true)} className="bg-blue-600 px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest hover:bg-blue-500 transition-all active:scale-90 shadow-xl shadow-blue-900/20">
-                    Pagar Ahora
-                </button>
+                <button onClick={() => setShowPay(true)} className="bg-blue-600 px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest hover:bg-blue-500 transition-all active:scale-90 shadow-xl shadow-blue-900/20">Pagar Ahora</button>
               </div>
             )}
           </div>
         )}
       </main>
 
-      {/* MODAL PAGO CLIENTE IGUAL QUE ANTES */}
       {showPay && (
         <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
-           {/* ... Mismo código de modal de pago ... */}
            <div className="bg-white p-8 rounded-[3.5rem] w-full max-w-sm shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-2 bg-blue-600"></div>
             <h3 className="text-3xl font-black mb-2 uppercase italic text-slate-900 tracking-tighter">Completar Pago</h3>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Sigue las instrucciones de transferencia</p>
-            
             {!paymentMethod ? (
                 <div className="space-y-3">
                     <button onClick={() => setPaymentMethod('pago_movil')} className="w-full p-6 bg-slate-50 rounded-3xl border border-slate-100 flex items-center gap-4 hover:bg-blue-50 hover:border-blue-200 transition-all group">
@@ -936,14 +827,7 @@ const ClienteView = ({ userId }) => {
                 </div>
             ) : (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-                    <div className="bg-blue-600 p-6 rounded-[2.5rem] mb-6 text-white text-center shadow-xl shadow-blue-100">
-                        <p className="text-[10px] font-black uppercase opacity-70 mb-2">Datos para transferir</p>
-                        <p className="text-sm font-black leading-relaxed">
-                            BANCO CENTRAL<br/>
-                            V-12.345.678<br/>
-                            0412-0000000
-                        </p>
-                    </div>
+                    <div className="bg-blue-600 p-6 rounded-[2.5rem] mb-6 text-white text-center shadow-xl shadow-blue-100"><p className="text-[10px] font-black uppercase opacity-70 mb-2">Datos para transferir</p><p className="text-sm font-black leading-relaxed">BANCO CENTRAL<br/>V-12.345.678<br/>0412-0000000</p></div>
                     <div className="space-y-2 mb-6">
                         <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Ref. de pago (4 últimos dígitos)</label>
                         <input type="text" maxLength="4" placeholder="Ej: 9821" className="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-[2rem] font-black text-center outline-none focus:border-blue-500 text-2xl tracking-[0.5em] shadow-inner" onChange={e => setPayData({ref: e.target.value})} />
@@ -985,13 +869,10 @@ export default function App() {
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
         <div className="bg-white p-10 rounded-[3rem] shadow-2xl flex flex-col items-center border border-slate-100">
-            <Loader2 className="animate-spin text-blue-600 mb-4" size={48}/>
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] animate-pulse">Cargando Rifapro...</p>
+            <Loader2 className="animate-spin text-blue-600 mb-4" size={48}/><p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] animate-pulse">Cargando AlexCars' Edition...</p>
         </div>
     </div>
   );
-
   if (!session) return <Auth onLogin={setSession} />;
-  
   return role === 'admin' ? <AdminPanel /> : <ClienteView userId={session.user.id} />;
 }
