@@ -121,19 +121,41 @@ const AdminPanel = () => {
   }, []);
 
   const calculateStats = async () => {
-    const { data: nums } = await supabase.from('numeros').select('estado, rifas(precio)');
-    let total = 0; let pagados = 0; let revision = 0;
-    
-    nums?.forEach(n => {
-      if (n.estado === 'pagado') { 
-        total += n.rifas?.precio || 0; 
-        pagados++; 
-      }
-      if (n.estado === 'apartado') revision++;
-    });
-    setStats({ recaudado: total.toFixed(2), vendidos: pagados, pendientes: revision });
-  };
+  const { data: nums, error } = await supabase
+    .from('numeros')
+    .select('estado, rifas(precio)');
 
+  if (error) {
+    console.error("Error en estadísticas:", error);
+    return;
+  }
+
+  // LOG DE PRUEBA: Si ves esto en 0 en la consola, el problema son los datos en Supabase
+  console.log("Datos recibidos para stats:", nums);
+
+  let total = 0; 
+  let pagados = 0; 
+  let revision = 0;
+  
+  nums?.forEach(n => {
+    // CORRECCIÓN: Acceso seguro al precio de la relación
+    const precioTicket = n.rifas?.precio || 0;
+
+    if (n.estado === 'pagado') { 
+      total += precioTicket; 
+      pagados++; 
+    }
+    if (n.estado === 'apartado') {
+      revision++;
+    }
+  });
+
+  setStats({ 
+    recaudado: total.toLocaleString('en-US', { minimumFractionDigits: 2 }), 
+    vendidos: pagados, 
+    pendientes: revision 
+  });
+};
   const fetchRifas = async () => {
     const { data } = await supabase.from('rifas').select('*').order('creado_en', { ascending: false });
     const rifasData = data || [];
