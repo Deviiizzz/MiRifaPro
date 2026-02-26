@@ -70,7 +70,7 @@ const Auth = ({ onLogin }) => {
   );
 };
 
-// --- PANEL ADMINISTRADOR (CON DASHBOARD) ---
+// --- PANEL ADMINISTRADOR ---
 const AdminPanel = () => {
   const [rifas, setRifas] = useState([]);
   const [view, setView] = useState('list');
@@ -79,6 +79,13 @@ const AdminPanel = () => {
   const [newRifa, setNewRifa] = useState({ nombre: '', descripcion: '', cantidad: 100, precio: 0, fecha: '' });
   const [numDetail, setNumDetail] = useState(null);
   const [stats, setStats] = useState({ recaudado: 0, vendidos: 0, pendientes: 0 });
+  const [loading, setLoading] = useState(false);
+
+  // ESTADOS PARA VENTA MANUAL
+  const [showManualAssign, setShowManualAssign] = useState(false);
+  const [manualData, setManualData] = useState({ 
+    numeros: '', nombre: '', apellido: '', telefono: '', estado: 'apartado' 
+  });
 
   useEffect(() => { 
     fetchRifas(); 
@@ -146,6 +153,45 @@ const AdminPanel = () => {
     calculateStats();
   };
 
+  const handleManualAssignment = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const numerosArray = manualData.numeros.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+      if (numerosArray.length === 0) throw new Error("Ingresa números válidos");
+
+      // Buscar usuario por teléfono
+      let { data: usuario } = await supabase.from('usuarios').select('id_usuario').eq('telefono', manualData.telefono).single();
+      let clienteId = usuario?.id_usuario;
+
+      // Si no existe, crear usuario manual
+      if (!usuario) {
+        const { data: newUser, error: createError } = await supabase.from('usuarios').insert([{
+          nombre: manualData.nombre, apellido: manualData.apellido,
+          telefono: manualData.telefono, rol: 'cliente'
+        }]).select().single();
+        if (createError) throw createError;
+        clienteId = newUser.id_usuario;
+      }
+
+      // Actualizar números
+      const { error: updateError } = await supabase.from('numeros').update({
+        estado: manualData.estado, comprador_id: clienteId, referencia_pago: 'VENTA_MANUAL_ADMIN'
+      }).eq('id_rifa', selectedRifa.id_rifa).in('numero', numerosArray);
+
+      if (updateError) throw updateError;
+
+      alert("Asignación exitosa");
+      setShowManualAssign(false);
+      openRifaDetail(selectedRifa);
+      calculateStats();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       <nav className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
@@ -189,6 +235,30 @@ const AdminPanel = () => {
           </div>
         )}
 
+        {view === 'detail' && selectedRifa && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <button onClick={() => setView('list')} className="flex items-center gap-1 text-sm font-bold text-slate-400"><ChevronLeft size={16}/> Volver</button>
+                <div className="flex gap-2">
+                  <button onClick={() => setShowManualAssign(true)} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2"><Plus size={14}/> Venta Manual</button>
+                  <button onClick={() => window.print()} className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2"><Download size={14}/> PDF</button>
+                </div>
+            </div>
+            <div className="bg-white p-6 rounded-3xl border">
+                <h2 className="text-2xl font-black uppercase">{selectedRifa.nombre}</h2>
+            </div>
+            <div className="grid grid-cols-6 sm:grid-cols-10 gap-2">
+              {numsRifa.map(n => (
+                <button key={n.id_numero} onClick={() => n.estado !== 'disponible' && setNumDetail(n)}
+                  className={`aspect-square rounded-lg text-[10px] font-bold border-2 transition-all ${ESTADOS[n.estado].bg} ${ESTADOS[n.estado].border} ${ESTADOS[n.estado].text}`}>
+                  {n.numero}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* VISTA CREAR (Ya incluida) */}
         {view === 'create' && (
           <div className="bg-white p-6 rounded-3xl shadow-sm">
             <button onClick={() => setView('list')} className="mb-4 flex items-center gap-1 text-sm font-bold text-slate-400"><ChevronLeft size={16}/> Volver</button>
@@ -205,28 +275,9 @@ const AdminPanel = () => {
             </form>
           </div>
         )}
-
-        {view === 'detail' && selectedRifa && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <button onClick={() => setView('list')} className="flex items-center gap-1 text-sm font-bold text-slate-400"><ChevronLeft size={16}/> Volver</button>
-                <button onClick={() => window.print()} className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2"><Download size={14}/> PDF</button>
-            </div>
-            <div className="bg-white p-6 rounded-3xl border">
-                <h2 className="text-2xl font-black uppercase">{selectedRifa.nombre}</h2>
-            </div>
-            <div className="grid grid-cols-6 sm:grid-cols-10 gap-2">
-              {numsRifa.map(n => (
-                <button key={n.id_numero} onClick={() => n.estado !== 'disponible' && setNumDetail(n)}
-                  className={`aspect-square rounded-lg text-[10px] font-bold border-2 transition-all ${ESTADOS[n.estado].bg} ${ESTADOS[n.estado].border} ${ESTADOS[n.estado].text}`}>
-                  {n.numero}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </main>
 
+      {/* MODAL DETALLE NUMERO */}
       {numDetail && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-sm">
@@ -249,11 +300,49 @@ const AdminPanel = () => {
           </div>
         </div>
       )}
+
+      {/* MODAL VENTA MANUAL */}
+      {showManualAssign && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-[2.5rem] w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between mb-6">
+              <h3 className="text-xl font-black uppercase italic">Asignar Números</h3>
+              <button onClick={() => setShowManualAssign(false)}><X/></button>
+            </div>
+            <form onSubmit={handleManualAssignment} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 ml-2">NÚMEROS (Ej: 1, 5, 24)</label>
+                <input type="text" required className="w-full p-3 bg-slate-50 rounded-xl border outline-none"
+                  onChange={e => setManualData({...manualData, numeros: e.target.value})} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input type="text" placeholder="Nombre" required className="p-3 bg-slate-50 rounded-xl border outline-none"
+                  onChange={e => setManualData({...manualData, nombre: e.target.value})} />
+                <input type="text" placeholder="Apellido" required className="p-3 bg-slate-50 rounded-xl border outline-none"
+                  onChange={e => setManualData({...manualData, apellido: e.target.value})} />
+              </div>
+              <input type="tel" placeholder="Teléfono" required className="w-full p-3 bg-slate-50 rounded-xl border outline-none"
+                onChange={e => setManualData({...manualData, telefono: e.target.value})} />
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 ml-2">MARCAR COMO</label>
+                <select className="w-full p-3 bg-slate-50 rounded-xl border font-bold"
+                  onChange={e => setManualData({...manualData, estado: e.target.value})}>
+                  <option value="apartado">🟡 REVISIÓN (Amarillo)</option>
+                  <option value="pagado">🔴 VENDIDO (Rojo)</option>
+                </select>
+              </div>
+              <button className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black uppercase text-xs">
+                {loading ? <Loader2 className="animate-spin mx-auto" /> : 'Confirmar Asignación'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-// --- VISTA CLIENTE (CON MIS TICKETS) ---
+// --- VISTA CLIENTE ---
 const ClienteView = ({ userId }) => {
   const [rifas, setRifas] = useState([]);
   const [selectedRifa, setSelectedRifa] = useState(null);
@@ -293,7 +382,10 @@ const ClienteView = ({ userId }) => {
 
   const reportarPago = async () => {
     if(!payData.ref) return alert("Referencia necesaria");
-    const { error } = await supabase.from('numeros').update({ estado: 'apartado', comprador_id: userId, referencia_pago: payData.ref }).in('id_numero', cart);
+    const { error } = await supabase.from('numeros').update({ 
+      estado: 'apartado', comprador_id: userId, referencia_pago: payData.ref 
+    }).in('id_numero', cart);
+    
     if(!error) {
         alert("¡Reportado!");
         setSelectedRifa(null);
@@ -394,7 +486,7 @@ const ClienteView = ({ userId }) => {
   );
 };
 
-// --- APP COMPONENT (VERSIÓN BLINDADA FINAL) ---
+// --- APP COMPONENT ---
 export default function App() {
   const [session, setSession] = useState(null);
   const [role, setRole] = useState(null);
@@ -402,12 +494,7 @@ export default function App() {
 
   const checkRole = async (userId) => {
     try {
-      const timeout = setTimeout(() => {
-        if (loading) { setRole('cliente'); setLoading(false); }
-      }, 4000);
-
       const { data, error } = await supabase.from('usuarios').select('rol').eq('id_usuario', userId).single();
-      clearTimeout(timeout);
       if (error) setRole('cliente'); else setRole(data?.rol || 'cliente');
     } catch (err) {
       setRole('cliente');
@@ -437,11 +524,7 @@ export default function App() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin text-blue-600 mb-4" size={40}/>
-        <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest animate-pulse">Entrando a Rifapro...</p>
-        <button onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }}
-          className="mt-10 text-[10px] text-red-400 font-black uppercase border-b border-red-100 pb-1">
-          ¿Problemas al entrar? Click aquí
-        </button>
+        <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Cargando Rifapro...</p>
       </div>
     );
   }
