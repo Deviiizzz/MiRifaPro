@@ -26,7 +26,8 @@ const Auth = ({ onLogin }) => {
   const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const finalEmail = `${formData.telefono}@rifapro.com`;
+    // Cambio de dominio en correo autogenerado
+    const finalEmail = `${formData.telefono}@alexcars-rifas.com`;
 
     if (isRegistering) {
       const { data, error } = await supabase.auth.signUp({ email: finalEmail, password: formData.password });
@@ -53,7 +54,7 @@ const Auth = ({ onLogin }) => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
       <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-slate-200">
-        <h2 className="text-4xl font-black text-center mb-2 italic tracking-tighter text-blue-600">RIFAPRO</h2>
+        <h2 className="text-3xl font-black text-center mb-2 italic tracking-tighter text-blue-600 uppercase">AlexCar´s - Rifas</h2>
         <form onSubmit={handleAuth} className="space-y-4">
           {isRegistering && (
             <div className="grid grid-cols-2 gap-2">
@@ -119,7 +120,6 @@ const AdminPanel = () => {
     setView('detail');
   };
 
-  // --- LÓGICA DE SORTEO ---
   const realizarSorteo = async () => {
     const pagados = numsRifa.filter(n => n.estado === 'pagado');
     if (pagados.length === 0) return alert("No hay números pagados para realizar el sorteo.");
@@ -159,20 +159,21 @@ const AdminPanel = () => {
     Object.values(clientesAgrupados).forEach(cliente => {
       cliente.numeros.forEach(num => {
         dataParaExcel.push({
-          Rifa: selectedRifa.nombre,
-          Nombre: cliente.info?.nombre,
-          Apellido: cliente.info?.apellido,
-          Telefono: cliente.info?.telefono,
-          Ticket: num.numero,
-          Estado: num.estado,
-          Ref: num.referencia_pago
+          "Empresa": "AlexCar´s - Rifas",
+          "Rifa": selectedRifa.nombre,
+          "Nombre": cliente.info?.nombre,
+          "Apellido": cliente.info?.apellido,
+          "Telefono": cliente.info?.telefono,
+          "Ticket": num.numero,
+          "Estado": num.estado,
+          "Ref": num.referencia_pago
         });
       });
     });
     const ws = XLSX.utils.json_to_sheet(dataParaExcel);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Participantes");
-    XLSX.writeFile(wb, `Reporte_${selectedRifa.nombre}.xlsx`);
+    XLSX.writeFile(wb, `Reporte_AlexCars_${selectedRifa.nombre}.xlsx`);
   };
 
   const aprobarTodoElCliente = async (clienteId) => {
@@ -261,13 +262,12 @@ const AdminPanel = () => {
     finally { setLoadingAction(false); }
   };
 
-  // Datos del ganador para el Admin
   const ticketGanador = selectedRifa?.id_ganador ? numsRifa.find(n => n.id_numero === selectedRifa.id_ganador) : null;
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20 text-slate-800">
       <nav className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
-        <h1 className="font-black italic text-xl text-blue-600 tracking-tighter">RIFAPRO ADMIN</h1>
+        <h1 className="font-black italic text-xl text-blue-600 tracking-tighter uppercase">AlexCar´s - Rifas ADMIN</h1>
         <button onClick={() => supabase.auth.signOut()} className="text-red-500 p-2"><LogOut size={22}/></button>
       </nav>
 
@@ -315,7 +315,6 @@ const AdminPanel = () => {
                 </div>
             </div>
 
-            {/* INFORMACIÓN DEL GANADOR PARA EL ADMIN */}
             {ticketGanador && (
               <div className="bg-gradient-to-r from-slate-900 to-blue-900 p-6 rounded-[2.5rem] border-4 border-yellow-500 shadow-xl text-white">
                 <div className="flex items-center gap-4">
@@ -386,7 +385,6 @@ const AdminPanel = () => {
         )}
       </main>
 
-      {/* Modales Manual y Detalle (Mantenidos) */}
       {showManualAssign && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-[2.5rem] w-full max-w-md">
@@ -446,9 +444,9 @@ const ClienteView = ({ userId }) => {
   const descargarComprobante = () => {
     const misNums = nums.filter(n => n.comprador_id === userId);
     const doc = new jsPDF();
-    doc.text("COMPROBANTE RIFAPRO", 105, 20, { align: 'center' });
+    doc.text("COMPROBANTE AlexCar´s - Rifas", 105, 20, { align: 'center' });
     autoTable(doc, { startY: 30, head: [['Ticket', 'Estado']], body: misNums.map(n => [`#${n.numero}`, n.estado.toUpperCase()]) });
-    doc.save("Tickets.pdf");
+    doc.save("Tickets_AlexCars.pdf");
   };
 
   const esGanador = selectedRifa?.id_ganador && nums.find(n => n.id_numero === selectedRifa.id_ganador)?.comprador_id === userId;
@@ -456,7 +454,7 @@ const ClienteView = ({ userId }) => {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
       <header className="bg-white p-4 border-b flex justify-between items-center sticky top-0 z-20 shadow-sm">
-        <h1 className="font-black italic text-xl text-blue-600">RIFAPRO</h1>
+        <h1 className="font-black italic text-xl text-blue-600 uppercase tracking-tighter">AlexCar´s - Rifas</h1>
         <button onClick={() => supabase.auth.signOut()} className="p-2 text-slate-300"><LogOut size={20}/></button>
       </header>
 
@@ -478,7 +476,6 @@ const ClienteView = ({ userId }) => {
           <div className="pb-32">
             <button onClick={() => setSelectedRifa(null)} className="mb-4 text-sm font-bold text-slate-400 flex items-center"><ChevronLeft size={16}/> Volver</button>
             
-            {/* CELEBRACIÓN DEL CLIENTE */}
             {selectedRifa.id_ganador && (
               <div className={`relative overflow-hidden p-8 rounded-[3rem] mb-6 text-center shadow-2xl border-4 ${esGanador ? 'bg-gradient-to-br from-yellow-400 to-orange-500 border-yellow-200' : 'bg-slate-900 border-slate-700'}`}>
                 <div className="absolute inset-0 opacity-20 pointer-events-none fireworks-bg"></div>
@@ -561,7 +558,7 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) return <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50"><Loader2 className="animate-spin text-blue-600 mb-2" size={32}/><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Iniciando Rifapro...</p></div>;
+  if (loading) return <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50"><Loader2 className="animate-spin text-blue-600 mb-2" size={32}/><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">Iniciando AlexCar´s - Rifas...</p></div>;
   if (!session) return <Auth onLogin={setSession} />;
   return role === 'admin' ? <AdminPanel /> : <ClienteView userId={session.user.id} />;
 }
