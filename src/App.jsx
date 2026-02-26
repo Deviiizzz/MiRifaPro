@@ -865,26 +865,39 @@ export default function App() {
     try {
       const { data } = await supabase.from('usuarios').select('rol').eq('id_usuario', userId).single();
       setRole(data?.rol || 'cliente');
-    } catch { setRole('cliente'); } finally { setLoading(false); }
+    } catch { 
+      setRole('cliente'); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session); if (session) checkRole(session.user.id); else setLoading(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setLoading(true);
+      if (session) {
+        setSession(session);
+        await checkRole(session.user.id);
+      } else {
+        setSession(null);
+        setRole(null);
+      }
+      setLoading(false);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s); if (s) checkRole(s.user.id); else { setRole(null); setLoading(false); }
-    });
+
     return () => subscription.unsubscribe();
   }, []);
 
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
         <div className="bg-white p-10 rounded-[3rem] shadow-2xl flex flex-col items-center border border-slate-100">
-            <Loader2 className="animate-spin text-blue-600 mb-4" size={48}/><p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] animate-pulse">Cargando AlexCars' Edition...</p>
+            <Loader2 className="animate-spin text-blue-600 mb-4" size={48}/>
+            <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] animate-pulse">Cargando AlexCars' Edition...</p>
         </div>
     </div>
   );
+
   if (!session) return <Auth onLogin={setSession} />;
+  
   return role === 'admin' ? <AdminPanel /> : <ClienteView userId={session.user.id} />;
 }
