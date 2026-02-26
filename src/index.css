@@ -1,0 +1,25 @@
+/* Animación de los fuegos artificiales */
+@keyframes fireworks {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+
+.fireworks-bg {
+  background-image: 
+    radial-gradient(circle, #fff 1px, transparent 1px), 
+    radial-gradient(circle, #fff 1px, transparent 1px),
+    radial-gradient(circle, #ff0 1px, transparent 1px);
+  background-size: 60px 60px;
+  background-position: 0 0, 30px 30px, 15px 45px;
+  animation: fireworks 3s linear infinite;
+}
+
+/* Animación de rebote para el trofeo y el número */
+@keyframes celebration-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.animate-celebration {
+  animation: celebration-bounce 2s ease-in-out infinite;
+}
