@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { 
   LogOut, Plus, Ticket, X, CheckCircle2, Loader2, CreditCard, 
-  User, Phone, ChevronLeft, Trash2, Download, Eye, EyeOff, FileText, Image as ImageIcon, Edit3, Printer, Trophy, PartyPopper
+  User, Phone, ChevronLeft, Trash2, Download, Eye, EyeOff, FileText, Image as ImageIcon, Edit3, Printer, Trophy, PartyPopper, Calendar, Info, Building2, Smartphone
 } from 'lucide-react';
 
 // Librerías para documentos
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-import './index.css'; // Conexión con los fuegos artificiales
+import './index.css'; 
 
 const ESTADOS = {
   disponible: { bg: 'bg-green-500', border: 'border-green-600', text: 'text-white', label: 'Libre' },
@@ -26,7 +26,6 @@ const Auth = ({ onLogin }) => {
   const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // Cambio de dominio en correo autogenerado
     const finalEmail = `${formData.telefono}@alexcars-rifas.com`;
 
     if (isRegistering) {
@@ -268,7 +267,7 @@ const AdminPanel = () => {
     <div className="min-h-screen bg-slate-50 pb-20 text-slate-800">
       <nav className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
         <h1 className="font-black italic text-xl text-blue-600 tracking-tighter uppercase">AlexCar´s - Rifas ADMIN</h1>
-        <button onClick={() => supabase.auth.signOut()} className="text-red-500 p-2"><LogOut size={22}/></button>
+        <button onClick={() => supabase.auth.signOut()} className="text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors"><LogOut size={22}/></button>
       </nav>
 
       <main className="p-4 max-w-[1400px] mx-auto">
@@ -426,6 +425,7 @@ const ClienteView = ({ userId }) => {
   const [nums, setNums] = useState([]);
   const [cart, setCart] = useState([]);
   const [showPay, setShowPay] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState(null); // 'pago_movil' o 'transferencia'
   const [payData, setPayData] = useState({ ref: '' });
 
   useEffect(() => { fetchRifas(); }, []);
@@ -449,32 +449,57 @@ const ClienteView = ({ userId }) => {
     doc.save("Tickets_AlexCars.pdf");
   };
 
+  const handleConfirmPayment = async () => {
+    if(!payData.ref) return alert("Referencia necesaria");
+    const { error } = await supabase.from('numeros')
+      .update({ 
+        estado: 'apartado', 
+        comprador_id: userId, 
+        referencia_pago: `${paymentMethod === 'pago_movil' ? 'PM' : 'TR'}-${payData.ref}` 
+      })
+      .in('id_numero', cart);
+
+    if(!error) {
+      alert("Pago reportado. En espera de confirmación.");
+      setSelectedRifa(null); 
+      setCart([]);
+      setShowPay(false);
+      setPaymentMethod(null);
+      fetchRifas();
+    }
+  };
+
   const esGanador = selectedRifa?.id_ganador && nums.find(n => n.id_numero === selectedRifa.id_ganador)?.comprador_id === userId;
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
       <header className="bg-white p-4 border-b flex justify-between items-center sticky top-0 z-20 shadow-sm">
         <h1 className="font-black italic text-xl text-blue-600 uppercase tracking-tighter">AlexCar´s - Rifas</h1>
-        <button onClick={() => supabase.auth.signOut()} className="p-2 text-slate-300"><LogOut size={20}/></button>
+        <button onClick={() => supabase.auth.signOut()} className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors"><LogOut size={20}/></button>
       </header>
 
       <main className="p-4 max-w-2xl mx-auto">
         {!selectedRifa ? (
           <div className="space-y-4">
+             <div className="mb-4">
+              <h2 className="text-2xl font-black uppercase italic text-slate-400">Rifas Disponibles</h2>
+              <p className="text-xs font-bold text-slate-300">Selecciona una para participar</p>
+            </div>
             {rifas.map(r => (
-              <div key={r.id_rifa} onClick={() => selectRifa(r)} className="bg-white p-4 rounded-[2.5rem] shadow-sm flex gap-4 items-center cursor-pointer border-2 border-transparent hover:border-blue-600 relative overflow-hidden">
+              <div key={r.id_rifa} onClick={() => selectRifa(r)} className="bg-white p-4 rounded-[2.5rem] shadow-sm flex gap-4 items-center cursor-pointer border-2 border-transparent hover:border-blue-600 relative overflow-hidden transition-all">
                 {r.estado === 'finalizada' && <div className="absolute top-2 right-2 bg-red-600 text-white text-[8px] font-black px-2 py-0.5 rounded-full z-10">CERRADA</div>}
                 <img src={r.imagen_url || 'https://via.placeholder.com/150'} className={`w-20 h-20 rounded-3xl object-cover ${r.estado === 'finalizada' && 'grayscale opacity-50'}`} />
                 <div>
-                  <h3 className="text-lg font-black uppercase italic">{r.nombre}</h3>
+                  <h3 className="text-lg font-black uppercase italic leading-tight">{r.nombre}</h3>
                   <p className="text-blue-600 font-black">${r.precio} USD</p>
+                  <p className="text-[10px] font-bold text-slate-400 mt-1 flex items-center gap-1"><Calendar size={10}/> Finaliza: {r.fecha_fin || 'TBA'}</p>
                 </div>
               </div>
             ))}
           </div>
         ) : (
           <div className="pb-32">
-            <button onClick={() => setSelectedRifa(null)} className="mb-4 text-sm font-bold text-slate-400 flex items-center"><ChevronLeft size={16}/> Volver</button>
+            <button onClick={() => setSelectedRifa(null)} className="mb-4 text-sm font-bold text-slate-400 flex items-center gap-1 hover:text-slate-600 transition-colors"><ChevronLeft size={16}/> Volver al listado</button>
             
             {selectedRifa.id_ganador && (
               <div className={`relative overflow-hidden p-8 rounded-[3rem] mb-6 text-center shadow-2xl border-4 ${esGanador ? 'bg-gradient-to-br from-yellow-400 to-orange-500 border-yellow-200' : 'bg-slate-900 border-slate-700'}`}>
@@ -491,19 +516,40 @@ const ClienteView = ({ userId }) => {
             )}
 
             <div className="bg-white p-6 rounded-[2.5rem] border shadow-sm mb-6">
-              <h2 className="text-2xl font-black uppercase italic">{selectedRifa.nombre}</h2>
-              {nums.some(n => n.comprador_id === userId) && (
-                <button onClick={descargarComprobante} className="mt-4 flex items-center gap-2 text-blue-600 font-black text-[10px] uppercase border px-4 py-2 rounded-full"><Download size={14}/> Mis Tickets</button>
-              )}
+              <h2 className="text-2xl font-black uppercase italic leading-none">{selectedRifa.nombre}</h2>
+              <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <p className="text-xs font-bold text-slate-400 uppercase flex items-center gap-1 mb-1"><Info size={12}/> Descripción del Premio</p>
+                <p className="text-sm text-slate-600 leading-relaxed">{selectedRifa.descripcion || 'Sin descripción disponible.'}</p>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-4">
+                 <div className="bg-blue-50 text-blue-600 px-4 py-2 rounded-full text-[10px] font-black uppercase flex items-center gap-2"><Calendar size={12}/> Finaliza: {selectedRifa.fecha_fin}</div>
+                 <div className="bg-green-50 text-green-600 px-4 py-2 rounded-full text-[10px] font-black uppercase flex items-center gap-2"><Ticket size={12}/> {nums.filter(n=>n.estado==='disponible').length} Disponibles</div>
+                 {nums.some(n => n.comprador_id === userId) && (
+                   <button onClick={descargarComprobante} className="flex items-center gap-2 bg-slate-900 text-white font-black text-[10px] uppercase px-4 py-2 rounded-full hover:bg-slate-800 transition-colors"><Download size={14}/> Mis Tickets (PDF)</button>
+                 )}
+              </div>
             </div>
 
             <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 bg-white p-6 rounded-[2.5rem] border shadow-inner">
               {nums.map(n => {
                 const isMine = n.comprador_id === userId;
                 const isWinner = selectedRifa.id_ganador === n.id_numero;
+                
+                // Lógica de colores corregida:
+                let colorClass = "bg-green-500 text-white"; // Disponible
+                if (isWinner) colorClass = "bg-yellow-400 border-yellow-600 text-yellow-900 scale-110";
+                else if (isMine) {
+                   // Si es mío, depende del estado real en DB
+                   colorClass = n.estado === 'apartado' ? "bg-yellow-400 border-yellow-500 text-yellow-900" : "bg-blue-600 text-white";
+                } else if (n.estado === 'apartado' || n.estado === 'pagado') {
+                   colorClass = "bg-red-500 opacity-20 grayscale cursor-not-allowed";
+                } else if (cart.includes(n.id_numero)) {
+                   colorClass = "bg-slate-900 text-white animate-pulse scale-95";
+                }
+
                 return (
                   <button key={n.id_numero} disabled={selectedRifa.estado === 'finalizada' || (n.estado !== 'disponible' && !isMine)} onClick={() => { if(n.estado === 'disponible') setCart(prev => prev.includes(n.id_numero) ? prev.filter(id => id !== n.id_numero) : [...prev, n.id_numero]); }}
-                    className={`aspect-square rounded-2xl text-[10px] font-black border-2 transition-all relative ${isWinner ? 'bg-yellow-400 border-yellow-600 text-yellow-900 scale-110' : isMine ? 'bg-blue-600 border-blue-800 text-white' : n.estado === 'pagado' ? 'bg-red-500 opacity-20 grayscale' : cart.includes(n.id_numero) ? 'bg-slate-900 text-white' : 'bg-green-500 text-white'}`}>
+                    className={`aspect-square rounded-2xl text-[10px] font-black border-2 transition-all relative ${colorClass}`}>
                     {n.numero}
                     {isWinner && <PartyPopper className="absolute -top-2 -right-2 text-orange-600" size={14}/>}
                   </button>
@@ -512,9 +558,9 @@ const ClienteView = ({ userId }) => {
             </div>
 
             {cart.length > 0 && selectedRifa.estado !== 'finalizada' && (
-              <div className="fixed bottom-6 left-4 right-4 bg-slate-900 text-white p-6 rounded-[2.5rem] flex justify-between items-center shadow-2xl">
-                <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{cart.length} Tickets</p><p className="text-2xl font-black">${(cart.length * selectedRifa.precio).toFixed(2)}</p></div>
-                <button onClick={() => setShowPay(true)} className="bg-blue-600 px-8 py-4 rounded-2xl font-black uppercase text-xs">Pagar</button>
+              <div className="fixed bottom-6 left-4 right-4 bg-slate-900 text-white p-6 rounded-[2.5rem] flex justify-between items-center shadow-2xl animate-in fade-in slide-in-from-bottom-4">
+                <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{cart.length} Tickets seleccionados</p><p className="text-2xl font-black">${(cart.length * selectedRifa.precio).toFixed(2)}</p></div>
+                <button onClick={() => setShowPay(true)} className="bg-blue-600 px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-blue-500 active:scale-95 transition-all shadow-lg shadow-blue-900/50">Comprar Ahora</button>
               </div>
             )}
           </div>
@@ -523,11 +569,50 @@ const ClienteView = ({ userId }) => {
 
       {showPay && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-8 rounded-[3rem] w-full max-w-sm">
-            <h3 className="text-2xl font-black mb-4 uppercase italic text-blue-600 text-center tracking-tighter">Reportar Pago</h3>
-            <input type="text" maxLength="4" placeholder="Últimos 4 Dígitos Ref." className="w-full p-5 bg-slate-50 border-2 rounded-2xl mb-5 font-black text-center text-lg outline-none focus:border-blue-500" onChange={e => setPayData({ref: e.target.value})} />
-            <button onClick={async () => { if(!payData.ref) return alert("Referencia necesaria"); await supabase.from('numeros').update({ estado: 'apartado', comprador_id: userId, referencia_pago: payData.ref }).in('id_numero', cart); setSelectedRifa(null); setShowPay(false); }} className="w-full bg-blue-600 text-white p-5 rounded-2xl font-black uppercase shadow-lg shadow-blue-200">Confirmar</button>
-            <button onClick={() => setShowPay(false)} className="w-full mt-3 text-slate-400 font-black text-[10px] uppercase py-2">Cancelar</button>
+          <div className="bg-white p-8 rounded-[3rem] w-full max-w-sm max-h-[90vh] overflow-y-auto">
+            {!paymentMethod ? (
+              <>
+                <h3 className="text-2xl font-black mb-2 uppercase italic text-center">Forma de Pago</h3>
+                <p className="text-center text-xs text-slate-400 mb-6 font-bold uppercase">Total a pagar: ${(cart.length * selectedRifa.precio).toFixed(2)} USD</p>
+                <div className="space-y-3">
+                  <button onClick={() => setPaymentMethod('pago_movil')} className="w-full flex items-center gap-4 p-5 rounded-2xl border-2 border-slate-100 hover:border-blue-500 hover:bg-blue-50 transition-all text-left">
+                    <div className="bg-blue-600 p-3 rounded-xl text-white"><Smartphone size={24}/></div>
+                    <div><p className="font-black uppercase text-sm">Pago Móvil</p><p className="text-[10px] text-slate-400">Bs. (Tasa BCV)</p></div>
+                  </button>
+                  <button onClick={() => setPaymentMethod('transferencia')} className="w-full flex items-center gap-4 p-5 rounded-2xl border-2 border-slate-100 hover:border-blue-500 hover:bg-blue-50 transition-all text-left">
+                    <div className="bg-green-600 p-3 rounded-xl text-white"><Building2 size={24}/></div>
+                    <div><p className="font-black uppercase text-sm">Transferencia</p><p className="text-[10px] text-slate-400">Cuentas Nacionales</p></div>
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="animate-in fade-in slide-in-from-right-4">
+                <button onClick={() => setPaymentMethod(null)} className="text-[10px] font-black uppercase text-slate-400 mb-4 flex items-center gap-1"><ChevronLeft size={12}/> Cambiar método</button>
+                <h3 className="text-xl font-black mb-4 uppercase italic">Datos del Pago</h3>
+                
+                <div className="bg-slate-50 p-4 rounded-2xl border mb-5 space-y-2 text-sm font-bold">
+                   {paymentMethod === 'pago_movil' ? (
+                     <>
+                        <div className="flex justify-between"><span className="text-slate-400">Banco:</span><span>[BANCO NOMBRE]</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">Teléfono:</span><span>[NRO TELÉFONO]</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">Cédula:</span><span>[NRO CÉDULA]</span></div>
+                     </>
+                   ) : (
+                     <>
+                        <div className="flex justify-between"><span className="text-slate-400">Banco:</span><span>[BANCO NOMBRE]</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">Cuenta:</span><span>[0000-0000-00-00000000]</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">RIF/C.I:</span><span>[J-0000000-0]</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">Nombre:</span><span>[NOMBRE EMPRESA]</span></div>
+                     </>
+                   )}
+                </div>
+
+                <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Reportar Referencia</p>
+                <input type="text" maxLength="6" placeholder="Referencia (6 dígitos)" className="w-full p-5 bg-slate-50 border-2 rounded-2xl mb-5 font-black text-center text-lg outline-none focus:border-blue-500" onChange={e => setPayData({ref: e.target.value})} />
+                <button onClick={handleConfirmPayment} className="w-full bg-blue-600 text-white p-5 rounded-2xl font-black uppercase shadow-lg shadow-blue-200">Confirmar Pago</button>
+              </div>
+            )}
+            <button onClick={() => {setShowPay(false); setPaymentMethod(null);}} className="w-full mt-3 text-slate-400 font-black text-[10px] uppercase py-2">Cancelar</button>
           </div>
         </div>
       )}
