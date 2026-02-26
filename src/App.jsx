@@ -259,7 +259,7 @@ const AdminPanel = () => {
     <div className="min-h-screen bg-slate-50 pb-20 text-slate-800">
       <nav className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
         <h1 className="font-black italic text-xl text-blue-600">RIFAPRO ADMIN</h1>
-        <button onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }} className="text-red-500 p-2 hover:bg-red-50 rounded-xl transition-all">
+        <button onClick={async () => { await supabase.auth.signOut(); }} className="text-red-500 p-2 hover:bg-red-50 rounded-xl transition-all">
           <LogOut size={22}/>
         </button>
       </nav>
@@ -403,7 +403,7 @@ const AdminPanel = () => {
   );
 };
 
-// --- VISTA CLIENTE MEJORADA ---
+// --- VISTA CLIENTE ---
 const ClienteView = ({ userId }) => {
   const [rifas, setRifas] = useState([]);
   const [selectedRifa, setSelectedRifa] = useState(null);
@@ -411,32 +411,15 @@ const ClienteView = ({ userId }) => {
   const [cart, setCart] = useState([]);
   const [showPay, setShowPay] = useState(false);
   const [payData, setPayData] = useState({ ref: '' });
-  const [myTickets, setMyTickets] = useState([]);
-  const [view, setView] = useState('rifas');
-  
   const [hideSold, setHideSold] = useState(false);
-  const [viewTicket, setViewTicket] = useState(null);
 
   useEffect(() => { 
     fetchRifas(); 
-    fetchMyTickets();
   }, [userId]);
 
   const fetchRifas = async () => {
     const { data } = await supabase.from('rifas').select('*').eq('estado', 'activa');
     setRifas(data || []);
-  };
-
-  const fetchMyTickets = async () => {
-    // Consulta mejorada con alias para asegurar que el join con rifas funcione
-    const { data, error } = await supabase
-      .from('numeros')
-      .select('*, rifas:id_rifa(*)')
-      .eq('comprador_id', userId)
-      .order('creado_en', { ascending: false });
-
-    if (error) console.error("Error cargando tickets:", error);
-    else setMyTickets(data || []);
   };
 
   const selectRifa = async (rifa) => {
@@ -446,74 +429,17 @@ const ClienteView = ({ userId }) => {
     setCart([]);
   };
 
-  // Agrupar tickets por rifa para el historial
-  const ticketsPorRifa = myTickets.reduce((acc, t) => {
-    const rifaInfo = t.rifas;
-    if (!rifaInfo) return acc;
-    
-    const rifaId = rifaInfo.id_rifa;
-    if (!acc[rifaId]) {
-      acc[rifaId] = { info: rifaInfo, numeros: [] };
-    }
-    acc[rifaId].numeros.push(t);
-    return acc;
-  }, {});
-
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
       <header className="bg-white p-4 border-b flex justify-between items-center sticky top-0 z-20 shadow-sm">
         <h1 className="font-black italic text-xl tracking-tighter text-blue-600">RIFAPRO</h1>
-        <div className="flex gap-2 items-center">
-          <button 
-            onClick={() => { setView(view === 'rifas' ? 'mis-tickets' : 'rifas'); fetchMyTickets(); }} 
-            className={`text-[10px] font-black uppercase px-4 py-2 rounded-2xl transition-all ${view === 'mis-tickets' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'}`}>
-            {view === 'rifas' ? 'Mis Tickets' : 'Volver'}
-          </button>
-          <button onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }} className="p-2 text-slate-300 hover:text-red-500">
-            <LogOut size={20}/>
-          </button>
-        </div>
+        <button onClick={async () => { await supabase.auth.signOut(); }} className="p-2 text-slate-300 hover:text-red-500">
+          <LogOut size={20}/>
+        </button>
       </header>
 
       <main className="p-4 max-w-2xl mx-auto">
-        {/* --- HISTORIAL DE TICKETS --- */}
-        {view === 'mis-tickets' && (
-          <div className="space-y-6">
-            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Mis Participaciones</h2>
-            {Object.keys(ticketsPorRifa).length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200 text-slate-400 italic">No tienes tickets todavía.</div>
-            ) : (
-              Object.values(ticketsPorRifa).map(grupo => (
-                <div key={grupo.info.id_rifa} className="bg-white rounded-[2.5rem] border shadow-sm overflow-hidden mb-4 border-slate-200">
-                  <div className="bg-slate-900 p-5 text-white flex justify-between items-center">
-                    <div>
-                      <h3 className="font-black uppercase text-xs italic leading-tight">{grupo.info.nombre}</h3>
-                      <p className="text-[9px] text-slate-400 uppercase font-bold tracking-widest">Estado: Verificado</p>
-                    </div>
-                    {/* Botón para ver comprobante digital */}
-                    <button 
-                      onClick={() => setViewTicket(grupo)} 
-                      className="bg-blue-600 p-3 rounded-2xl hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/40">
-                      <FileText size={18}/>
-                    </button>
-                  </div>
-                  <div className="p-5 flex flex-wrap gap-2">
-                    {grupo.numeros.map(n => (
-                      <div key={n.id_numero} className="text-center">
-                        <div className={`text-sm font-black w-12 h-12 flex items-center justify-center rounded-2xl border-2 ${ESTADOS[n.estado].bg} ${ESTADOS[n.estado].text} ${ESTADOS[n.estado].border}`}>
-                          #{n.numero}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* --- LISTA DE RIFAS --- */}
-        {view === 'rifas' && !selectedRifa && (
+        {!selectedRifa ? (
           <div className="space-y-4">
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Sorteos Activos</h2>
             {rifas.map(r => (
@@ -527,10 +453,7 @@ const ClienteView = ({ userId }) => {
               </div>
             ))}
           </div>
-        )}
-
-        {/* --- SELECCIÓN DE NÚMEROS --- */}
-        {view === 'rifas' && selectedRifa && (
+        ) : (
           <div className="pb-32">
             <div className="flex justify-between items-center mb-4">
               <button onClick={() => setSelectedRifa(null)} className="flex items-center gap-1 font-bold text-slate-400 text-sm"><ChevronLeft size={16}/> Volver</button>
@@ -572,34 +495,6 @@ const ClienteView = ({ userId }) => {
         )}
       </main>
 
-      {/* --- MODAL COMPROBANTE DIGITAL --- */}
-      {viewTicket && (
-        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="bg-white w-full max-w-sm rounded-[3rem] overflow-hidden shadow-2xl text-slate-800">
-            <div className="bg-blue-600 p-10 text-white text-center relative">
-              <button onClick={() => setViewTicket(null)} className="absolute top-6 right-6 opacity-50 hover:opacity-100"><X/></button>
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/30"><Ticket size={32}/></div>
-              <h3 className="text-2xl font-black italic uppercase leading-none">Ticket Digital</h3>
-              <p className="text-[9px] font-bold opacity-60 uppercase tracking-[0.2em] mt-2">RIFAPRO VERIFIED</p>
-            </div>
-            <div className="p-8 space-y-5">
-              <div className="text-center">
-                <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Premio</p>
-                <p className="font-black text-xl uppercase italic">{viewTicket.info.nombre}</p>
-              </div>
-              <div className="bg-slate-50 p-6 rounded-[2rem] border-2 border-dashed border-slate-200">
-                <p className="text-[9px] font-black text-slate-400 uppercase mb-3 text-center">Tus Números:</p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {viewTicket.numeros.map(n => <span key={n.id_numero} className="bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-sm italic">#{n.numero}</span>)}
-                </div>
-              </div>
-              <div className="flex justify-between items-center text-[10px] font-bold uppercase text-slate-400 px-2"><span>Ref: {viewTicket.numeros[0].referencia_pago}</span></div>
-              <button onClick={() => window.print()} className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black uppercase text-xs shadow-lg flex items-center justify-center gap-2 hover:bg-black transition-all"><Printer size={16}/> Imprimir Recibo</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* MODAL PAGO */}
       {showPay && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -607,7 +502,7 @@ const ClienteView = ({ userId }) => {
             <h3 className="text-2xl font-black mb-4 uppercase italic text-blue-600">Pagar</h3>
             <div className="bg-blue-50 p-5 rounded-2xl mb-5 text-[11px] text-blue-800 leading-relaxed border border-blue-100 font-bold uppercase text-center">Transfiere a:<br/>BANCO CENTRAL<br/>0412-0000000 / V-12345678</div>
             <input type="text" maxLength="4" placeholder="Últimos 4 dígitos Ref." className="w-full p-5 bg-slate-50 border-2 rounded-2xl mb-5 font-black text-center outline-none focus:border-blue-500 text-lg" onChange={e => setPayData({ref: e.target.value})} />
-            <button onClick={async () => { if(!payData.ref) return alert("Ingresa referencia"); const { error } = await supabase.from('numeros').update({ estado: 'apartado', comprador_id: userId, referencia_pago: payData.ref }).in('id_numero', cart); if(!error) { alert("¡Pago enviado!"); setSelectedRifa(null); setShowPay(false); fetchMyTickets(); } }} className="w-full bg-blue-600 text-white p-5 rounded-2xl font-black uppercase text-xs shadow-xl transition-all hover:bg-blue-700">Confirmar Reporte</button>
+            <button onClick={async () => { if(!payData.ref) return alert("Ingresa referencia"); const { error } = await supabase.from('numeros').update({ estado: 'apartado', comprador_id: userId, referencia_pago: payData.ref }).in('id_numero', cart); if(!error) { alert("¡Pago enviado!"); setSelectedRifa(null); setShowPay(false); } }} className="w-full bg-blue-600 text-white p-5 rounded-2xl font-black uppercase text-xs shadow-xl transition-all hover:bg-blue-700">Confirmar Reporte</button>
             <button onClick={() => setShowPay(false)} className="w-full mt-3 text-slate-400 font-black text-[10px] uppercase py-2">Cancelar</button>
           </div>
         </div>
