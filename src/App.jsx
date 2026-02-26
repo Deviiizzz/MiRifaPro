@@ -21,7 +21,6 @@ const Auth = ({ onLogin }) => {
   const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // Generamos un email ficticio basado en el teléfono para Supabase Auth
     const finalEmail = `${formData.telefono}@rifapro.com`;
 
     if (isRegistering) {
@@ -74,7 +73,7 @@ const Auth = ({ onLogin }) => {
 // --- PANEL ADMINISTRADOR ---
 const AdminPanel = () => {
   const [rifas, setRifas] = useState([]);
-  const [view, setView] = useState('list'); // list, create, detail
+  const [view, setView] = useState('list');
   const [selectedRifa, setSelectedRifa] = useState(null);
   const [numsRifa, setNumsRifa] = useState([]);
   const [newRifa, setNewRifa] = useState({ nombre: '', descripcion: '', cantidad: 100, precio: 0, fecha: '' });
@@ -99,7 +98,6 @@ const AdminPanel = () => {
     }]).select();
 
     if (!error) {
-      // Generar números automáticamente
       const numEntries = Array.from({ length: newRifa.cantidad }, (_, i) => ({
         id_rifa: data[0].id_rifa,
         numero: i + 1,
@@ -140,7 +138,10 @@ const AdminPanel = () => {
     <div className="min-h-screen bg-slate-50 pb-20">
       <nav className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-30">
         <h1 className="font-black italic">RIFAPRO ADMIN</h1>
-        <button onClick={() => supabase.auth.signOut()} className="text-red-500"><LogOut size={20}/></button>
+        {/* BOTÓN SALIDA REFORZADA ADMIN */}
+        <button onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }} className="text-red-500">
+          <LogOut size={20}/>
+        </button>
       </nav>
 
       <main className="p-4 max-w-4xl mx-auto">
@@ -209,7 +210,6 @@ const AdminPanel = () => {
         )}
       </main>
 
-      {/* MODAL DETALLE DE NÚMERO (ADMIN) */}
       {numDetail && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-sm">
@@ -281,7 +281,10 @@ const ClienteView = ({ userId }) => {
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white p-4 border-b flex justify-between items-center sticky top-0 z-20">
         <h1 className="font-black italic">RIFAPRO</h1>
-        <button onClick={() => supabase.auth.signOut()} className="text-slate-300 hover:text-red-500"><LogOut size={20}/></button>
+        {/* BOTÓN SALIDA REFORZADA CLIENTE */}
+        <button onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }} className="text-slate-300 hover:text-red-500">
+          <LogOut size={20}/>
+        </button>
       </header>
 
       <main className="p-4 max-w-2xl mx-auto">
@@ -332,7 +335,6 @@ const ClienteView = ({ userId }) => {
         )}
       </main>
 
-      {/* MODAL PAGO CLIENTE */}
       {showPay && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-sm">
@@ -352,7 +354,7 @@ const ClienteView = ({ userId }) => {
   );
 };
 
-// --- APP COMPONENT (VERSIÓN CORREGIDA Y BLINDADA) ---
+// --- APP COMPONENT (VERSIÓN BLINDADA FINAL) ---
 export default function App() {
   const [session, setSession] = useState(null);
   const [role, setRole] = useState(null);
@@ -360,7 +362,6 @@ export default function App() {
 
   const checkRole = async (userId) => {
     try {
-      // Si en 4 segundos no hay respuesta, forzamos rol cliente para no bloquear
       const timeout = setTimeout(() => {
         if (loading) {
           setRole('cliente');
@@ -377,7 +378,6 @@ export default function App() {
       clearTimeout(timeout);
 
       if (error) {
-        console.warn("No se encontró rol, asignando cliente por defecto");
         setRole('cliente');
       } else {
         setRole(data?.rol || 'cliente');
@@ -390,41 +390,38 @@ export default function App() {
   };
 
   useEffect(() => {
-    // 1. Carga inicial
+    // 1. Carga inicial de sesión
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) checkRole(session.user.id);
       else setLoading(false);
     });
 
-    // 2. Escuchar cambios (Login/Logout)
+    // 2. Escuchar cambios globales (Auth)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) {
-        setLoading(true); // Re-activamos carga al cambiar de usuario
-        checkRole(session.user.id);
-      } else {
+      if (_event === 'SIGNED_OUT') {
+        setSession(null);
         setRole(null);
         setLoading(false);
+      } else {
+        setSession(session);
+        if (session) {
+          setLoading(true);
+          checkRole(session.user.id);
+        }
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // --- PANTALLA DE CARGA CON SALIDA DE EMERGENCIA ---
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin text-blue-600 mb-4" size={40}/>
-        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest animate-pulse">Cargando Rifapro...</p>
-        
-        {/* BOTÓN DE RESCATE: Si la sesión se queda pegada, esto la limpia */}
+        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest animate-pulse">Iniciando Rifapro...</p>
         <button 
-          onClick={async () => {
-            await supabase.auth.signOut();
-            window.location.reload();
-          }}
+          onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }}
           className="mt-10 text-[10px] text-red-400 font-bold uppercase border-b border-red-100 pb-1"
         >
           ¿Problemas al entrar? Click aquí
@@ -433,7 +430,6 @@ export default function App() {
     );
   }
 
-  // --- RUTAS ---
   if (!session) return <Auth onLogin={setSession} />;
   
   return role === 'admin' ? <AdminPanel /> : <ClienteView userId={session.user.id} />;
