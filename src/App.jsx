@@ -352,32 +352,89 @@ const ClienteView = ({ userId }) => {
   );
 };
 
-// --- APP COMPONENT ---
-xport default function App() {
+// --- APP COMPONENT (VERSIÓN CORREGIDA Y BLINDADA) ---
+export default function App() {
   const [session, setSession] = useState(null);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const checkRole = async (userId) => {
+    try {
+      // Si en 4 segundos no hay respuesta, forzamos rol cliente para no bloquear
+      const timeout = setTimeout(() => {
+        if (loading) {
+          setRole('cliente');
+          setLoading(false);
+        }
+      }, 4000);
+
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('rol')
+        .eq('id_usuario', userId)
+        .single();
+      
+      clearTimeout(timeout);
+
+      if (error) {
+        console.warn("No se encontró rol, asignando cliente por defecto");
+        setRole('cliente');
+      } else {
+        setRole(data?.rol || 'cliente');
+      }
+    } catch (err) {
+      setRole('cliente');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
+    // 1. Carga inicial
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) checkRole(session.user.id);
       else setLoading(false);
     });
-    supabase.auth.onAuthStateChange((_event, session) => {
+
+    // 2. Escuchar cambios (Login/Logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session) checkRole(session.user.id);
-      else { setRole(null); setLoading(false); }
+      if (session) {
+        setLoading(true); // Re-activamos carga al cambiar de usuario
+        checkRole(session.user.id);
+      } else {
+        setRole(null);
+        setLoading(false);
+      }
     });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const checkRole = async (userId) => {
-    const { data } = await supabase.from('usuarios').select('rol').eq('id_usuario', userId).single();
-    setRole(data?.rol || 'cliente');
-    setLoading(false);
-  };
+  // --- PANTALLA DE CARGA CON SALIDA DE EMERGENCIA ---
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+        <Loader2 className="animate-spin text-blue-600 mb-4" size={40}/>
+        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest animate-pulse">Cargando Rifapro...</p>
+        
+        {/* BOTÓN DE RESCATE: Si la sesión se queda pegada, esto la limpia */}
+        <button 
+          onClick={async () => {
+            await supabase.auth.signOut();
+            window.location.reload();
+          }}
+          className="mt-10 text-[10px] text-red-400 font-bold uppercase border-b border-red-100 pb-1"
+        >
+          ¿Problemas al entrar? Click aquí
+        </button>
+      </div>
+    );
+  }
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={40}/></div>;
+  // --- RUTAS ---
   if (!session) return <Auth onLogin={setSession} />;
+  
   return role === 'admin' ? <AdminPanel /> : <ClienteView userId={session.user.id} />;
 }
