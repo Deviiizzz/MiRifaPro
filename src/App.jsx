@@ -1,289 +1,358 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import { LogOut, Plus, Ticket, X, CheckCircle2, Loader2, CreditCard, ShieldCheck, User, Phone, Lock, ChevronLeft, Info } from 'lucide-react';
+import { 
+  LogOut, Plus, Ticket, X, CheckCircle2, Loader2, CreditCard, 
+  User, Phone, ChevronLeft, Trash2, Download, Eye, FileText 
+} from 'lucide-react';
 
-// --- COMPONENTE DE ACCESO (PULIDO) ---
+// --- ESTILOS DE COLORES POR ESTADO ---
+const ESTADOS = {
+  disponible: { bg: 'bg-green-500', border: 'border-green-600', text: 'text-white', label: 'Libre' },
+  apartado: { bg: 'bg-yellow-400', border: 'border-yellow-500', text: 'text-yellow-900', label: 'Revision' },
+  pagado: { bg: 'bg-red-500', border: 'border-red-600', text: 'text-white', label: 'Vendido' }
+};
+
+// --- COMPONENTE DE ACCESO ---
 const Auth = ({ onLogin }) => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({ nombre: '', apellido: '', telefono: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ nombre: '', apellido: '', telefono: '', password: '' });
 
   const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
-
-    // Usamos el teléfono + nombre para asegurar un ID único en Supabase Auth
-    // Esto evita errores si dos personas se llaman igual
-    const uniqueId = `${formData.nombre.toLowerCase()}${formData.telefono.slice(-4)}`;
-    const finalEmail = formData.email || `${uniqueId}@rifapro.com`;
+    // Generamos un email ficticio basado en el teléfono para Supabase Auth
+    const finalEmail = `${formData.telefono}@rifapro.com`;
 
     if (isRegistering) {
       const { data, error } = await supabase.auth.signUp({ email: finalEmail, password: formData.password });
-      if (error) {
-        alert("Error: " + error.message);
-      } else {
-        const { error: dbError } = await supabase.from('usuarios').insert([{
+      if (error) alert(error.message);
+      else {
+        await supabase.from('usuarios').insert([{
           id_usuario: data.user.id,
           nombre: formData.nombre,
           apellido: formData.apellido,
           telefono: formData.telefono,
-          email: formData.email,
           rol: 'cliente'
         }]);
-        if (dbError) alert("Error en base de datos: " + dbError.message);
-        else {
-          alert("¡Cuenta creada exitosamente!");
-          setIsRegistering(false);
-        }
+        alert("Registro exitoso");
+        setIsRegistering(false);
       }
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({ email: finalEmail, password: formData.password });
-      if (error) alert("Entrada fallida. Revisa tu nombre y contraseña.");
+      if (error) alert("Datos incorrectos");
       else onLogin(data.user);
     }
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="bg-white p-8 rounded-[2rem] shadow-xl w-full max-w-md border border-slate-100">
-        <div className="text-center mb-8">
-            <h2 className="text-4xl font-black text-slate-900 italic tracking-tighter">RIFAPRO</h2>
-            <p className="text-slate-400 text-sm font-medium">{isRegistering ? 'Únete a los sorteos' : 'Bienvenido de nuevo'}</p>
-        </div>
-        
-        <form onSubmit={handleAuth} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <input type="text" placeholder="Nombre" required className="p-4 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all" 
-              onChange={e => setFormData({...formData, nombre: e.target.value})} />
-            <input type="text" placeholder="Apellido" required className="p-4 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all" 
-              onChange={e => setFormData({...formData, apellido: e.target.value})} />
-          </div>
-
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
+      <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md">
+        <h2 className="text-3xl font-black text-center mb-6 italic">RIFAPRO</h2>
+        <form onSubmit={handleAuth} className="space-y-4">
           {isRegistering && (
-            <input type="tel" placeholder="Teléfono (WhatsApp)" required className="w-full p-4 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all" 
-                onChange={e => setFormData({...formData, telefono: e.target.value})} />
+            <div className="grid grid-cols-2 gap-2">
+              <input type="text" placeholder="Nombre" required className="p-3 bg-slate-50 rounded-xl outline-none border focus:border-blue-500" onChange={e => setFormData({...formData, nombre: e.target.value})} />
+              <input type="text" placeholder="Apellido" required className="p-3 bg-slate-50 rounded-xl outline-none border focus:border-blue-500" onChange={e => setFormData({...formData, apellido: e.target.value})} />
+            </div>
           )}
-
-          <input type="password" placeholder="Tu Contraseña" required className="w-full p-4 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all" 
-            onChange={e => setFormData({...formData, password: e.target.value})} />
-
-          <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white p-4 rounded-2xl font-bold hover:bg-blue-700 transition-all flex justify-center shadow-lg shadow-blue-200 uppercase text-xs tracking-widest mt-4">
-            {loading ? <Loader2 className="animate-spin" /> : (isRegistering ? 'Crear mi cuenta' : 'Entrar al sistema')}
+          <input type="tel" placeholder="Número de Teléfono" required className="w-full p-3 bg-slate-50 rounded-xl outline-none border focus:border-blue-500" onChange={e => setFormData({...formData, telefono: e.target.value})} />
+          <input type="password" placeholder="Contraseña" required className="w-full p-3 bg-slate-50 rounded-xl outline-none border focus:border-blue-500" onChange={e => setFormData({...formData, password: e.target.value})} />
+          <button className="w-full bg-blue-600 text-white p-3 rounded-xl font-bold uppercase tracking-widest hover:bg-blue-700 transition-all">
+            {loading ? <Loader2 className="animate-spin mx-auto" /> : (isRegistering ? 'Crear Cuenta' : 'Entrar')}
           </button>
         </form>
-
-        <p className="text-center mt-8 text-sm text-slate-500">
-            {isRegistering ? '¿Ya tienes cuenta?' : '¿Eres nuevo?'} 
-            <button onClick={() => setIsRegistering(!isRegistering)} className="ml-2 font-bold text-blue-600">
-                {isRegistering ? 'Inicia Sesión' : 'Regístrate aquí'}
-            </button>
-        </p>
+        <button onClick={() => setIsRegistering(!isRegistering)} className="w-full text-center mt-4 text-sm font-bold text-slate-500">
+          {isRegistering ? '¿Ya tienes cuenta? Ingresa' : '¿No tienes cuenta? Regístrate'}
+        </button>
       </div>
     </div>
   );
 };
 
-// --- PANEL DE ADMINISTRADOR ---
+// --- PANEL ADMINISTRADOR ---
 const AdminPanel = () => {
-    const [rifas, setRifas] = useState([]);
-    const [pendientes, setPendientes] = useState([]);
-    const [tab, setTab] = useState('rifas');
-  
-    useEffect(() => { fetchRifas(); fetchPagosPendientes(); }, []);
-  
-    const fetchRifas = async () => {
-      const { data } = await supabase.from('rifas').select('*').order('creado_en', { ascending: false });
-      setRifas(data || []);
-    };
-  
-    const fetchPagosPendientes = async () => {
-        const { data } = await supabase.from('numeros').select('*, rifas(nombre), usuarios(nombre, apellido, telefono)').eq('estado', 'apartado');
-        setPendientes(data || []);
-    };
-  
-    const confirmarPago = async (id_numero) => {
-      await supabase.from('numeros').update({ estado: 'pagado' }).eq('id_numero', id_numero);
-      fetchPagosPendientes();
-    };
-  
-    return (
-      <div className="min-h-screen bg-slate-50">
-        <nav className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-20">
-          <h1 className="text-xl font-black italic text-slate-900">RIFAPRO <span className="text-blue-600 font-medium not-italic text-sm">ADMIN</span></h1>
-          <div className="flex bg-slate-100 p-1 rounded-xl">
-            <button onClick={() => setTab('rifas')} className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${tab === 'rifas' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}>RIFAS</button>
-            <button onClick={() => setTab('pagos')} className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${tab === 'pagos' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}>PAGOS ({pendientes.length})</button>
-          </div>
-          <button onClick={() => supabase.auth.signOut()} className="text-slate-300 hover:text-red-500 transition-colors"><LogOut size={20}/></button>
-        </nav>
+  const [rifas, setRifas] = useState([]);
+  const [view, setView] = useState('list'); // list, create, detail
+  const [selectedRifa, setSelectedRifa] = useState(null);
+  const [numsRifa, setNumsRifa] = useState([]);
+  const [newRifa, setNewRifa] = useState({ nombre: '', descripcion: '', cantidad: 100, precio: 0, fecha: '' });
+  const [numDetail, setNumDetail] = useState(null);
 
-        <main className="p-4 max-w-4xl mx-auto">
-          {tab === 'rifas' ? (
-             <div className="grid gap-4">
-               {rifas.map(r => (
-                 <div key={r.id_rifa} className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100 flex justify-between items-center">
-                   <div><h3 className="font-black text-slate-800 uppercase tracking-tight">{r.nombre}</h3><p className="text-blue-600 font-bold">${r.precio}</p></div>
-                   <div className="flex gap-2"><span className="text-[10px] font-black bg-blue-50 text-blue-600 px-3 py-1 rounded-full uppercase">En curso</span></div>
-                 </div>
-               ))}
-             </div>
-          ) : (
+  useEffect(() => { fetchRifas(); }, []);
+
+  const fetchRifas = async () => {
+    const { data } = await supabase.from('rifas').select('*').order('creado_en', { ascending: false });
+    setRifas(data || []);
+  };
+
+  const crearRifa = async (e) => {
+    e.preventDefault();
+    const { data, error } = await supabase.from('rifas').insert([{
+      nombre: newRifa.nombre,
+      descripcion: newRifa.descripcion,
+      precio: newRifa.precio,
+      cantidad_numeros: newRifa.cantidad,
+      fecha_fin: newRifa.fecha,
+      estado: 'activa'
+    }]).select();
+
+    if (!error) {
+      // Generar números automáticamente
+      const numEntries = Array.from({ length: newRifa.cantidad }, (_, i) => ({
+        id_rifa: data[0].id_rifa,
+        numero: i + 1,
+        estado: 'disponible'
+      }));
+      await supabase.from('numeros').insert(numEntries);
+      alert("Rifa creada con éxito");
+      setView('list');
+      fetchRifas();
+    }
+  };
+
+  const deleteRifa = async (id) => {
+    if(window.confirm("¿Seguro que quieres borrar esta rifa y todos sus números?")) {
+      await supabase.from('rifas').delete().eq('id_rifa', id);
+      fetchRifas();
+    }
+  };
+
+  const openRifaDetail = async (rifa) => {
+    setSelectedRifa(rifa);
+    const { data } = await supabase.from('numeros').select('*, usuarios(nombre, apellido, telefono)').eq('id_rifa', rifa.id_rifa).order('numero', { ascending: true });
+    setNumsRifa(data || []);
+    setView('detail');
+  };
+
+  const handleActionNumber = async (numId, nuevoEstado) => {
+    const updateData = nuevoEstado === 'disponible' 
+      ? { estado: 'disponible', comprador_id: null, referencia_pago: null } 
+      : { estado: 'pagado' };
+    
+    await supabase.from('numeros').update(updateData).eq('id_numero', numId);
+    openRifaDetail(selectedRifa);
+    setNumDetail(null);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 pb-20">
+      <nav className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-30">
+        <h1 className="font-black italic">RIFAPRO ADMIN</h1>
+        <button onClick={() => supabase.auth.signOut()} className="text-red-500"><LogOut size={20}/></button>
+      </nav>
+
+      <main className="p-4 max-w-4xl mx-auto">
+        {view === 'list' && (
+          <div className="space-y-4">
+            <button onClick={() => setView('create')} className="w-full bg-blue-600 text-white p-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg"><Plus/> Crear Nueva Rifa</button>
+            {rifas.map(r => (
+              <div key={r.id_rifa} className="bg-white p-5 rounded-2xl shadow-sm border flex justify-between items-center">
+                <div onClick={() => openRifaDetail(r)} className="cursor-pointer flex-1">
+                  <h3 className="font-bold uppercase">{r.nombre}</h3>
+                  <p className="text-xs text-slate-400">Fin: {r.fecha_fin}</p>
+                </div>
+                <button onClick={() => deleteRifa(r.id_rifa)} className="text-slate-300 hover:text-red-500 p-2"><Trash2 size={18}/></button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {view === 'create' && (
+          <div className="bg-white p-6 rounded-3xl shadow-sm">
+            <button onClick={() => setView('list')} className="mb-4 flex items-center gap-1 text-sm font-bold text-slate-400"><ChevronLeft size={16}/> Volver</button>
+            <h2 className="text-xl font-black mb-4">CONFIGURAR RIFA</h2>
+            <form onSubmit={crearRifa} className="space-y-4">
+              <input type="text" placeholder="Nombre de la Rifa" className="w-full p-3 bg-slate-50 rounded-xl border" required onChange={e => setNewRifa({...newRifa, nombre: e.target.value})} />
+              <textarea placeholder="Descripción" className="w-full p-3 bg-slate-50 rounded-xl border" onChange={e => setNewRifa({...newRifa, descripcion: e.target.value})} />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 ml-2">CANT. NÚMEROS</label>
+                  <input type="number" placeholder="100" className="w-full p-3 bg-slate-50 rounded-xl border" onChange={e => setNewRifa({...newRifa, cantidad: e.target.value})} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 ml-2">PRECIO POR NÚMERO</label>
+                  <input type="number" step="0.01" placeholder="5.00" className="w-full p-3 bg-slate-50 rounded-xl border" onChange={e => setNewRifa({...newRifa, precio: e.target.value})} />
+                </div>
+              </div>
+              <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border" required onChange={e => setNewRifa({...newRifa, fecha: e.target.value})} />
+              <button className="w-full bg-blue-600 text-white p-4 rounded-xl font-black uppercase tracking-widest">Lanzar Rifa</button>
+            </form>
+          </div>
+        )}
+
+        {view === 'detail' && selectedRifa && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <button onClick={() => setView('list')} className="flex items-center gap-1 text-sm font-bold text-slate-400"><ChevronLeft size={16}/> Volver</button>
+                <button onClick={() => window.print()} className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2"><Download size={14}/> Respaldar PDF</button>
+            </div>
+            
+            <div className="bg-white p-6 rounded-3xl border">
+                <h2 className="text-3xl font-black uppercase">{selectedRifa.nombre}</h2>
+                <p className="text-slate-500 text-sm">{selectedRifa.descripcion}</p>
+            </div>
+
+            <div className="grid grid-cols-6 sm:grid-cols-10 gap-2">
+              {numsRifa.map(n => (
+                <button 
+                  key={n.id_numero} 
+                  onClick={() => n.estado !== 'disponible' && setNumDetail(n)}
+                  className={`aspect-square rounded-lg text-[10px] font-bold border-2 transition-all ${ESTADOS[n.estado].bg} ${ESTADOS[n.estado].border} ${ESTADOS[n.estado].text}`}
+                >
+                  {n.numero}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* MODAL DETALLE DE NÚMERO (ADMIN) */}
+      {numDetail && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-sm">
+            <div className="flex justify-between mb-4">
+                <h3 className="text-2xl font-black italic">TICKET #{numDetail.numero}</h3>
+                <button onClick={() => setNumDetail(null)}><X/></button>
+            </div>
+            <div className="space-y-3 mb-6">
+                <p className="text-sm"><strong>Cliente:</strong> {numDetail.usuarios?.nombre} {numDetail.usuarios?.apellido}</p>
+                <p className="text-sm"><strong>Teléfono:</strong> {numDetail.usuarios?.telefono}</p>
+                <p className="text-sm"><strong>Ref. Pago:</strong> {numDetail.referencia_pago || 'No adjunta'}</p>
+                <div className="p-3 bg-blue-50 rounded-xl text-blue-700 text-xs font-bold uppercase">Estado: {numDetail.estado}</div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => handleActionNumber(numDetail.id_numero, 'disponible')} className="bg-red-50 text-red-600 p-3 rounded-xl font-bold text-xs uppercase">Borrar / Error</button>
+                {numDetail.estado === 'apartado' && (
+                    <button onClick={() => handleActionNumber(numDetail.id_numero, 'pagado')} className="bg-green-600 text-white p-3 rounded-xl font-bold text-xs uppercase">Aprobar Pago</button>
+                )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- VISTA CLIENTE ---
+const ClienteView = ({ userId }) => {
+  const [rifas, setRifas] = useState([]);
+  const [selectedRifa, setSelectedRifa] = useState(null);
+  const [nums, setNums] = useState([]);
+  const [cart, setCart] = useState([]);
+  const [showPay, setShowPay] = useState(false);
+  const [payData, setPayData] = useState({ ref: '' });
+
+  useEffect(() => { fetchRifas(); }, []);
+
+  const fetchRifas = async () => {
+    const { data } = await supabase.from('rifas').select('*').eq('estado', 'activa');
+    setRifas(data || []);
+  };
+
+  const selectRifa = async (rifa) => {
+    setSelectedRifa(rifa);
+    const { data } = await supabase.from('numeros').select('*').eq('id_rifa', rifa.id_rifa).order('numero', { ascending: true });
+    setNums(data || []);
+    setCart([]);
+  };
+
+  const toggleNum = (n) => {
+    if(n.estado === 'pagado' || n.estado === 'apartado') return alert("Este número ya está vendido o en revisión");
+    setCart(prev => prev.includes(n.id_numero) ? prev.filter(id => id !== n.id_numero) : [...prev, n.id_numero]);
+  };
+
+  const reportarPago = async () => {
+    if(!payData.ref) return alert("Ingresa la referencia");
+    const { error } = await supabase.from('numeros')
+        .update({ estado: 'apartado', comprador_id: userId, referencia_pago: payData.ref })
+        .in('id_numero', cart);
+    
+    if(!error) {
+        alert("¡Reporte enviado! Tu ticket aparecerá en amarillo hasta que el admin lo apruebe.");
+        setSelectedRifa(null);
+        setShowPay(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <header className="bg-white p-4 border-b flex justify-between items-center sticky top-0 z-20">
+        <h1 className="font-black italic">RIFAPRO</h1>
+        <button onClick={() => supabase.auth.signOut()} className="text-slate-300 hover:text-red-500"><LogOut size={20}/></button>
+      </header>
+
+      <main className="p-4 max-w-2xl mx-auto">
+        {!selectedRifa ? (
             <div className="space-y-4">
-                {pendientes.length === 0 && <div className="text-center py-20 text-slate-400 font-medium">No hay pagos por revisar ☕</div>}
-                {pendientes.map(p => (
-                  <div key={p.id_numero} className="bg-white p-6 rounded-[1.5rem] shadow-md border-l-4 border-l-blue-600">
-                    <div className="flex justify-between items-center mb-4">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{p.rifas?.nombre}</span>
-                        <button onClick={() => confirmarPago(p.id_numero)} className="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold text-xs shadow-lg shadow-blue-100 hover:scale-105 transition-transform">APROBAR TICKET</button>
+                <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Sorteos Activos</h2>
+                {rifas.map(r => (
+                    <div key={r.id_rifa} onClick={() => selectRifa(r)} className="bg-white p-6 rounded-3xl border hover:border-blue-500 cursor-pointer transition-all">
+                        <h3 className="text-xl font-black uppercase">{r.nombre}</h3>
+                        <p className="text-sm text-slate-400 mb-2">{r.descripcion}</p>
+                        <div className="text-blue-600 font-bold">${r.precio} <span className="text-[10px] uppercase text-slate-300 ml-2">por número</span></div>
                     </div>
-                    <h4 className="text-3xl font-black mb-4">TICKET #{p.numero}</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                        <p className="text-slate-600">👤 <strong>Cliente:</strong> {p.usuarios?.nombre} {p.usuarios?.apellido}</p>
-                        <p className="text-slate-600">📞 <strong>Teléfono:</strong> {p.usuarios?.telefono}</p>
-                        <p className="text-slate-600">🏦 <strong>Banco:</strong> {p.banco_origen}</p>
-                        <p className="text-slate-600">📑 <strong>Ref:</strong> {p.referencia_pago}</p>
-                    </div>
-                  </div>
                 ))}
             </div>
-          )}
-        </main>
-      </div>
-    );
-};
+        ) : (
+            <div>
+                <button onClick={() => setSelectedRifa(null)} className="mb-4 flex items-center gap-1 font-bold text-slate-400 text-sm"><ChevronLeft size={16}/> Volver</button>
+                <div className="bg-white p-6 rounded-3xl border mb-6">
+                    <h2 className="text-2xl font-black uppercase">{selectedRifa.nombre}</h2>
+                    <p className="text-blue-600 font-bold">${selectedRifa.precio} USD</p>
+                </div>
 
-// --- VISTA CLIENTE PULIDA ---
-const ClienteView = ({ userId }) => {
-    const [rifas, setRifas] = useState([]);
-    const [rifaSeleccionada, setRifaSeleccionada] = useState(null);
-    const [numeros, setNumeros] = useState([]);
-    const [seleccionados, setSeleccionados] = useState([]);
-    const [mostrandoPago, setMostrandoPago] = useState(false);
-    const [pago, setPago] = useState({ ref: '', banco: '' });
+                <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 mb-32">
+                    {nums.map(n => (
+                        <button 
+                            key={n.id_numero} 
+                            onClick={() => toggleNum(n)}
+                            className={`aspect-square rounded-xl text-xs font-black border-2 transition-all
+                                ${n.estado === 'pagado' ? 'bg-red-500 border-red-600 text-white' : 
+                                  n.estado === 'apartado' ? 'bg-yellow-400 border-yellow-500 text-yellow-900' : 
+                                  cart.includes(n.id_numero) ? 'bg-blue-600 border-blue-700 text-white scale-90' : 'bg-green-500 border-green-600 text-white'}`}
+                        >
+                            {n.numero}
+                        </button>
+                    ))}
+                </div>
 
-    useEffect(() => { fetchRifas(); }, []);
-
-    const fetchRifas = async () => {
-      const { data } = await supabase.from('rifas').select('*').eq('estado', 'activa');
-      setRifas(data || []);
-    };
-
-    const seleccionarRifa = async (rifa) => {
-      setRifaSeleccionada(rifa);
-      const { data } = await supabase.from('numeros').select('*').eq('id_rifa', rifa.id_rifa).order('numero', { ascending: true });
-      setNumeros(data || []);
-    };
-
-    const handleReporte = async () => {
-        if(!pago.ref || !pago.banco) return alert("Por favor completa los datos del pago");
-        const { error } = await supabase.from('numeros').update({
-            estado: 'apartado',
-            referencia_pago: pago.ref,
-            banco_origen: pago.banco,
-            comprador_id: userId
-        }).in('numero', seleccionados).eq('id_rifa', rifaSeleccionada.id_rifa);
-
-        if (!error) {
-            alert("✅ ¡Pago reportado! Espera la confirmación del administrador.");
-            setRifaSeleccionada(null);
-            setMostrandoPago(false);
-            setSeleccionados([]);
-        }
-    };
-
-    return (
-        <div className="min-h-screen bg-slate-50">
-             <header className="bg-white p-4 border-b flex justify-between items-center sticky top-0 z-20">
-                <h1 className="text-xl font-black italic tracking-tighter">RIFAPRO</h1>
-                <button onClick={() => supabase.auth.signOut()} className="text-slate-300 hover:text-red-500"><LogOut size={20}/></button>
-            </header>
-
-            <main className="p-4 max-w-2xl mx-auto">
-                {!rifaSeleccionada ? (
-                    <div className="space-y-4 py-4">
-                        <div className="flex items-center gap-2 text-slate-400 mb-2">
-                            <Ticket size={18}/> <h2 className="text-sm font-black uppercase tracking-widest">Sorteos Disponibles</h2>
+                {cart.length > 0 && (
+                    <div className="fixed bottom-6 left-4 right-4 bg-slate-900 text-white p-6 rounded-[2rem] flex justify-between items-center shadow-2xl animate-in slide-in-from-bottom">
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">{cart.length} Tickets</p>
+                            <p className="text-2xl font-black">${(cart.length * selectedRifa.precio).toFixed(2)}</p>
                         </div>
-                        {rifas.map(r => (
-                            <div key={r.id_rifa} onClick={() => seleccionarRifa(r)} className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 hover:border-blue-500 hover:shadow-xl hover:shadow-blue-50/50 cursor-pointer transition-all flex justify-between items-center group">
-                                <div>
-                                    <h3 className="text-2xl font-black uppercase text-slate-800 group-hover:text-blue-600 transition-colors">{r.nombre}</h3>
-                                    <p className="text-slate-400 font-bold text-sm">Costo del ticket: <span className="text-blue-500">${r.precio}</span></p>
-                                </div>
-                                <div className="bg-slate-50 p-4 rounded-2xl group-hover:bg-blue-50 transition-colors"><Plus className="text-slate-300 group-hover:text-blue-600"/></div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="py-4">
-                        <button onClick={() => setRifaSeleccionada(null)} className="flex items-center gap-2 text-slate-400 font-bold text-sm mb-6 hover:text-blue-600 transition-colors"><ChevronLeft size={16}/> Volver a la lista</button>
-                        
-                        <div className="bg-white p-6 rounded-[2rem] border border-slate-100 mb-8 shadow-sm">
-                            <h2 className="text-3xl font-black uppercase leading-none mb-2">{rifaSeleccionada.nombre}</h2>
-                            <div className="flex items-center gap-2 text-blue-600 font-bold"><CreditCard size={16}/> ${rifaSeleccionada.precio} USD</div>
-                        </div>
-
-                        <div className="grid grid-cols-5 sm:grid-cols-8 gap-2 mb-32">
-                            {numeros.map(n => (
-                                <button key={n.id_numero} disabled={n.estado !== 'disponible'}
-                                    onClick={() => setSeleccionados(prev => prev.includes(n.numero) ? prev.filter(x => x !== n.numero) : [...prev, n.numero])}
-                                    className={`aspect-square rounded-2xl font-black text-xs transition-all border-2
-                                        ${n.estado === 'pagado' ? 'bg-slate-100 text-slate-300 border-transparent cursor-not-allowed' : 
-                                          n.estado === 'apartado' ? 'bg-yellow-100 text-yellow-600 border-yellow-200 cursor-not-allowed' :
-                                          seleccionados.includes(n.numero) ? 'bg-blue-600 text-white border-blue-600 scale-90 shadow-lg shadow-blue-200' : 'bg-white border-slate-100 hover:border-blue-200 text-slate-600'}`}
-                                >{n.numero}</button>
-                            ))}
-                        </div>
-
-                        {seleccionados.length > 0 && (
-                            <div className="fixed bottom-6 left-4 right-4 md:left-auto md:right-auto md:w-[640px] bg-slate-900 text-white p-6 rounded-[2.5rem] flex justify-between items-center shadow-2xl animate-in slide-in-from-bottom duration-500">
-                                <div>
-                                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">{seleccionados.length} Tickets elegidos</p>
-                                    <p className="text-3xl font-black text-blue-400 leading-none">${(seleccionados.length * rifaSeleccionada.precio).toFixed(2)}</p>
-                                </div>
-                                <button onClick={() => setMostrandoPago(true)} className="bg-blue-600 px-8 py-4 rounded-[1.5rem] font-black uppercase text-xs tracking-widest hover:bg-blue-500 transition-colors">Comprar Ahora</button>
-                            </div>
-                        )}
+                        <button onClick={() => setShowPay(true)} className="bg-blue-600 px-6 py-3 rounded-xl font-black uppercase text-xs">Comprar</button>
                     </div>
                 )}
-            </main>
+            </div>
+        )}
+      </main>
 
-            {/* MODAL DE PAGO PULIDO */}
-            {mostrandoPago && (
-                <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl animate-in zoom-in duration-300">
-                        <div className="flex justify-between items-start mb-6">
-                            <h3 className="text-2xl font-black uppercase italic tracking-tighter">Detalles del Pago</h3>
-                            <button onClick={() => setMostrandoPago(false)} className="text-slate-300 hover:text-slate-600"><X/></button>
-                        </div>
-
-                        {/* DATOS DE TU PAGO MÓVIL AQUÍ */}
-                        <div className="bg-blue-50 p-5 rounded-3xl mb-6 border border-blue-100">
-                            <p className="text-[10px] font-black text-blue-400 uppercase mb-2">Pagar a:</p>
-                            <p className="text-sm font-bold text-blue-900 leading-tight">Banco: [TU BANCO]<br/>Tlf: [TU TELÉFONO]<br/>CI: [TU CÉDULA]</p>
-                        </div>
-
-                        <div className="space-y-3">
-                            <div>
-                                <label className="text-[10px] font-black text-slate-400 uppercase ml-2">¿Desde qué banco pagaste?</label>
-                                <input type="text" placeholder="Ej: Banesco, Mercantil..." className="w-full p-4 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm font-bold" 
-                                    onChange={e => setPago({...pago, banco: e.target.value})} />
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Últimos 4 de la referencia</label>
-                                <input type="text" maxLength="4" placeholder="0000" className="w-full p-4 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm font-bold" 
-                                    onChange={e => setPago({...pago, ref: e.target.value})} />
-                            </div>
-                            <button onClick={handleReporte} className="w-full bg-slate-900 text-white p-5 rounded-[1.5rem] font-black uppercase text-xs tracking-widest hover:bg-blue-600 transition-all mt-4">Confirmar Reporte</button>
-                        </div>
-                    </div>
+      {/* MODAL PAGO CLIENTE */}
+      {showPay && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-sm">
+                <h3 className="text-xl font-black mb-4 uppercase">Completar Pago</h3>
+                <div className="bg-blue-50 p-4 rounded-2xl mb-4 border border-blue-100 text-sm">
+                    <p className="font-bold text-blue-800">Transferencia / Pago Móvil</p>
+                    <p className="text-blue-600">Banco: [TU BANCO]<br/>Tlf: [TU TELÉFONO]<br/>CI: [TU CÉDULA]</p>
                 </div>
-            )}
+                <input type="text" maxLength="4" placeholder="Últimos 4 de referencia" className="w-full p-4 bg-slate-50 border rounded-2xl mb-4 outline-none" 
+                    onChange={e => setPayData({ref: e.target.value})} />
+                <button onClick={reportarPago} className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black uppercase text-xs">Enviar Comprobante</button>
+                <button onClick={() => setShowPay(false)} className="w-full mt-2 text-slate-400 font-bold text-xs uppercase">Cancelar</button>
+            </div>
         </div>
-    );
+      )}
+    </div>
+  );
 };
 
+// --- APP COMPONENT ---
 export default function App() {
   const [session, setSession] = useState(null);
   const [role, setRole] = useState(null);
@@ -308,7 +377,7 @@ export default function App() {
     setLoading(false);
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="animate-spin text-blue-600" size={50}/></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={40}/></div>;
   if (!session) return <Auth onLogin={setSession} />;
   return role === 'admin' ? <AdminPanel /> : <ClienteView userId={session.user.id} />;
 }
