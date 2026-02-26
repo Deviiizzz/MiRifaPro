@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { 
   LogOut, Plus, Ticket, X, CheckCircle2, Loader2, CreditCard, 
-  User, Phone, ChevronLeft, Trash2, Download, Eye, EyeOff, FileText, Image as ImageIcon, Edit3, Printer, Trophy, PartyPopper, Calendar, Info, Building2, Smartphone, Bell, AlertCircle
+  User, Phone, ChevronLeft, Trash2, Download, Eye, EyeOff, FileText, Image as ImageIcon, Edit3, Printer, Trophy, PartyPopper, Calendar, Info, Building2, Smartphone
 } from 'lucide-react';
 
 // Librerías para documentos
@@ -11,18 +11,9 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import './index.css'; 
 
-// --- CONFIGURACIÓN DE COLORES ---
-// Para el Administrador: Revision = Rojo, Pagado = Azul
-const ESTADOS_ADMIN = {
+const ESTADOS = {
   disponible: { bg: 'bg-green-500', border: 'border-green-600', text: 'text-white', label: 'Libre' },
-  apartado: { bg: 'bg-red-600', border: 'border-red-700', text: 'text-white', label: 'Revision' },
-  pagado: { bg: 'bg-blue-600', border: 'border-blue-700', text: 'text-white', label: 'Vendido' }
-};
-
-// Para el Cliente: Revision = Rojo, Pagado = Rojo (Vendido)
-const ESTADOS_CLIENTE = {
-  disponible: { bg: 'bg-green-500', border: 'border-green-600', text: 'text-white', label: 'Libre' },
-  apartado: { bg: 'bg-red-600', border: 'border-red-700', text: 'text-white', label: 'Revision' },
+  apartado: { bg: 'bg-yellow-400', border: 'border-yellow-500', text: 'text-yellow-900', label: 'Revision' },
   pagado: { bg: 'bg-red-500', border: 'border-red-600', text: 'text-white', label: 'Vendido' }
 };
 
@@ -104,28 +95,18 @@ const AdminPanel = () => {
   }, []);
 
   const calculateStats = async () => {
-    const { data: nums, error } = await supabase.from('numeros').select('estado, id_rifa, rifas(precio)');
-    if (error) return;
-    
+    const { data: nums } = await supabase.from('numeros').select('estado, rifas(precio)');
     let total = 0; let pagados = 0; let revision = 0;
     nums?.forEach(n => {
-      if (n.estado === 'pagado') { 
-        total += n.rifas?.precio || 0; 
-        pagados++; 
-      }
+      if (n.estado === 'pagado') { total += n.rifas.precio; pagados++; }
       if (n.estado === 'apartado') revision++;
     });
-    setStats({ recaudado: total.toFixed(2), vendidos: pagados, pendientes: revision });
+    setStats({ recaudado: total, vendidos: pagados, pendientes: revision });
   };
 
   const fetchRifas = async () => {
-    const { data: rifasData } = await supabase.from('rifas').select('*, numeros(estado)').order('creado_en', { ascending: false });
-    const processedRifas = rifasData?.map(r => ({
-      ...r,
-      tienePendientes: r.numeros?.some(n => n.estado === 'apartado')
-    })) || [];
-    setRifas(processedRifas);
-    calculateStats();
+    const { data } = await supabase.from('rifas').select('*').order('creado_en', { ascending: false });
+    setRifas(data || []);
   };
 
   const openRifaDetail = async (rifa) => {
@@ -140,19 +121,22 @@ const AdminPanel = () => {
 
   const realizarSorteo = async () => {
     const pagados = numsRifa.filter(n => n.estado === 'pagado');
-    if (pagados.length === 0) return alert("No hay números pagados.");
-    if (!window.confirm(`¿Sortear entre ${pagados.length} números?`)) return;
+    if (pagados.length === 0) return alert("No hay números pagados para realizar el sorteo.");
+    if (!window.confirm(`Se elegirá un ganador entre ${pagados.length} números pagados. ¿Continuar?`)) return;
 
     setLoadingAction(true);
     const ganadorAleatorio = pagados[Math.floor(Math.random() * pagados.length)];
+
     const { error } = await supabase.from('rifas')
       .update({ id_ganador: ganadorAleatorio.id_numero, estado: 'finalizada' })
       .eq('id_rifa', selectedRifa.id_rifa);
 
     if (!error) {
-      alert(`¡Ganador: #${ganadorAleatorio.numero}!`);
+      alert(`¡SORTEO COMPLETADO! Ganador: #${ganadorAleatorio.numero}`);
       fetchRifas();
       setView('list');
+    } else {
+      alert("Error al guardar ganador: " + error.message);
     }
     setLoadingAction(false);
   };
@@ -160,7 +144,9 @@ const AdminPanel = () => {
   const clientesAgrupados = numsRifa.reduce((acc, n) => {
     if (n.comprador_id) {
       const id = n.comprador_id;
-      if (!acc[id]) acc[id] = { info: n.usuarios, numeros: [], tienePendientes: false };
+      if (!acc[id]) {
+        acc[id] = { info: n.usuarios, numeros: [], tienePendientes: false };
+      }
       acc[id].numeros.push(n);
       if (n.estado === 'apartado') acc[id].tienePendientes = true;
     }
@@ -172,6 +158,7 @@ const AdminPanel = () => {
     Object.values(clientesAgrupados).forEach(cliente => {
       cliente.numeros.forEach(num => {
         dataParaExcel.push({
+          "Empresa": "AlexCar´s - Rifas",
           "Rifa": selectedRifa.nombre,
           "Nombre": cliente.info?.nombre,
           "Apellido": cliente.info?.apellido,
@@ -185,11 +172,11 @@ const AdminPanel = () => {
     const ws = XLSX.utils.json_to_sheet(dataParaExcel);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Participantes");
-    XLSX.writeFile(wb, `Reporte_${selectedRifa.nombre}.xlsx`);
+    XLSX.writeFile(wb, `Reporte_AlexCars_${selectedRifa.nombre}.xlsx`);
   };
 
   const aprobarTodoElCliente = async (clienteId) => {
-    if(!window.confirm("¿Aprobar todos los números?")) return;
+    if(!window.confirm("¿Aprobar todos los números pendientes?")) return;
     setLoadingAction(true);
     const { error } = await supabase.from('numeros').update({ estado: 'pagado' })
       .eq('id_rifa', selectedRifa.id_rifa).eq('comprador_id', clienteId).eq('estado', 'apartado');
@@ -203,44 +190,24 @@ const AdminPanel = () => {
     let publicUrl = null;
     try {
       if (imageFile) {
-        const fileName = `${Date.now()}_${imageFile.name}`;
+        const fileName = `${Math.random()}.${imageFile.name.split('.').pop()}`;
         await supabase.storage.from('rifas_premios').upload(fileName, imageFile);
         const { data: urlData } = supabase.storage.from('rifas_premios').getPublicUrl(fileName);
         publicUrl = urlData.publicUrl;
       }
-
-      // CORRECCIÓN: Convertir a números y manejar la inserción con .select().single()
-      const { data: rifaCreada, error: rifaError } = await supabase.from('rifas').insert([{
-        nombre: newRifa.nombre,
-        descripcion: newRifa.descripcion,
-        precio: parseFloat(newRifa.precio),
-        cantidad_numeros: parseInt(newRifa.cantidad),
-        fecha_fin: newRifa.fecha,
-        estado: 'activa',
-        imagen_url: publicUrl
-      }]).select().single();
-
-      if (rifaError) throw rifaError;
-
-      const numEntries = Array.from({ length: parseInt(newRifa.cantidad) }, (_, i) => ({
-        id_rifa: rifaCreada.id_rifa,
-        numero: i + 1,
-        estado: 'disponible'
+      const { data, error } = await supabase.from('rifas').insert([{
+        nombre: newRifa.nombre, descripcion: newRifa.descripcion,
+        precio: newRifa.precio, cantidad_numeros: newRifa.cantidad,
+        fecha_fin: newRifa.fecha, estado: 'activa', imagen_url: publicUrl
+      }]).select();
+      if (error) throw error;
+      const numEntries = Array.from({ length: newRifa.cantidad }, (_, i) => ({
+        id_rifa: data[0].id_rifa, numero: i + 1, estado: 'disponible'
       }));
-
-      const { error: numError } = await supabase.from('numeros').insert(numEntries);
-      if (numError) throw numError;
-
-      alert("¡Rifa publicada con éxito!");
-      setNewRifa({ nombre: '', descripcion: '', cantidad: 100, precio: 0, fecha: '' });
-      setImageFile(null);
-      setView('list'); 
-      fetchRifas();
-    } catch (err) { 
-      alert("Error al crear: " + err.message); 
-    } finally { 
-      setLoadingAction(false); 
-    }
+      await supabase.from('numeros').insert(numEntries);
+      setView('list'); fetchRifas(); calculateStats();
+    } catch (err) { alert(err.message); }
+    finally { setLoadingAction(false); }
   };
 
   const handleEditRifa = async (e) => {
@@ -249,16 +216,14 @@ const AdminPanel = () => {
     let publicUrl = selectedRifa.imagen_url;
     try {
       if (imageFile) {
-        const fileName = `${Date.now()}_${imageFile.name}`;
+        const fileName = `${Math.random()}.${imageFile.name.split('.').pop()}`;
         await supabase.storage.from('rifas_premios').upload(fileName, imageFile);
         const { data: urlData } = supabase.storage.from('rifas_premios').getPublicUrl(fileName);
         publicUrl = urlData.publicUrl;
       }
       await supabase.from('rifas').update({
-        nombre: selectedRifa.nombre, 
-        descripcion: selectedRifa.descripcion,
-        fecha_fin: selectedRifa.fecha_fin, 
-        imagen_url: publicUrl
+        nombre: selectedRifa.nombre, descripcion: selectedRifa.descripcion,
+        fecha_fin: selectedRifa.fecha_fin, imagen_url: publicUrl
       }).eq('id_rifa', selectedRifa.id_rifa);
       setView('list'); fetchRifas();
     } catch (err) { alert(err.message); }
@@ -291,7 +256,7 @@ const AdminPanel = () => {
       await supabase.from('numeros').update({
         estado: manualData.estado, comprador_id: clienteId, referencia_pago: 'VENTA_MANUAL'
       }).eq('id_rifa', selectedRifa.id_rifa).in('numero', numsArr);
-      setShowManualAssign(false); openRifaDetail(selectedRifa);
+      setShowManualAssign(false); openRifaDetail(selectedRifa); calculateStats();
     } catch (err) { alert(err.message); }
     finally { setLoadingAction(false); }
   };
@@ -299,10 +264,10 @@ const AdminPanel = () => {
   const ticketGanador = selectedRifa?.id_ganador ? numsRifa.find(n => n.id_numero === selectedRifa.id_ganador) : null;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20 text-slate-800 font-sans">
+    <div className="min-h-screen bg-slate-50 pb-20 text-slate-800">
       <nav className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
         <h1 className="font-black italic text-xl text-blue-600 tracking-tighter uppercase">AlexCar´s - Rifas ADMIN</h1>
-        <button onClick={() => supabase.auth.signOut()} className="text-white bg-red-600 p-2 hover:bg-red-700 rounded-full transition-colors flex items-center gap-2 px-4"><LogOut size={18}/> <span className="text-xs font-black uppercase">Salir</span></button>
+        <button onClick={() => supabase.auth.signOut()} className="text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors"><LogOut size={22}/></button>
       </nav>
 
       <main className="p-4 max-w-[1400px] mx-auto">
@@ -311,25 +276,17 @@ const AdminPanel = () => {
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-white p-4 rounded-3xl border shadow-sm text-center"><p className="text-[9px] font-bold text-slate-400 uppercase">Recaudado</p><p className="text-xl font-black text-green-600">${stats.recaudado}</p></div>
               <div className="bg-white p-4 rounded-3xl border shadow-sm text-center"><p className="text-[9px] font-bold text-slate-400 uppercase">Vendidos</p><p className="text-xl font-black text-blue-600">{stats.vendidos}</p></div>
-              <div className="bg-white p-4 rounded-3xl border shadow-sm text-center"><p className="text-[9px] font-bold text-slate-400 uppercase">En Revisión</p><p className="text-xl font-black text-red-600">{stats.pendientes}</p></div>
+              <div className="bg-white p-4 rounded-3xl border shadow-sm text-center"><p className="text-[9px] font-bold text-slate-400 uppercase">En Revisión</p><p className="text-xl font-black text-yellow-500">{stats.pendientes}</p></div>
             </div>
-            <button onClick={() => { setView('create'); setImageFile(null); }} className="w-full bg-blue-600 text-white p-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg hover:bg-blue-700 transition-all"><Plus/> Nueva Rifa</button>
+            <button onClick={() => setView('create')} className="w-full bg-blue-600 text-white p-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg hover:bg-blue-700 transition-all"><Plus/> Nueva Rifa</button>
             <div className="grid gap-4">
               {rifas.map(r => (
-                <div key={r.id_rifa} className="bg-white p-4 rounded-3xl shadow-sm border flex items-center gap-4 relative">
-                  {r.tienePendientes && (
-                    <div className="absolute -top-2 -left-2 bg-red-600 text-white p-2 rounded-full shadow-lg animate-bounce z-10 border-2 border-white">
-                      <Bell size={16} fill="white"/>
-                    </div>
-                  )}
+                <div key={r.id_rifa} className="bg-white p-4 rounded-3xl shadow-sm border flex items-center gap-4">
                   <div onClick={() => openRifaDetail(r)} className="cursor-pointer flex-1 flex items-center gap-4">
                     <img src={r.imagen_url || 'https://via.placeholder.com/150'} className={`w-16 h-16 rounded-2xl object-cover ${r.estado === 'finalizada' ? 'grayscale opacity-50' : ''}`} />
                     <div>
                       <h3 className="font-bold uppercase text-sm">{r.nombre}</h3>
-                      <div className="flex gap-2 items-center">
-                        <p className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block mt-1 ${r.estado === 'finalizada' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>{r.estado}</p>
-                        {r.tienePendientes && <span className="text-[8px] font-black text-red-600 uppercase">● Pago por revisar</span>}
-                      </div>
+                      <p className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block mt-1 ${r.estado === 'finalizada' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>{r.estado}</p>
                     </div>
                   </div>
                   <div className="flex gap-1">
@@ -360,9 +317,11 @@ const AdminPanel = () => {
             {ticketGanador && (
               <div className="bg-gradient-to-r from-slate-900 to-blue-900 p-6 rounded-[2.5rem] border-4 border-yellow-500 shadow-xl text-white">
                 <div className="flex items-center gap-4">
-                  <div className="bg-yellow-500 p-3 rounded-2xl text-slate-900"><Trophy size={32}/></div>
+                  <div className="bg-yellow-500 p-3 rounded-2xl text-slate-900">
+                    <Trophy size={32}/>
+                  </div>
                   <div>
-                    <h3 className="text-yellow-500 font-black uppercase italic text-xs tracking-widest">Ganador Oficial</h3>
+                    <h3 className="text-yellow-500 font-black uppercase italic text-xs tracking-widest">Ganador Oficial del Sorteo</h3>
                     <p className="text-2xl font-black uppercase">{ticketGanador.usuarios?.nombre} {ticketGanador.usuarios?.apellido}</p>
                     <div className="flex gap-4 mt-1">
                       <p className="flex items-center gap-1 text-sm font-bold text-blue-200"><Phone size={14}/> {ticketGanador.usuarios?.telefono}</p>
@@ -374,12 +333,12 @@ const AdminPanel = () => {
             )}
 
             <div className="flex flex-col lg:flex-row gap-6">
-              <div className="lg:w-2/3">
+              <div className="lg:w-2/3 space-y-4">
                 <div className="bg-white p-6 rounded-3xl border shadow-sm">
                   <div className="grid grid-cols-6 md:grid-cols-10 gap-2">
                     {numsRifa.map(n => (
                       <button key={n.id_numero} onClick={() => n.estado !== 'disponible' && setNumDetail(n)}
-                        className={`aspect-square rounded-lg text-[10px] font-bold border-2 transition-all ${selectedRifa.id_ganador === n.id_numero ? 'bg-yellow-400 border-yellow-600 text-yellow-900 scale-110' : ESTADOS_ADMIN[n.estado].bg + ' ' + ESTADOS_ADMIN[n.estado].border + ' ' + ESTADOS_ADMIN[n.estado].text}`}>
+                        className={`aspect-square rounded-lg text-[10px] font-bold border-2 transition-all ${selectedRifa.id_ganador === n.id_numero ? 'bg-yellow-400 border-yellow-600 text-yellow-900 scale-110' : ESTADOS[n.estado].bg + ' ' + ESTADOS[n.estado].border + ' ' + ESTADOS[n.estado].text}`}>
                         {n.numero}
                       </button>
                     ))}
@@ -391,17 +350,13 @@ const AdminPanel = () => {
                 <div className="bg-white p-6 rounded-3xl border shadow-sm sticky top-24 max-h-[70vh] overflow-y-auto">
                   <h3 className="text-xs font-black uppercase text-slate-400 mb-4">Participantes</h3>
                   {Object.values(clientesAgrupados).map(c => (
-                    <div key={c.info?.id_usuario} className={`p-4 rounded-2xl border mb-3 transition-colors ${c.tienePendientes ? 'bg-red-50 border-red-200 animate-pulse' : 'bg-slate-50'}`}>
+                    <div key={c.info?.id_usuario} className={`p-4 rounded-2xl border mb-3 ${c.tienePendientes ? 'bg-yellow-50 border-yellow-200' : 'bg-slate-50'}`}>
                       <p className="font-bold text-xs uppercase">{c.info?.nombre} {c.info?.apellido}</p>
                       <p className="text-[10px] text-slate-500">{c.info?.telefono}</p>
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {c.numeros.map(n => (
-                          <span key={n.id_numero} className={`text-[9px] font-bold px-2 py-0.5 rounded border ${n.estado === 'apartado' ? 'bg-red-600 text-white border-red-700' : (selectedRifa.id_ganador === n.id_numero ? 'bg-yellow-400 text-yellow-900' : 'bg-white')}`}>
-                            #{n.numero}
-                          </span>
-                        ))}
+                        {c.numeros.map(n => <span key={n.id_numero} className={`text-[9px] font-bold px-2 py-0.5 rounded border ${selectedRifa.id_ganador === n.id_numero ? 'bg-yellow-400 text-yellow-900' : 'bg-white'}`}>#{n.numero}</span>)}
                       </div>
-                      {c.tienePendientes && <button onClick={() => aprobarTodoElCliente(c.info?.id_usuario)} className="w-full mt-2 bg-green-600 text-white text-[9px] font-black py-1 rounded shadow-md">Aprobar Todo</button>}
+                      {c.tienePendientes && <button onClick={() => aprobarTodoElCliente(c.info?.id_usuario)} className="w-full mt-2 bg-green-600 text-white text-[9px] font-black py-1 rounded">Aprobar Todo</button>}
                     </div>
                   ))}
                 </div>
@@ -411,70 +366,23 @@ const AdminPanel = () => {
         )}
 
         {(view === 'create' || view === 'edit') && (
-          <div className="bg-white p-8 rounded-[3rem] shadow-sm border max-w-2xl mx-auto">
-            <button onClick={() => setView('list')} className="mb-6 text-sm font-bold text-slate-400 flex items-center gap-1 hover:text-slate-600"><ChevronLeft size={16}/> Volver</button>
-            <h2 className="text-2xl font-black mb-6 uppercase italic text-blue-600">{view === 'create' ? 'Crear Nueva Rifa' : 'Editar Rifa'}</h2>
-            
-            <form onSubmit={view === 'create' ? crearRifa : handleEditRifa} className="space-y-6">
-              <div className="relative">
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Imagen del Premio</label>
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-[2rem] cursor-pointer bg-slate-50 hover:bg-slate-100 transition-all overflow-hidden">
-                    {imageFile ? (
-                      <p className="text-blue-600 font-bold text-xs uppercase">{imageFile.name}</p>
-                    ) : (
-                      <div className="text-center"><ImageIcon className="text-slate-400 mx-auto mb-1" size={24}/><p className="text-[10px] font-bold text-slate-500 uppercase">Seleccionar Foto</p></div>
-                    )}
-                    <input type='file' accept="image/*" className="hidden" onChange={(e) => setImageFile(e.target.files[0])} />
-                </label>
+          <div className="bg-white p-6 rounded-3xl shadow-sm border max-w-2xl mx-auto">
+            <button onClick={() => setView('list')} className="mb-4 text-sm font-bold text-slate-400"><ChevronLeft size={16}/> Volver</button>
+            <h2 className="text-xl font-black mb-4 uppercase italic">{view === 'create' ? 'Nueva Rifa' : 'Editar Rifa'}</h2>
+            <form onSubmit={view === 'create' ? crearRifa : handleEditRifa} className="space-y-4">
+              <input type='file' accept="image/*" className="w-full p-3 bg-slate-50 rounded-xl border text-xs" onChange={(e) => setImageFile(e.target.files[0])} />
+              <input type="text" placeholder="Nombre" className="w-full p-3 bg-slate-50 rounded-xl border" required value={view === 'edit' ? selectedRifa.nombre : newRifa.nombre} onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, nombre: e.target.value}) : setNewRifa({...newRifa, nombre: e.target.value})} />
+              <textarea placeholder="Descripción" className="w-full p-3 bg-slate-50 rounded-xl border" value={view === 'edit' ? selectedRifa.descripcion : newRifa.descripcion} onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, descripcion: e.target.value}) : setNewRifa({...newRifa, descripcion: e.target.value})} />
+              <div className="grid grid-cols-2 gap-4">
+                <input type="number" disabled={view === 'edit'} placeholder="Cantidad" className="w-full p-3 bg-slate-50 rounded-xl border" value={view === 'edit' ? selectedRifa.cantidad_numeros : newRifa.cantidad} onChange={e => setNewRifa({...newRifa, cantidad: e.target.value})} />
+                <input type="number" step="0.01" disabled={view === 'edit'} placeholder="Precio" className="w-full p-3 bg-slate-50 rounded-xl border" value={view === 'edit' ? selectedRifa.precio : newRifa.precio} onChange={e => setNewRifa({...newRifa, precio: parseFloat(e.target.value)})} />
               </div>
-
-              <div className="space-y-4">
-                <input type="text" placeholder="Título" className="w-full p-4 bg-slate-50 rounded-2xl border outline-none font-bold" required value={view === 'edit' ? selectedRifa.nombre : newRifa.nombre} onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, nombre: e.target.value}) : setNewRifa({...newRifa, nombre: e.target.value})} />
-                <textarea placeholder="Descripción..." className="w-full p-4 bg-slate-50 rounded-2xl border outline-none text-sm h-32" value={view === 'edit' ? selectedRifa.descripcion : newRifa.descripcion} onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, descripcion: e.target.value}) : setNewRifa({...newRifa, descripcion: e.target.value})} />
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[9px] font-black text-slate-400 uppercase mb-1 block">Tickets</label>
-                    <input type="number" disabled={view === 'edit'} className="w-full p-4 bg-slate-50 rounded-2xl border font-bold" value={view === 'edit' ? selectedRifa.cantidad_numeros : newRifa.cantidad} onChange={e => setNewRifa({...newRifa, cantidad: e.target.value})} />
-                  </div>
-                  <div>
-                    <label className="text-[9px] font-black text-slate-400 uppercase mb-1 block">Precio ($)</label>
-                    <input type="number" step="0.01" disabled={view === 'edit'} className="w-full p-4 bg-slate-50 rounded-2xl border font-bold text-green-600" value={view === 'edit' ? selectedRifa.precio : newRifa.precio} onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, precio: e.target.value}) : setNewRifa({...newRifa, precio: e.target.value})} />
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-                  <div className="flex items-center gap-2 mb-2"><AlertCircle className="text-blue-600" size={16}/><label className="text-[10px] font-black text-blue-900 uppercase">Fecha de Finalización</label></div>
-                  <input type="date" required className="w-full p-4 bg-white rounded-xl border-blue-200 font-bold" value={view === 'edit' ? selectedRifa.fecha_fin : newRifa.fecha} onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, fecha_fin: e.target.value}) : setNewRifa({...newRifa, fecha: e.target.value})} />
-                  <p className="text-[9px] font-bold text-blue-400 mt-2 uppercase italic text-center">Nota: Indica cuándo termina el sorteo.</p>
-                </div>
-              </div>
-
-              <button disabled={loadingAction} className="w-full bg-blue-600 text-white p-5 rounded-2xl font-black uppercase shadow-xl hover:bg-blue-700 transition-all">
-                {loadingAction ? <Loader2 className="animate-spin mx-auto" /> : (view === 'create' ? 'Publicar Rifa' : 'Guardar Cambios')}
-              </button>
+              <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border" value={view === 'edit' ? selectedRifa.fecha_fin : newRifa.fecha} onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, fecha_fin: e.target.value}) : setNewRifa({...newRifa, fecha: e.target.value})} />
+              <button disabled={loadingAction} className="w-full bg-blue-600 text-white p-4 rounded-2xl font-black uppercase">{loadingAction ? <Loader2 className="animate-spin" /> : 'Confirmar'}</button>
             </form>
           </div>
         )}
       </main>
-
-      {numDetail && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-sm">
-            <h3 className="text-2xl font-black italic uppercase mb-4">Ticket #{numDetail.numero}</h3>
-            <div className="space-y-3 mb-6 bg-slate-50 p-4 rounded-2xl border">
-              <div><p className="text-[10px] text-slate-400 font-bold uppercase">Nombre:</p><p className="text-sm font-black uppercase">{numDetail.usuarios?.nombre} {numDetail.usuarios?.apellido}</p></div>
-              <div><p className="text-[10px] text-slate-400 font-bold uppercase">Teléfono:</p><p className="text-sm font-black text-blue-600">{numDetail.usuarios?.telefono}</p></div>
-              <div><p className="text-[10px] text-slate-400 font-bold uppercase">Referencia:</p><p className="text-sm font-black text-slate-700">{numDetail.referencia_pago || 'VENTA MANUAL'}</p></div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => handleActionNumber(numDetail.id_numero, 'disponible')} className="bg-red-50 text-red-600 p-3 rounded-xl font-bold uppercase text-[10px] border border-red-100">Liberar</button>
-              {numDetail.estado === 'apartado' && <button onClick={() => handleActionNumber(numDetail.id_numero, 'pagado')} className="bg-green-600 text-white p-3 rounded-xl font-bold uppercase text-[10px]">Confirmar</button>}
-            </div>
-            <button onClick={() => setNumDetail(null)} className="w-full mt-4 text-slate-300 font-bold uppercase text-[10px]">Cerrar</button>
-          </div>
-        </div>
-      )}
 
       {showManualAssign && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -491,6 +399,21 @@ const AdminPanel = () => {
           </div>
         </div>
       )}
+
+      {numDetail && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-sm">
+            <h3 className="text-2xl font-black italic uppercase mb-4">Ticket #{numDetail.numero}</h3>
+            <p className="text-sm"><strong>Cliente:</strong> {numDetail.usuarios?.nombre} {numDetail.usuarios?.apellido}</p>
+            <p className="text-sm mb-6"><strong>Ref:</strong> {numDetail.referencia_pago || 'Manual'}</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => handleActionNumber(numDetail.id_numero, 'disponible')} className="bg-red-50 text-red-600 p-3 rounded-xl font-bold uppercase text-[10px]">Liberar</button>
+              {numDetail.estado === 'apartado' && <button onClick={() => handleActionNumber(numDetail.id_numero, 'pagado')} className="bg-green-600 text-white p-3 rounded-xl font-bold uppercase text-[10px]">Confirmar</button>}
+            </div>
+            <button onClick={() => setNumDetail(null)} className="w-full mt-4 text-slate-300 font-bold uppercase text-[10px]">Cerrar</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -502,7 +425,7 @@ const ClienteView = ({ userId }) => {
   const [nums, setNums] = useState([]);
   const [cart, setCart] = useState([]);
   const [showPay, setShowPay] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState(null); 
+  const [paymentMethod, setPaymentMethod] = useState(null); // 'pago_movil' o 'transferencia'
   const [payData, setPayData] = useState({ ref: '' });
 
   useEffect(() => { fetchRifas(); }, []);
@@ -514,30 +437,16 @@ const ClienteView = ({ userId }) => {
 
   const selectRifa = async (rifa) => {
     setSelectedRifa(rifa);
-    const { data } = await supabase.from('numeros')
-      .select('*, usuarios(nombre, apellido, telefono)')
-      .eq('id_rifa', rifa.id_rifa)
-      .order('numero', { ascending: true });
+    const { data } = await supabase.from('numeros').select('*').eq('id_rifa', rifa.id_rifa).order('numero', { ascending: true });
     setNums(data || []);
   };
 
   const descargarComprobante = () => {
     const misNums = nums.filter(n => n.comprador_id === userId);
-    if(misNums.length === 0) return alert("Sin tickets.");
-    const user = misNums[0].usuarios;
     const doc = new jsPDF();
-    doc.setFontSize(20); doc.text("ALEXCAR'S - RIFAS", 105, 20, { align: 'center' });
-    doc.setFontSize(10); doc.text("COMPROBANTE DE PARTICIPACIÓN", 105, 28, { align: 'center' });
-    doc.rect(14, 35, 182, 30);
-    doc.text(`Participante: ${user?.nombre} ${user?.apellido}`, 20, 45);
-    doc.text(`Teléfono: ${user?.telefono}`, 20, 52);
-    doc.text(`Rifa: ${selectedRifa.nombre}`, 20, 59);
-    autoTable(doc, { 
-      startY: 70, head: [['Número Ticket', 'Estado', 'Referencia']], 
-      body: misNums.map(n => [`#${n.numero}`, n.estado.toUpperCase(), n.referencia_pago || 'Manual']),
-      headStyles: { fillColor: [37, 99, 235] }
-    });
-    doc.save(`Ticket_${selectedRifa.nombre}.pdf`);
+    doc.text("COMPROBANTE AlexCar´s - Rifas", 105, 20, { align: 'center' });
+    autoTable(doc, { startY: 30, head: [['Ticket', 'Estado']], body: misNums.map(n => [`#${n.numero}`, n.estado.toUpperCase()]) });
+    doc.save("Tickets_AlexCars.pdf");
   };
 
   const handleConfirmPayment = async () => {
@@ -551,66 +460,107 @@ const ClienteView = ({ userId }) => {
       .in('id_numero', cart);
 
     if(!error) {
-      alert("Pago reportado con éxito.");
-      setSelectedRifa(null); setCart([]); setShowPay(false); fetchRifas();
+      alert("Pago reportado. En espera de confirmación.");
+      setSelectedRifa(null); 
+      setCart([]);
+      setShowPay(false);
+      setPaymentMethod(null);
+      fetchRifas();
     }
   };
+
+  const esGanador = selectedRifa?.id_ganador && nums.find(n => n.id_numero === selectedRifa.id_ganador)?.comprador_id === userId;
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
       <header className="bg-white p-4 border-b flex justify-between items-center sticky top-0 z-20 shadow-sm">
-        <h1 className="font-black italic text-xl text-blue-600 uppercase">AlexCar´s - Rifas</h1>
-        <button onClick={() => supabase.auth.signOut()} className="text-white bg-red-600 p-2 hover:bg-red-700 rounded-full transition-colors flex items-center gap-2 px-4"><LogOut size={16}/> <span className="text-[10px] font-black uppercase">Salir</span></button>
+        <h1 className="font-black italic text-xl text-blue-600 uppercase tracking-tighter">AlexCar´s - Rifas</h1>
+        <button onClick={() => supabase.auth.signOut()} className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors"><LogOut size={20}/></button>
       </header>
 
       <main className="p-4 max-w-2xl mx-auto">
         {!selectedRifa ? (
           <div className="space-y-4">
-            <h2 className="text-2xl font-black uppercase italic text-slate-400">Rifas Activas</h2>
+             <div className="mb-4">
+              <h2 className="text-2xl font-black uppercase italic text-slate-400">Rifas Disponibles</h2>
+              <p className="text-xs font-bold text-slate-300">Selecciona una para participar</p>
+            </div>
             {rifas.map(r => (
               <div key={r.id_rifa} onClick={() => selectRifa(r)} className="bg-white p-4 rounded-[2.5rem] shadow-sm flex gap-4 items-center cursor-pointer border-2 border-transparent hover:border-blue-600 relative overflow-hidden transition-all">
                 {r.estado === 'finalizada' && <div className="absolute top-2 right-2 bg-red-600 text-white text-[8px] font-black px-2 py-0.5 rounded-full z-10">CERRADA</div>}
                 <img src={r.imagen_url || 'https://via.placeholder.com/150'} className={`w-20 h-20 rounded-3xl object-cover ${r.estado === 'finalizada' && 'grayscale opacity-50'}`} />
                 <div>
-                  <h3 className="text-lg font-black uppercase italic">{r.nombre}</h3>
+                  <h3 className="text-lg font-black uppercase italic leading-tight">{r.nombre}</h3>
                   <p className="text-blue-600 font-black">${r.precio} USD</p>
-                  <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1"><Calendar size={10}/> Finaliza: {r.fecha_fin}</p>
+                  <p className="text-[10px] font-bold text-slate-400 mt-1 flex items-center gap-1"><Calendar size={10}/> Finaliza: {r.fecha_fin || 'TBA'}</p>
                 </div>
               </div>
             ))}
           </div>
         ) : (
           <div className="pb-32">
-            <button onClick={() => setSelectedRifa(null)} className="mb-4 text-sm font-bold text-slate-400 flex items-center gap-1"><ChevronLeft size={16}/> Volver</button>
+            <button onClick={() => setSelectedRifa(null)} className="mb-4 text-sm font-bold text-slate-400 flex items-center gap-1 hover:text-slate-600 transition-colors"><ChevronLeft size={16}/> Volver al listado</button>
+            
+            {selectedRifa.id_ganador && (
+              <div className={`relative overflow-hidden p-8 rounded-[3rem] mb-6 text-center shadow-2xl border-4 ${esGanador ? 'bg-gradient-to-br from-yellow-400 to-orange-500 border-yellow-200' : 'bg-slate-900 border-slate-700'}`}>
+                <div className="absolute inset-0 opacity-20 pointer-events-none fireworks-bg"></div>
+                <Trophy className={`mx-auto mb-4 ${esGanador ? 'text-white animate-bounce' : 'text-yellow-500'}`} size={64}/>
+                <h2 className={`text-2xl font-black uppercase italic ${esGanador ? 'text-white' : 'text-yellow-400'}`}>
+                   {esGanador ? "¡FELICIDADES, GANASTE!" : "SORTEO FINALIZADO"}
+                </h2>
+                <div className="mt-4 inline-block bg-white text-slate-900 px-8 py-3 rounded-full text-4xl font-black shadow-lg">
+                  #{nums.find(n => n.id_numero === selectedRifa.id_ganador)?.numero}
+                </div>
+                {esGanador && <div className="mt-4 text-white font-black animate-pulse uppercase tracking-widest text-xs">Premio adjudicado 🥳</div>}
+              </div>
+            )}
+
             <div className="bg-white p-6 rounded-[2.5rem] border shadow-sm mb-6">
               <h2 className="text-2xl font-black uppercase italic leading-none">{selectedRifa.nombre}</h2>
-              <p className="text-sm text-slate-600 mt-4">{selectedRifa.descripcion}</p>
+              <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <p className="text-xs font-bold text-slate-400 uppercase flex items-center gap-1 mb-1"><Info size={12}/> Descripción del Premio</p>
+                <p className="text-sm text-slate-600 leading-relaxed">{selectedRifa.descripcion || 'Sin descripción disponible.'}</p>
+              </div>
               <div className="flex flex-wrap gap-2 mt-4">
-                 <div className="bg-blue-50 text-blue-600 px-4 py-2 rounded-full text-[10px] font-black uppercase flex items-center gap-2"><Calendar size={12}/> {selectedRifa.fecha_fin}</div>
-                 <button onClick={descargarComprobante} className="flex items-center gap-2 bg-slate-900 text-white font-black text-[10px] uppercase px-4 py-2 rounded-full"><Download size={14}/> Mis Tickets (PDF)</button>
+                 <div className="bg-blue-50 text-blue-600 px-4 py-2 rounded-full text-[10px] font-black uppercase flex items-center gap-2"><Calendar size={12}/> Finaliza: {selectedRifa.fecha_fin}</div>
+                 <div className="bg-green-50 text-green-600 px-4 py-2 rounded-full text-[10px] font-black uppercase flex items-center gap-2"><Ticket size={12}/> {nums.filter(n=>n.estado==='disponible').length} Disponibles</div>
+                 {nums.some(n => n.comprador_id === userId) && (
+                   <button onClick={descargarComprobante} className="flex items-center gap-2 bg-slate-900 text-white font-black text-[10px] uppercase px-4 py-2 rounded-full hover:bg-slate-800 transition-colors"><Download size={14}/> Mis Tickets (PDF)</button>
+                 )}
               </div>
             </div>
 
             <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 bg-white p-6 rounded-[2.5rem] border shadow-inner">
               {nums.map(n => {
                 const isMine = n.comprador_id === userId;
-                let colorClass = ESTADOS_CLIENTE[n.estado].bg;
-                if (cart.includes(n.id_numero)) colorClass = "bg-blue-600 text-white animate-pulse";
-                else if (isMine) colorClass = "bg-red-600 text-white";
+                const isWinner = selectedRifa.id_ganador === n.id_numero;
+                
+                // Lógica de colores corregida:
+                let colorClass = "bg-green-500 text-white"; // Disponible
+                if (isWinner) colorClass = "bg-yellow-400 border-yellow-600 text-yellow-900 scale-110";
+                else if (isMine) {
+                   // Si es mío, depende del estado real en DB
+                   colorClass = n.estado === 'apartado' ? "bg-yellow-400 border-yellow-500 text-yellow-900" : "bg-blue-600 text-white";
+                } else if (n.estado === 'apartado' || n.estado === 'pagado') {
+                   colorClass = "bg-red-500 opacity-20 grayscale cursor-not-allowed";
+                } else if (cart.includes(n.id_numero)) {
+                   colorClass = "bg-slate-900 text-white animate-pulse scale-95";
+                }
 
                 return (
                   <button key={n.id_numero} disabled={selectedRifa.estado === 'finalizada' || (n.estado !== 'disponible' && !isMine)} onClick={() => { if(n.estado === 'disponible') setCart(prev => prev.includes(n.id_numero) ? prev.filter(id => id !== n.id_numero) : [...prev, n.id_numero]); }}
                     className={`aspect-square rounded-2xl text-[10px] font-black border-2 transition-all relative ${colorClass}`}>
                     {n.numero}
+                    {isWinner && <PartyPopper className="absolute -top-2 -right-2 text-orange-600" size={14}/>}
                   </button>
                 );
               })}
             </div>
 
-            {cart.length > 0 && (
-              <div className="fixed bottom-6 left-4 right-4 bg-slate-900 text-white p-6 rounded-[2.5rem] flex justify-between items-center shadow-2xl z-40">
-                <div><p className="text-[10px] font-bold text-slate-400 uppercase">{cart.length} Tickets</p><p className="text-2xl font-black">${(cart.length * selectedRifa.precio).toFixed(2)}</p></div>
-                <button onClick={() => setShowPay(true)} className="bg-blue-600 px-8 py-4 rounded-2xl font-black uppercase text-xs">Pagar</button>
+            {cart.length > 0 && selectedRifa.estado !== 'finalizada' && (
+              <div className="fixed bottom-6 left-4 right-4 bg-slate-900 text-white p-6 rounded-[2.5rem] flex justify-between items-center shadow-2xl animate-in fade-in slide-in-from-bottom-4">
+                <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{cart.length} Tickets seleccionados</p><p className="text-2xl font-black">${(cart.length * selectedRifa.precio).toFixed(2)}</p></div>
+                <button onClick={() => setShowPay(true)} className="bg-blue-600 px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-blue-500 active:scale-95 transition-all shadow-lg shadow-blue-900/50">Comprar Ahora</button>
               </div>
             )}
           </div>
@@ -619,20 +569,50 @@ const ClienteView = ({ userId }) => {
 
       {showPay && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-8 rounded-[3rem] w-full max-w-sm">
+          <div className="bg-white p-8 rounded-[3rem] w-full max-w-sm max-h-[90vh] overflow-y-auto">
             {!paymentMethod ? (
-              <div className="space-y-3">
-                <h3 className="text-xl font-black mb-4 uppercase text-center italic">Forma de Pago</h3>
-                <button onClick={() => setPaymentMethod('pago_movil')} className="w-full flex items-center gap-4 p-5 rounded-2xl border-2 hover:border-blue-500 bg-slate-50"><Smartphone size={24}/><span className="font-black uppercase">Pago Móvil</span></button>
-                <button onClick={() => setPaymentMethod('transferencia')} className="w-full flex items-center gap-4 p-5 rounded-2xl border-2 hover:border-green-500 bg-slate-50"><Building2 size={24}/><span className="font-black uppercase">Transferencia</span></button>
-              </div>
+              <>
+                <h3 className="text-2xl font-black mb-2 uppercase italic text-center">Forma de Pago</h3>
+                <p className="text-center text-xs text-slate-400 mb-6 font-bold uppercase">Total a pagar: ${(cart.length * selectedRifa.precio).toFixed(2)} USD</p>
+                <div className="space-y-3">
+                  <button onClick={() => setPaymentMethod('pago_movil')} className="w-full flex items-center gap-4 p-5 rounded-2xl border-2 border-slate-100 hover:border-blue-500 hover:bg-blue-50 transition-all text-left">
+                    <div className="bg-blue-600 p-3 rounded-xl text-white"><Smartphone size={24}/></div>
+                    <div><p className="font-black uppercase text-sm">Pago Móvil</p><p className="text-[10px] text-slate-400">Bs. (Tasa BCV)</p></div>
+                  </button>
+                  <button onClick={() => setPaymentMethod('transferencia')} className="w-full flex items-center gap-4 p-5 rounded-2xl border-2 border-slate-100 hover:border-blue-500 hover:bg-blue-50 transition-all text-left">
+                    <div className="bg-green-600 p-3 rounded-xl text-white"><Building2 size={24}/></div>
+                    <div><p className="font-black uppercase text-sm">Transferencia</p><p className="text-[10px] text-slate-400">Cuentas Nacionales</p></div>
+                  </button>
+                </div>
+              </>
             ) : (
-              <div className="space-y-4">
-                <input type="text" placeholder="Referencia" className="w-full p-4 border rounded-2xl font-black text-center" onChange={e => setPayData({ref: e.target.value})} />
-                <button onClick={handleConfirmPayment} className="w-full bg-blue-600 text-white p-5 rounded-2xl font-black uppercase">Reportar</button>
+              <div className="animate-in fade-in slide-in-from-right-4">
+                <button onClick={() => setPaymentMethod(null)} className="text-[10px] font-black uppercase text-slate-400 mb-4 flex items-center gap-1"><ChevronLeft size={12}/> Cambiar método</button>
+                <h3 className="text-xl font-black mb-4 uppercase italic">Datos del Pago</h3>
+                
+                <div className="bg-slate-50 p-4 rounded-2xl border mb-5 space-y-2 text-sm font-bold">
+                   {paymentMethod === 'pago_movil' ? (
+                     <>
+                        <div className="flex justify-between"><span className="text-slate-400">Banco:</span><span>[BANCO NOMBRE]</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">Teléfono:</span><span>[NRO TELÉFONO]</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">Cédula:</span><span>[NRO CÉDULA]</span></div>
+                     </>
+                   ) : (
+                     <>
+                        <div className="flex justify-between"><span className="text-slate-400">Banco:</span><span>[BANCO NOMBRE]</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">Cuenta:</span><span>[0000-0000-00-00000000]</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">RIF/C.I:</span><span>[J-0000000-0]</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">Nombre:</span><span>[NOMBRE EMPRESA]</span></div>
+                     </>
+                   )}
+                </div>
+
+                <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Reportar Referencia</p>
+                <input type="text" maxLength="6" placeholder="Referencia (6 dígitos)" className="w-full p-5 bg-slate-50 border-2 rounded-2xl mb-5 font-black text-center text-lg outline-none focus:border-blue-500" onChange={e => setPayData({ref: e.target.value})} />
+                <button onClick={handleConfirmPayment} className="w-full bg-blue-600 text-white p-5 rounded-2xl font-black uppercase shadow-lg shadow-blue-200">Confirmar Pago</button>
               </div>
             )}
-            <button onClick={() => { setShowPay(false); setPaymentMethod(null); }} className="w-full mt-3 text-slate-400 font-black text-[10px] uppercase">Cerrar</button>
+            <button onClick={() => {setShowPay(false); setPaymentMethod(null);}} className="w-full mt-3 text-slate-400 font-black text-[10px] uppercase py-2">Cancelar</button>
           </div>
         </div>
       )}
@@ -663,7 +643,7 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) return <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50"><Loader2 className="animate-spin text-blue-600 mb-2" size={32}/><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">Cargando AlexCar´s...</p></div>;
+  if (loading) return <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50"><Loader2 className="animate-spin text-blue-600 mb-2" size={32}/><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">Iniciando AlexCar´s - Rifas...</p></div>;
   if (!session) return <Auth onLogin={setSession} />;
   return role === 'admin' ? <AdminPanel /> : <ClienteView userId={session.user.id} />;
 }
