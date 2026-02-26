@@ -70,7 +70,7 @@ const Auth = ({ onLogin }) => {
   );
 };
 
-// --- PANEL ADMINISTRADOR (TU CÓDIGO ACTUAL MANTENIDO) ---
+// --- PANEL ADMINISTRADOR ---
 const AdminPanel = () => {
   const [rifas, setRifas] = useState([]);
   const [view, setView] = useState('list');
@@ -403,7 +403,7 @@ const AdminPanel = () => {
   );
 };
 
-// --- VISTA CLIENTE MEJORADA (HISTORIAL, OJITO, COLORES, TICKET) ---
+// --- VISTA CLIENTE MEJORADA ---
 const ClienteView = ({ userId }) => {
   const [rifas, setRifas] = useState([]);
   const [selectedRifa, setSelectedRifa] = useState(null);
@@ -414,7 +414,6 @@ const ClienteView = ({ userId }) => {
   const [myTickets, setMyTickets] = useState([]);
   const [view, setView] = useState('rifas');
   
-  // NUEVOS ESTADOS DE UX
   const [hideSold, setHideSold] = useState(false);
   const [viewTicket, setViewTicket] = useState(null);
 
@@ -429,17 +428,14 @@ const ClienteView = ({ userId }) => {
   };
 
   const fetchMyTickets = async () => {
-    // CORRECCIÓN: Usamos la relación explícita id_rifa para traer la información de la rifa
+    // Consulta mejorada con alias para asegurar que el join con rifas funcione
     const { data, error } = await supabase
       .from('numeros')
-      .select(`
-        *,
-        rifas (*)
-      `)
+      .select('*, rifas:id_rifa(*)')
       .eq('comprador_id', userId)
       .order('creado_en', { ascending: false });
 
-    if (error) console.error("Error en fetchMyTickets:", error);
+    if (error) console.error("Error cargando tickets:", error);
     else setMyTickets(data || []);
   };
 
@@ -450,14 +446,14 @@ const ClienteView = ({ userId }) => {
     setCart([]);
   };
 
-  // Agrupar tickets para el historial detallado con validación de datos
+  // Agrupar tickets por rifa para el historial
   const ticketsPorRifa = myTickets.reduce((acc, t) => {
-    // Si por alguna razón la rifa no viene cargada, no procesamos este ticket para evitar el error
-    if (!t.rifas) return acc;
+    const rifaInfo = t.rifas;
+    if (!rifaInfo) return acc;
     
-    const rifaId = t.id_rifa;
+    const rifaId = rifaInfo.id_rifa;
     if (!acc[rifaId]) {
-      acc[rifaId] = { info: t.rifas, numeros: [] };
+      acc[rifaId] = { info: rifaInfo, numeros: [] };
     }
     acc[rifaId].numeros.push(t);
     return acc;
@@ -468,38 +464,45 @@ const ClienteView = ({ userId }) => {
       <header className="bg-white p-4 border-b flex justify-between items-center sticky top-0 z-20 shadow-sm">
         <h1 className="font-black italic text-xl tracking-tighter text-blue-600">RIFAPRO</h1>
         <div className="flex gap-2 items-center">
-          <button onClick={() => setView(view === 'rifas' ? 'mis-tickets' : 'rifas')} className={`text-[10px] font-black uppercase px-4 py-2 rounded-2xl transition-all ${view === 'mis-tickets' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'}`}>
+          <button 
+            onClick={() => { setView(view === 'rifas' ? 'mis-tickets' : 'rifas'); fetchMyTickets(); }} 
+            className={`text-[10px] font-black uppercase px-4 py-2 rounded-2xl transition-all ${view === 'mis-tickets' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'}`}>
             {view === 'rifas' ? 'Mis Tickets' : 'Volver'}
           </button>
-          <button onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }} className="p-2 text-slate-300 hover:text-red-500"><LogOut size={20}/></button>
+          <button onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }} className="p-2 text-slate-300 hover:text-red-500">
+            <LogOut size={20}/>
+          </button>
         </div>
       </header>
 
       <main className="p-4 max-w-2xl mx-auto">
-        {/* --- HISTORIAL DETALLADO --- */}
+        {/* --- HISTORIAL DE TICKETS --- */}
         {view === 'mis-tickets' && (
           <div className="space-y-6">
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Mis Participaciones</h2>
             {Object.keys(ticketsPorRifa).length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200 text-slate-400 italic">
-                No tienes tickets todavía.
-              </div>
+              <div className="text-center py-20 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200 text-slate-400 italic">No tienes tickets todavía.</div>
             ) : (
               Object.values(ticketsPorRifa).map(grupo => (
-                <div key={grupo.info.id_rifa} className="bg-white rounded-[2.5rem] border shadow-sm overflow-hidden">
+                <div key={grupo.info.id_rifa} className="bg-white rounded-[2.5rem] border shadow-sm overflow-hidden mb-4 border-slate-200">
                   <div className="bg-slate-900 p-5 text-white flex justify-between items-center">
                     <div>
                       <h3 className="font-black uppercase text-xs italic leading-tight">{grupo.info.nombre}</h3>
-                      <p className="text-[9px] text-slate-400 uppercase font-bold tracking-widest">Sorteo Verificado</p>
+                      <p className="text-[9px] text-slate-400 uppercase font-bold tracking-widest">Estado: Verificado</p>
                     </div>
-                    <button onClick={() => setViewTicket(grupo)} className="bg-blue-600 p-3 rounded-2xl hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20">
-                      <Download size={18}/>
+                    {/* Botón para ver comprobante digital */}
+                    <button 
+                      onClick={() => setViewTicket(grupo)} 
+                      className="bg-blue-600 p-3 rounded-2xl hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/40">
+                      <FileText size={18}/>
                     </button>
                   </div>
                   <div className="p-5 flex flex-wrap gap-2">
                     {grupo.numeros.map(n => (
-                      <div key={n.id_numero} className={`text-sm font-black w-12 h-12 flex items-center justify-center rounded-2xl border-2 ${ESTADOS[n.estado].bg} ${ESTADOS[n.estado].text} ${ESTADOS[n.estado].border}`}>
-                        #{n.numero}
+                      <div key={n.id_numero} className="text-center">
+                        <div className={`text-sm font-black w-12 h-12 flex items-center justify-center rounded-2xl border-2 ${ESTADOS[n.estado].bg} ${ESTADOS[n.estado].text} ${ESTADOS[n.estado].border}`}>
+                          #{n.numero}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -516,26 +519,34 @@ const ClienteView = ({ userId }) => {
             {rifas.map(r => (
               <div key={r.id_rifa} onClick={() => selectRifa(r)} className="bg-white p-4 rounded-[2.5rem] border-2 border-transparent hover:border-blue-600 cursor-pointer shadow-sm flex gap-4 items-center transition-all group">
                 <img src={r.imagen_url || 'https://via.placeholder.com/150'} className="w-20 h-20 rounded-[2rem] object-cover bg-slate-50 shadow-md" />
-                <div className="flex-1"><h3 className="text-lg font-black uppercase italic leading-none">{r.nombre}</h3><p className="text-[11px] text-slate-400 mt-1 mb-2 line-clamp-1">{r.descripcion}</p><div className="text-blue-600 font-black text-sm">${r.precio} USD</div></div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-black uppercase italic leading-none">{r.nombre}</h3>
+                  <p className="text-[11px] text-slate-400 mt-1 mb-2 line-clamp-1">{r.descripcion}</p>
+                  <div className="text-blue-600 font-black text-sm">${r.precio} USD</div>
+                </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* --- GRILLA CON DIFERENCIACIÓN Y OJITO --- */}
+        {/* --- SELECCIÓN DE NÚMEROS --- */}
         {view === 'rifas' && selectedRifa && (
           <div className="pb-32">
             <div className="flex justify-between items-center mb-4">
               <button onClick={() => setSelectedRifa(null)} className="flex items-center gap-1 font-bold text-slate-400 text-sm"><ChevronLeft size={16}/> Volver</button>
-              <button onClick={() => setHideSold(!hideSold)} className={`flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-sm ${hideSold ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 border'}`}>
+              <button 
+                onClick={() => setHideSold(!hideSold)} 
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-sm ${hideSold ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 border'}`}>
                 {hideSold ? <Eye size={14}/> : <EyeOff size={14}/>} {hideSold ? 'Ver Todo' : 'Limpiar Grilla'}
               </button>
             </div>
+            
             <div className="bg-white p-6 rounded-[2.5rem] border mb-6 shadow-sm relative overflow-hidden">
-              <div className="absolute top-4 right-6 bg-blue-100 text-blue-600 text-[10px] font-black px-3 py-1 rounded-full border border-blue-200 tracking-tighter">${selectedRifa.precio} USD</div>
+              <div className="absolute top-4 right-6 bg-blue-100 text-blue-600 text-[10px] font-black px-3 py-1 rounded-full border border-blue-200">${selectedRifa.precio} USD</div>
               <h2 className="text-2xl font-black uppercase italic leading-tight">{selectedRifa.nombre}</h2>
               <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">{selectedRifa.descripcion}</p>
             </div>
+
             <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 bg-white p-6 rounded-[2.5rem] border shadow-inner">
               {nums.map(n => {
                 const isMine = n.comprador_id === userId;
@@ -543,17 +554,18 @@ const ClienteView = ({ userId }) => {
                 if (hideSold && n.estado !== 'disponible' && !isMine) return null;
                 return (
                   <button key={n.id_numero} disabled={n.estado !== 'disponible' && !isMine} onClick={() => { if(n.estado === 'disponible') setCart(prev => prev.includes(n.id_numero) ? prev.filter(id => id !== n.id_numero) : [...prev, n.id_numero]); }}
-                    className={`aspect-square rounded-2xl text-[10px] font-black border-2 transition-all relative ${isMine ? 'bg-blue-600 border-blue-800 text-white shadow-lg z-10 scale-105' : n.estado === 'pagado' ? 'bg-red-500 border-red-600 text-white opacity-40 grayscale-[0.5]' : n.estado === 'apartado' ? 'bg-yellow-400 border-yellow-500 text-yellow-900 opacity-60' : isSelected ? 'bg-slate-900 border-black text-white scale-90' : 'bg-green-500 border-green-600 text-white hover:bg-green-400'}`}>
+                    className={`aspect-square rounded-2xl text-[10px] font-black border-2 transition-all relative ${isMine ? 'bg-blue-600 border-blue-800 text-white shadow-lg z-10 scale-105' : n.estado === 'pagado' ? 'bg-red-500 border-red-600 text-white opacity-40 grayscale-[0.5]' : n.estado === 'apartado' ? 'bg-yellow-400 border-yellow-500 text-yellow-900 opacity-60' : isSelected ? 'bg-slate-900 border-black text-white' : 'bg-green-500 border-green-600 text-white hover:bg-green-400'}`}>
                     {n.numero}
                     {isMine && <div className="absolute -top-1 -right-1 bg-white text-blue-600 rounded-full border border-blue-600 p-0.5"><CheckCircle2 size={10}/></div>}
                   </button>
                 );
               })}
             </div>
+
             {cart.length > 0 && (
-              <div className="fixed bottom-6 left-4 right-4 bg-slate-900 text-white p-6 rounded-[2.5rem] flex justify-between items-center shadow-2xl animate-in slide-in-from-bottom-6 border border-white/10">
+              <div className="fixed bottom-6 left-4 right-4 bg-slate-900 text-white p-6 rounded-[2.5rem] flex justify-between items-center shadow-2xl z-40">
                 <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{cart.length} Tickets</p><p className="text-2xl font-black">${(cart.length * selectedRifa.precio).toFixed(2)}</p></div>
-                <button onClick={() => setShowPay(true)} className="bg-blue-600 px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-blue-500 transition-all shadow-xl shadow-blue-900/20">Pagar</button>
+                <button onClick={() => setShowPay(true)} className="bg-blue-600 px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-blue-500 shadow-xl">Pagar</button>
               </div>
             )}
           </div>
@@ -563,7 +575,7 @@ const ClienteView = ({ userId }) => {
       {/* --- MODAL COMPROBANTE DIGITAL --- */}
       {viewTicket && (
         <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="bg-white w-full max-w-sm rounded-[3rem] overflow-hidden shadow-2xl animate-in zoom-in-95 text-slate-800">
+          <div className="bg-white w-full max-w-sm rounded-[3rem] overflow-hidden shadow-2xl text-slate-800">
             <div className="bg-blue-600 p-10 text-white text-center relative">
               <button onClick={() => setViewTicket(null)} className="absolute top-6 right-6 opacity-50 hover:opacity-100"><X/></button>
               <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/30"><Ticket size={32}/></div>
@@ -581,7 +593,7 @@ const ClienteView = ({ userId }) => {
                   {viewTicket.numeros.map(n => <span key={n.id_numero} className="bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-sm italic">#{n.numero}</span>)}
                 </div>
               </div>
-              <div className="flex justify-between items-center text-[10px] font-bold uppercase text-slate-400 px-2"><span>{viewTicket.info.fecha_fin}</span><span>Ref: {viewTicket.numeros[0].referencia_pago}</span></div>
+              <div className="flex justify-between items-center text-[10px] font-bold uppercase text-slate-400 px-2"><span>Ref: {viewTicket.numeros[0].referencia_pago}</span></div>
               <button onClick={() => window.print()} className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black uppercase text-xs shadow-lg flex items-center justify-center gap-2 hover:bg-black transition-all"><Printer size={16}/> Imprimir Recibo</button>
             </div>
           </div>
@@ -591,9 +603,9 @@ const ClienteView = ({ userId }) => {
       {/* MODAL PAGO */}
       {showPay && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-8 rounded-[3rem] w-full max-w-sm animate-in zoom-in-95">
+          <div className="bg-white p-8 rounded-[3rem] w-full max-w-sm">
             <h3 className="text-2xl font-black mb-4 uppercase italic text-blue-600">Pagar</h3>
-            <div className="bg-blue-50 p-5 rounded-2xl mb-5 text-[11px] text-blue-800 leading-relaxed border border-blue-100 font-bold uppercase tracking-tight text-center">Transfiere a:<br/>BANCO CENTRAL<br/>0412-0000000 / V-12345678</div>
+            <div className="bg-blue-50 p-5 rounded-2xl mb-5 text-[11px] text-blue-800 leading-relaxed border border-blue-100 font-bold uppercase text-center">Transfiere a:<br/>BANCO CENTRAL<br/>0412-0000000 / V-12345678</div>
             <input type="text" maxLength="4" placeholder="Últimos 4 dígitos Ref." className="w-full p-5 bg-slate-50 border-2 rounded-2xl mb-5 font-black text-center outline-none focus:border-blue-500 text-lg" onChange={e => setPayData({ref: e.target.value})} />
             <button onClick={async () => { if(!payData.ref) return alert("Ingresa referencia"); const { error } = await supabase.from('numeros').update({ estado: 'apartado', comprador_id: userId, referencia_pago: payData.ref }).in('id_numero', cart); if(!error) { alert("¡Pago enviado!"); setSelectedRifa(null); setShowPay(false); fetchMyTickets(); } }} className="w-full bg-blue-600 text-white p-5 rounded-2xl font-black uppercase text-xs shadow-xl transition-all hover:bg-blue-700">Confirmar Reporte</button>
             <button onClick={() => setShowPay(false)} className="w-full mt-3 text-slate-400 font-black text-[10px] uppercase py-2">Cancelar</button>
