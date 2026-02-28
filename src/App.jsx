@@ -46,7 +46,6 @@ const Auth = () => {
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({ email: finalEmail, password: formData.password });
       if (error) alert("Datos incorrectos");
-      else onLogin(data.user);
     }
     setLoading(false);
   };
