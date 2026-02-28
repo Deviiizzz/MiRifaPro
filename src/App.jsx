@@ -871,6 +871,7 @@ const ClienteView = ({ userId }) => {
 };
 
 // --- APP PRINCIPAL ---
+// --- APP PRINCIPAL ---
 export default function App() {
   const [session, setSession] = useState(null);
   const [role, setRole] = useState(null);
@@ -880,26 +881,47 @@ export default function App() {
     try {
       const { data } = await supabase.from('usuarios').select('rol').eq('id_usuario', userId).single();
       setRole(data?.rol || 'cliente');
-    } catch { setRole('cliente'); } finally { setLoading(false); }
+    } catch { 
+      setRole('cliente'); 
+    } finally { 
+      setLoading(false); // Quitamos el loading SOLO cuando ya sabemos el rol
+    }
   };
 
   useEffect(() => {
+    // Revisión inicial al cargar la página
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session); if (session) checkRole(session.user.id); else setLoading(false);
+      setSession(session); 
+      if (session) checkRole(session.user.id); 
+      else setLoading(false);
     });
+
+    // Escuchador automático de Supabase (Login / Logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s); if (s) checkRole(s.user.id); else { setRole(null); setLoading(false); }
+      setSession(s); 
+      if (s) {
+        setLoading(true); // Ponemos a cargar mientras buscamos el rol del nuevo usuario
+        checkRole(s.user.id); 
+      } else { 
+        setRole(null); 
+        setLoading(false); 
+      }
     });
+
     return () => subscription.unsubscribe();
   }, []);
 
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
         <div className="bg-white p-10 rounded-[3rem] shadow-2xl flex flex-col items-center border border-slate-100">
-            <Loader2 className="animate-spin text-blue-600 mb-4" size={48}/><p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] animate-pulse">Cargando AlexCars' Edition...</p>
+            <Loader2 className="animate-spin text-blue-600 mb-4" size={48}/>
+            <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] animate-pulse">Cargando AlexCars' Edition...</p>
         </div>
     </div>
   );
-  if (!session) return <Auth onLogin={setSession} />;
+
+  // ¡Fíjate que quitamos el onLogin={setSession}!
+  if (!session) return <Auth />; 
+  
   return role === 'admin' ? <AdminPanel /> : <ClienteView userId={session.user.id} />;
 }
