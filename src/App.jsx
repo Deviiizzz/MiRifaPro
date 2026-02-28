@@ -872,47 +872,64 @@ export default function App() {
 
   const checkRole = async (userId) => {
     try {
-      const { data } = await supabase.from('usuarios').select('rol').eq('id_usuario', userId).single();
+      // 1. Extraemos tanto 'data' como 'error'
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('rol')
+        .eq('id_usuario', userId)
+        .single();
+
+      // 2. Si hay un error de Supabase, lo mostramos en consola
+      if (error) {
+        console.error("❌ Error de Supabase al obtener rol:", error.message);
+        setRole('cliente');
+        return;
+      }
+
+      // 3. Si todo va bien, asignamos el rol
+      console.log("✅ Rol asignado desde BD:", data?.rol);
       setRole(data?.rol || 'cliente');
-    } catch { 
-      setRole('cliente'); 
+
+    } catch (err) {
+      console.error("❌ Excepción inesperada en checkRole:", err);
+      setRole('cliente');
     } finally { 
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session); 
-      if (session) checkRole(session.user.id); 
-      else setLoading(false);
-    });
+    // Variable para evitar suscripciones múltiples o "race conditions"
+    let isMounted = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s); 
-      if (s) {
-        setLoading(true);
-        checkRole(s.user.id); 
-      } else { 
-        setRole(null); 
-        setLoading(false); 
+    // Obtener la sesión inicial
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (isMounted) {
+        setSession(session); 
+        if (session) {
+          checkRole(session.user.id); 
+        } else {
+          setLoading(false);
+        }
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Escuchar cambios de autenticación (Login/Logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      if (isMounted) {
+        setSession(s); 
+        if (s) {
+          setLoading(true);
+          checkRole(s.user.id); 
+        } else { 
+          setRole(null); 
+          setLoading(false); 
+        }
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
-
-  if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-900">
-        <div className="bg-black p-10 rounded-[3rem] shadow-2xl flex flex-col items-center border border-zinc-800 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-red-600"></div>
-            <Loader2 className="animate-spin text-red-600 mb-4" size={48}/>
-            <p className="text-[10px] font-black uppercase text-zinc-400 tracking-[0.4em] animate-pulse">Cargando AlexCars...</p>
-        </div>
-    </div>
-  );
-
-  if (!session) return <Auth />; 
-  
-  return role === 'admin' ? <AdminPanel /> : <ClienteView userId={session.user.id} />;
-}
