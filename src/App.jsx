@@ -28,25 +28,40 @@ const Auth = () => {
   const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
+    // Creamos un email ficticio usando el teléfono para el sistema de Auth
     const finalEmail = `${formData.telefono}@alexcars.com`;
 
     if (isRegistering) {
-      const { data, error } = await supabase.auth.signUp({ email: finalEmail, password: formData.password });
-      if (error) alert(error.message);
-      else {
-        await supabase.from('usuarios').insert([{
-          id_usuario: data.user.id,
-          nombre: formData.nombre,
-          apellido: formData.apellido,
-          telefono: formData.telefono,
-          rol: 'cliente'
-        }]);
-        alert("Registro exitoso");
+      // REGISTRO
+      const { data, error } = await supabase.auth.signUp({
+        email: finalEmail,
+        password: formData.password,
+        options: {
+          // ESTA PARTE ES LA MÁS IMPORTANTE PARA EL TRIGGER
+          data: {
+            nombre: formData.nombre,
+            apellido: formData.apellido,
+            telefono: formData.telefono
+          }
+        }
+      });
+
+      if (error) {
+        alert("Error al registrar: " + error.message);
+      } else {
+        alert("¡Registro exitoso! Ya puedes iniciar sesión.");
         setIsRegistering(false);
       }
     } else {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: finalEmail, password: formData.password });
-      if (error) alert("Datos incorrectos");
+      // INICIO DE SESIÓN
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: finalEmail,
+        password: formData.password
+      });
+
+      if (error) {
+        alert("Datos incorrectos. Verifica tu teléfono y contraseña.");
+      }
     }
     setLoading(false);
   };
