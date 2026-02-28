@@ -915,7 +915,4 @@ export default function App() {
   if (!session) return <Auth />; 
   
   return role === 'admin' ? <AdminPanel /> : <ClienteView userId={session.user.id} />;
-}  if (!session) return <Auth />; 
-  
-  return role === 'admin' ? <AdminPanel /> : <ClienteView userId={session.user.id} />;
 }
