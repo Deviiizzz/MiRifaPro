@@ -174,19 +174,14 @@ const AdminPanel = () => {
   };
 
   const openRifaDetail = async (rifa) => {
-  setSelectedRifa(rifa);
-  // Cambiamos 'usuarios(...)' por 'usuarios!comprador_id(...)' para forzar la relación correcta
-  const { data, error } = await supabase.from('numeros')
-    .select('*, usuarios!numeros_comprador_id_fkey(id_usuario, nombre, apellido, telefono)')
-    .eq('id_rifa', rifa.id_rifa)
-    .order('numero', { ascending: true });
-  
-  if (error) {
-    console.error("Error al obtener detalles:", error);
-  }
-  setNumsRifa(data || []);
-  setView('detail');
-};
+    setSelectedRifa(rifa);
+    const { data } = await supabase.from('numeros')
+      .select('*, usuarios(id_usuario, nombre, apellido, telefono)')
+      .eq('id_rifa', rifa.id_rifa)
+      .order('numero', { ascending: true });
+    setNumsRifa(data || []);
+    setView('detail');
+  };
 
   const realizarSorteo = async () => {
     const pagados = numsRifa.filter(n => n.estado === 'pagado');
