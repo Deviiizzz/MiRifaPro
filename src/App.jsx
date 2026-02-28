@@ -79,7 +79,7 @@ const Auth = () => {
     />
 </div>
         <h2 className="text-4xl font-black text-center mb-1 italic tracking-tighter text-black uppercase">AlexCars' Edition</h2>
-        <p className="text-center text-red-600 text-[10px] mb-8 font-black uppercase tracking-[0.2em]">Sistema de Sorteos Profesional</p>
+        <p className="text-center text-red-600 text-[10px] mb-8 font-black uppercase tracking-[0.2em]">Sistema Profesional de Sorteos</p>
         
         <form onSubmit={handleAuth} className="space-y-4">
           {isRegistering && (
