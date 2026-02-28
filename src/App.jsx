@@ -718,7 +718,7 @@ const ClientePanel = ({ session }) => {
       <header className="bg-white p-5 border-b border-slate-200 flex justify-between items-center sticky top-0 z-20 shadow-sm">
         <div className="flex items-center gap-2">
             <div className="bg-red-600 p-2 rounded-xl text-white shadow-lg shadow-red-200 border-2 border-black"><Trophy size={20}/></div>
-            <h1 className="font-black italic text-2xl tracking-tighter text-black uppercase">AlexCars' 9801</h1>
+            <h1 className="font-black italic text-2xl tracking-tighter text-black uppercase">AlexCars' Edition</h1>
         </div>
         <button onClick={async () => { await supabase.auth.signOut(); }} className="p-3 text-slate-400 bg-slate-100 rounded-2xl hover:text-red-600 hover:bg-red-50 transition-all">
           <LogOut size={22}/>
