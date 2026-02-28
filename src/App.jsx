@@ -650,7 +650,8 @@ const AdminPanel = () => {
 };
 
 // --- VISTA CLIENTE ---
-const ClienteView = ({ userId }) => {
+const ClientePanel = ({ session }) => {
+  const userId = session.user.id;
   const [rifas, setRifas] = useState([]);
   const [selectedRifa, setSelectedRifa] = useState(null);
   const [nums, setNums] = useState([]);
@@ -831,7 +832,7 @@ const ClienteView = ({ userId }) => {
 
       {showPay && (
         <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-md flex items-center justify-center p-4 z-50">
-           <div className="bg-white p-8 rounded-[3.5rem] w-full max-w-sm shadow-2xl relative overflow-hidden">
+           <div className="bg-white p-8 rounded-[3.5rem] w-full max-sm shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-2 bg-red-600"></div>
             <h3 className="text-3xl font-black mb-2 uppercase italic text-black tracking-tighter">Completar Pago</h3>
             {!paymentMethod ? (
@@ -865,44 +866,38 @@ const ClienteView = ({ userId }) => {
 };
 
 // --- APP PRINCIPAL ---
-export default function App() {
+const App = () => {
   const [session, setSession] = useState(null);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const checkRole = async (userId) => {
     try {
-      // 1. Extraemos tanto 'data' como 'error'
+      // Intentamos obtener el rol, controlando errores de Supabase explícitamente
       const { data, error } = await supabase
         .from('usuarios')
         .select('rol')
         .eq('id_usuario', userId)
         .single();
-
-      // 2. Si hay un error de Supabase, lo mostramos en consola
+      
       if (error) {
-        console.error("❌ Error de Supabase al obtener rol:", error.message);
+        console.error("Error al obtener rol:", error.message);
         setRole('cliente');
-        return;
+      } else {
+        setRole(data?.rol || 'cliente');
       }
-
-      // 3. Si todo va bien, asignamos el rol
-      console.log("✅ Rol asignado desde BD:", data?.rol);
-      setRole(data?.rol || 'cliente');
-
-    } catch (err) {
-      console.error("❌ Excepción inesperada en checkRole:", err);
-      setRole('cliente');
+    } catch (err) { 
+      console.error("Excepción en checkRole:", err);
+      setRole('cliente'); 
     } finally { 
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    // Variable para evitar suscripciones múltiples o "race conditions"
     let isMounted = true;
 
-    // Obtener la sesión inicial
+    // Sesión inicial
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (isMounted) {
         setSession(session); 
@@ -914,7 +909,7 @@ export default function App() {
       }
     });
 
-    // Escuchar cambios de autenticación (Login/Logout)
+    // Escuchar cambios (login/logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       if (isMounted) {
         setSession(s); 
@@ -933,3 +928,24 @@ export default function App() {
       subscription.unsubscribe();
     };
   }, []);
+
+  if (loading) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-900">
+        <div className="bg-black p-10 rounded-[3rem] shadow-2xl flex flex-col items-center border border-zinc-800 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-red-600"></div>
+            <Loader2 className="animate-spin text-red-600 mb-4" size={48}/>
+            <p className="text-[10px] font-black uppercase text-zinc-400 tracking-[0.4em] animate-pulse">Cargando AlexCars...</p>
+        </div>
+    </div>
+  );
+
+  if (!session) return <Auth />; 
+  
+  return (
+    <div className="min-h-screen bg-zinc-950 text-white">
+      {role === 'admin' ? <AdminPanel /> : <ClientePanel session={session} />}
+    </div>
+  );
+};
+
+export default App;
