@@ -75,7 +75,7 @@ const Auth = () => {
     <img 
       src={logo} 
       alt="Logo" 
-      className="w-32 h-auto object-contain" 
+      className="w-40 h-auto object-contain" 
     />
 </div>
         <h2 className="text-4xl font-black text-center mb-1 italic tracking-tighter text-black uppercase">AlexCars' Edition</h2>
