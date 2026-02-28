@@ -19,7 +19,7 @@ const ESTADOS = {
 };
 
 // --- COMPONENTE DE ACCESO ---
-const Auth = ({ onLogin }) => {
+const Auth = () => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ nombre: '', apellido: '', telefono: '', password: '' });
