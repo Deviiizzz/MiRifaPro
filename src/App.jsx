@@ -668,214 +668,295 @@ const AdminPanel = () => {
 };
 
 // --- VISTA CLIENTE ---
-const ClientePanel = ({ session }) => {
-  const userId = session.user.id;
+const ClientePanel = ({ userId, onLogout }) => {
   const [rifas, setRifas] = useState([]);
   const [selectedRifa, setSelectedRifa] = useState(null);
   const [nums, setNums] = useState([]);
   const [cart, setCart] = useState([]);
   const [showPay, setShowPay] = useState(false);
-  const [payData, setPayData] = useState({ ref: '' });
+  const [refPago, setRefPago] = useState('');
+  const [loading, setLoading] = useState(false);
   const [hideSold, setHideSold] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState(null);
-  const [misNumeros, setMisNumeros] = useState([]);
 
-  useEffect(() => { 
-    fetchRifas(); 
-    fetchMisNumeros();
-  }, [userId]);
+  useEffect(() => {
+    fetchRifas();
+  }, []);
+
+  useEffect(() => {
+    if (selectedRifa) {
+      const sub = supabase
+        .channel(`public:numeros:${selectedRifa.id_rifa}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'numeros' }, () => fetchNumeros(selectedRifa.id_rifa))
+        .subscribe();
+      fetchNumeros(selectedRifa.id_rifa);
+      return () => { supabase.removeChannel(sub); };
+    }
+  }, [selectedRifa]);
 
   const fetchRifas = async () => {
-    const { data } = await supabase.from('rifas').select('*').order('estado', { ascending: true }).order('creado_en', { ascending: false });
+    const { data } = await supabase.from('rifas').select('*').order('created_at', { ascending: false });
     setRifas(data || []);
   };
 
-  const fetchMisNumeros = async () => {
-    const { data } = await supabase.from('numeros').select('id_numero, id_rifa, numero').eq('comprador_id', userId);
-    setMisNumeros(data || []);
-  };
-
-  const selectRifa = async (rifa) => {
-    setSelectedRifa(rifa);
-    const { data } = await supabase.from('numeros').select('*').eq('id_rifa', rifa.id_rifa).order('numero', { ascending: true });
+  const fetchNumeros = async (id) => {
+    const { data } = await supabase.from('numeros').select('*').eq('rifa_id', id).order('numero', { ascending: true });
     setNums(data || []);
-    setCart([]);
   };
 
-  const reportarPago = async () => {
-    if(!payData.ref || payData.ref.length < 4) return alert("Ingresa los últimos 4 dígitos de la referencia");
-    const { error } = await supabase.from('numeros').update({ 
-        estado: 'apartado', comprador_id: userId, referencia_pago: payData.ref 
-    }).in('id_numero', cart);
-    if(!error) { 
-        alert("¡Reporte de pago enviado! Tu ticket estará en revisión."); 
-        setSelectedRifa(null); setShowPay(false); setPaymentMethod(null);
+  // --- NUEVA FUNCIÓN: SELECCIÓN AUTOMÁTICA ---
+  const handleQuickSelect = () => {
+    const cantidadStr = prompt("¿Cuántos números deseas comprar al azar?");
+    const cantidad = parseInt(cantidadStr);
+
+    if (isNaN(cantidad) || cantidad <= 0) return;
+
+    const disponibles = nums.filter(n => n.estado === 'disponible');
+
+    if (cantidad > disponibles.length) {
+      alert(`Lo sentimos, solo quedan ${disponibles.length} números disponibles.`);
+      return;
     }
+
+    const seleccionados = [...disponibles]
+      .sort(() => 0.5 - Math.random())
+      .slice(0, cantidad)
+      .map(n => n.id_numero);
+
+    setCart(seleccionados);
+    setShowPay(true); // Redirige directamente al pago
   };
+
+  // --- NUEVA FUNCIÓN: DESCARGAR COMPROBANTE PDF ---
+  const descargarComprobanteTickets = () => {
+    const doc = new jsPDF();
+    const misTickets = nums.filter(n => n.comprador_id === userId);
+    
+    doc.setFontSize(22);
+    doc.setTextColor(220, 38, 38);
+    doc.text("ALEXCARS - COMPROBANTE", 14, 20);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Rifa: ${selectedRifa.nombre}`, 14, 30);
+    doc.text(`Fecha de descarga: ${new Date().toLocaleString()}`, 14, 37);
+
+    const tableData = misTickets.map(n => [
+      `#${n.numero}`,
+      n.estado === 'pagado' ? 'CONFIRMADO' : 'PENDIENTE DE APROBACIÓN',
+      n.referencia_pago || 'Sin referencia'
+    ]);
+
+    autoTable(doc, {
+      head: [['Ticket', 'Estado de Pago', 'Referencia']],
+      body: tableData,
+      startY: 45,
+      theme: 'grid',
+      headStyles: { fillColor: [0, 0, 0] }
+    });
+
+    doc.save(`Mis_Tickets_AlexCars.pdf`);
+  };
+
+  const handleBuy = async () => {
+    if (!refPago) return alert("Pon la referencia del comprobante");
+    setLoading(true);
+    const { error } = await supabase.from('numeros').update({
+      estado: 'apartado',
+      comprador_id: userId,
+      referencia_pago: refPago
+    }).in('id_numero', cart);
+
+    if (!error) {
+      alert("¡Listo! Espera a que el administrador apruebe tu pago.");
+      setCart([]);
+      setRefPago('');
+      setShowPay(false);
+    }
+    setLoading(false);
+  };
+
+  if (!selectedRifa) {
+    return (
+      <div className="min-h-screen bg-zinc-100 p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex justify-between items-center mb-10">
+            <h1 className="text-3xl font-black uppercase tracking-tighter italic">Alex<span className="text-red-600">Cars'</span></h1>
+            <button onClick={onLogout} className="bg-white p-3 rounded-2xl shadow-sm text-red-600"><LogOut size={20}/></button>
+          </div>
+          <div className="grid gap-6">
+            {rifas.map(r => (
+              <div key={r.id_rifa} onClick={() => setSelectedRifa(r)} className="bg-white p-6 rounded-[2.5rem] shadow-xl border-2 border-transparent hover:border-red-600 transition-all cursor-pointer group">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-xl font-black uppercase mb-1">{r.nombre}</h2>
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{r.descripcion}</p>
+                  </div>
+                  <ChevronLeft className="rotate-180 text-slate-300 group-hover:text-red-600 transition-colors" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const isFinished = selectedRifa.estado === 'finalizado';
+  const elTicketGanador = nums.find(n => n.numero === selectedRifa.numero_ganador);
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
-      <header className="bg-white p-5 border-b border-slate-200 flex justify-between items-center sticky top-0 z-20 shadow-sm">
-        <div className="flex items-center gap-2">
-            <div className="bg-red-600 p-2 rounded-xl text-white shadow-lg shadow-red-200 border-2 border-black"><Trophy size={20}/></div>
-            <h1 className="font-black italic text-2xl tracking-tighter text-black uppercase">AlexCars' Edition</h1>
+    <div className="min-h-screen bg-zinc-50 pb-24">
+      <div className="bg-white border-b border-slate-200 p-6 sticky top-0 z-30">
+        <div className="max-w-4xl mx-auto flex items-center gap-4">
+          <button onClick={() => { setSelectedRifa(null); setCart([]); }} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><ChevronLeft/></button>
+          <h1 className="text-lg font-black uppercase tracking-tight">{selectedRifa.nombre}</h1>
         </div>
-        <button onClick={async () => { await supabase.auth.signOut(); }} className="p-3 text-slate-400 bg-slate-100 rounded-2xl hover:text-red-600 hover:bg-red-50 transition-all">
-          <LogOut size={22}/>
-        </button>
-      </header>
+      </div>
 
-      <main className="p-4 max-w-2xl mx-auto">
-        {!selectedRifa ? (
-          <div className="space-y-6 mt-4">
-            <div className="bg-gradient-to-br from-zinc-900 to-black p-8 rounded-[3rem] text-white shadow-2xl relative overflow-hidden border border-zinc-800">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-red-600 blur-[80px] opacity-40"></div>
-                <PartyPopper className="absolute -right-4 -bottom-4 text-red-600 opacity-20 rotate-12" size={140}/>
-                <h2 className="text-3xl font-black italic uppercase leading-none mb-2 relative z-10">¡Mucha Suerte!</h2>
-                <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest relative z-10">Elige un sorteo y participa ahora</p>
-            </div>
-            <div className="flex items-center gap-4 px-2">
-                <div className="h-px bg-slate-300 flex-1"></div>
-                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Sorteos</h3>
-                <div className="h-px bg-slate-300 flex-1"></div>
-            </div>
-            {rifas.map(r => {
-              const isFinished = r.estado === 'finalizada';
-              const iWon = isFinished && r.id_ganador && misNumeros.some(n => n.id_numero === r.id_ganador);
-              const cardClasses = iWon ? "bg-gradient-to-r from-yellow-100 to-yellow-50 border-yellow-400 shadow-md" : "bg-white border-slate-200 hover:border-red-600 shadow-sm";
-              return (
-              <div key={r.id_rifa} onClick={() => selectRifa(r)} className={`p-5 rounded-[2.8rem] border flex gap-5 items-center transition-all group active:scale-95 cursor-pointer relative overflow-hidden ${cardClasses}`}>
-                <img src={r.imagen_url || 'https://via.placeholder.com/150'} className={`w-24 h-24 rounded-[2rem] object-cover bg-slate-50 shadow-xl shadow-slate-200 group-hover:rotate-3 transition-transform ${isFinished && !iWon ? 'grayscale opacity-70' : ''}`} />
-                <div className="flex-1 z-10">
-                  <h3 className="text-xl font-black uppercase italic leading-none text-black">{r.nombre}</h3>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="bg-red-50 text-red-600 border border-red-100 text-[10px] font-black px-2 py-1 rounded-lg">${r.precio} USD</span>
-                    <span className="text-[10px] text-slate-500 font-bold uppercase">{r.cantidad_numeros} Números</span>
-                  </div>
-                  <div className="mt-4 flex items-center justify-between">
-                      {isFinished ? (
-                          iWon ? (<div className="text-yellow-600 font-black text-[10px] uppercase flex items-center gap-1 bg-yellow-100 px-3 py-1.5 rounded-full"><Crown size={14}/> ¡GANASTE! Ver Detalles</div>) : (<div className="text-slate-400 font-black text-[10px] uppercase bg-slate-100 px-3 py-1.5 rounded-full">Sorteo Finalizado</div>)
-                      ) : (<div className="text-red-600 font-black text-[10px] uppercase flex items-center gap-1">Participar <ChevronLeft size={14} className="rotate-180"/></div>)}
-                  </div>
-                </div>
-                {iWon && <Star size={100} className="absolute -right-6 -bottom-6 text-yellow-200 opacity-50 rotate-45"/>}
-              </div>
-            )})}
-          </div>
-        ) : (
-          <div className="pb-40">
-            {(() => {
-                const isFinished = selectedRifa.estado === 'finalizada';
-                const elTicketGanador = isFinished ? nums.find(n => n.id_numero === selectedRifa.id_ganador) : null;
-                const iWonThisRifa = elTicketGanador && elTicketGanador.comprador_id === userId;
-                return (
-                    <>
-                        <div className="flex justify-between items-center mb-6 pt-2">
-                          <button onClick={() => setSelectedRifa(null)} className="flex items-center gap-2 font-black text-slate-500 hover:text-black text-[10px] uppercase tracking-widest px-4 py-2 bg-white rounded-full border border-slate-200 shadow-sm"><ChevronLeft size={16}/> Atrás</button>
-                          {!isFinished && (
-                              <button onClick={() => setHideSold(!hideSold)} className={`flex items-center gap-2 px-6 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-md ${hideSold ? 'bg-red-600 text-white shadow-red-200' : 'bg-white text-slate-500 border border-slate-200'}`}>
-                                {hideSold ? <Eye size={16}/> : <EyeOff size={16}/>} {hideSold ? 'Ver Todo' : 'Ver Libres'}
-                              </button>
-                          )}
-                        </div>
-                        {isFinished && iWonThisRifa && (
-                            <div className="fireworks-bg bg-yellow-500 p-8 rounded-[3rem] text-white shadow-2xl shadow-yellow-200 mb-8 text-center border-4 border-yellow-300 relative overflow-hidden">
-                                <div className="animate-celebration inline-block mb-4 bg-white/20 p-5 rounded-[2rem] backdrop-blur-md"><Crown size={64} className="text-yellow-100 drop-shadow-lg"/></div>
-                                <h2 className="text-4xl font-black italic uppercase leading-none mb-2 drop-shadow-md">¡FELICIDADES!</h2>
-                                <p className="text-yellow-100 text-sm font-bold uppercase tracking-widest drop-shadow-sm mb-6">Eres el afortunado ganador</p>
-                                <div className="bg-white text-yellow-600 font-black text-3xl py-4 px-10 rounded-full inline-block shadow-lg border-2 border-yellow-100">TICKET #{elTicketGanador?.numero}</div>
-                                <p className="text-[10px] text-yellow-100 mt-6 font-bold uppercase">Nos pondremos en contacto contigo pronto.</p>
-                            </div>
-                        )}
-                        {isFinished && !iWonThisRifa && elTicketGanador && (
-                            <div className="bg-slate-200 p-8 rounded-[3rem] text-slate-500 text-center mb-8 border border-slate-300">
-                                <Trophy size={40} className="mx-auto mb-4 opacity-40"/><h3 className="text-2xl font-black uppercase italic tracking-tighter text-slate-700 mb-2">Sorteo Finalizado</h3>
-                                <p className="text-xs font-bold">El ticket ganador fue el <span className="text-black font-black px-3 py-1 bg-white rounded-xl border border-slate-300 ml-1 text-sm">#{elTicketGanador.numero}</span></p>
-                                <p className="text-[10px] uppercase font-bold text-slate-500 mt-4 tracking-widest">¡Suerte para la próxima!</p>
-                            </div>
-                        )}
-                        {!isFinished && (
-                            <div className="bg-white p-8 rounded-[3rem] border border-slate-200 mb-8 shadow-sm relative overflow-hidden">
-                              <div className="absolute top-6 right-8 bg-red-600 text-white text-[10px] font-black px-4 py-2 rounded-2xl shadow-lg shadow-red-200 border border-red-800">${selectedRifa.precio} USD</div>
-                              <h2 className="text-3xl font-black uppercase italic leading-none text-black pr-20">{selectedRifa.nombre}</h2>
-                              <div className="flex items-center gap-2 mt-4 text-slate-500 font-bold text-xs"><Calendar size={14} className="text-red-600"/> Finaliza el: {selectedRifa.fecha_fin}</div>
-                              <div className="mt-6 p-4 bg-slate-50 rounded-[1.5rem] border border-slate-100"><p className="text-[11px] text-slate-600 leading-relaxed font-bold uppercase tracking-tight">{selectedRifa.descripcion}</p></div>
-                            </div>
-                        )}
-                        <div className={`grid grid-cols-5 sm:grid-cols-8 gap-3 bg-white p-6 rounded-[3rem] shadow-inner ${isFinished ? 'opacity-70 pointer-events-none border border-slate-300' : 'border border-slate-200'}`}>
-                          {nums.map(n => {
-                            const isMine = n.comprador_id === userId;
-                            const isSelected = cart.includes(n.id_numero);
-                            
-                            // Lógica de colores del CLIENTE
-                            let bgColor = 'bg-red-600 border-red-700 text-white hover:bg-red-500 shadow-sm'; // Libres = Rojos
-                            
-                            if (n.estado === 'pagado' || n.estado === 'apartado') {
-                                bgColor = 'bg-slate-200 border-slate-300 text-slate-400 opacity-60'; // Vendidos o apartados ajenos = Gris opaco
-                            }
-                            if (isMine) {
-                                bgColor = 'bg-black border-zinc-800 text-white shadow-xl shadow-black/20 z-10 animate-pulse'; // Míos = Negro Parpadeante
-                            }
-                            if (isSelected) {
-                                bgColor = 'bg-zinc-800 border-black text-white scale-110 z-10';
-                            }
-                            if (isFinished && n.id_numero === selectedRifa.id_ganador) {
-                                bgColor = 'bg-yellow-400 border-yellow-500 text-white shadow-lg shadow-yellow-200 scale-110 z-20 animate-pulse'; // Ganador = Dorado parpadeante
-                            }
-                            
-                            if (hideSold && n.estado !== 'disponible' && !isMine && !isFinished) return null;
-                            
-                            return (
-                              <button key={n.id_numero} disabled={(n.estado !== 'disponible' && !isMine) || isFinished} onClick={() => { if(n.estado === 'disponible' && !isFinished) setCart(prev => prev.includes(n.id_numero) ? prev.filter(id => id !== n.id_numero) : [...prev, n.id_numero]); }} className={`aspect-square rounded-[1.2rem] text-[10px] font-black border-2 transition-all relative flex items-center justify-center ${bgColor} ${!isFinished && isMine ? 'scale-105' : ''}`}>
-                                {n.numero}{isMine && !isFinished && (<div className="absolute -top-2 -right-2 bg-white text-black rounded-full border-2 border-black p-0.5 shadow-md"><CheckCircle2 size={10} strokeWidth={4}/></div>)}
-                              </button>
-                            );
-                          })}
-                        </div>
-                    </>
-                )
-            })()}
-            {cart.length > 0 && selectedRifa.estado === 'activa' && (
-              <div className="fixed bottom-8 left-4 right-4 bg-black text-white p-7 rounded-[3rem] flex justify-between items-center shadow-[0_20px_50px_rgba(230,0,0,0.2)] z-40 border-2 border-zinc-800">
-                <div className="flex items-center gap-4">
-                    <div className="bg-zinc-800 p-3 rounded-2xl text-red-600 shadow-inner"><Ticket/></div>
-                    <div><p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">{cart.length} Seleccionados</p><p className="text-3xl font-black italic tracking-tighter">${(cart.length * selectedRifa.precio).toFixed(2)}</p></div>
-                </div>
-                <button onClick={() => setShowPay(true)} className="bg-red-600 px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest hover:bg-red-500 transition-all active:scale-90 shadow-xl shadow-red-900/20 border border-red-800">Pagar Ahora</button>
-              </div>
-            )}
+      <div className="max-w-4xl mx-auto p-6">
+        {isFinished && elTicketGanador && (
+          <div className="bg-black text-white p-8 rounded-[3rem] mb-8 text-center border-4 border-yellow-500 shadow-2xl relative overflow-hidden">
+             <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
+                <PartyPopper size={200} className="absolute -bottom-10 -right-10 rotate-12" />
+             </div>
+             <Trophy className="mx-auto mb-4 text-yellow-500" size={48}/>
+             <h2 className="text-sm font-black uppercase tracking-[0.3em] mb-2 text-yellow-500">¡Sorteo Finalizado!</h2>
+             <div className="text-6xl font-black mb-4">#{elTicketGanador.numero}</div>
+             <p className="text-[10px] uppercase font-bold text-zinc-400">Ganador: {elTicketGanador.nombre_comprador || 'Sorteo Cerrado'}</p>
           </div>
         )}
-      </main>
 
-      {showPay && (
-        <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-md flex items-center justify-center p-4 z-50">
-           <div className="bg-white p-8 rounded-[3.5rem] w-full max-sm shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-2 bg-red-600"></div>
-            <h3 className="text-3xl font-black mb-2 uppercase italic text-black tracking-tighter">Completar Pago</h3>
-            {!paymentMethod ? (
-                <div className="space-y-3">
-                    <button onClick={() => setPaymentMethod('pago_movil')} className="w-full p-6 bg-slate-50 rounded-3xl border border-slate-200 flex items-center gap-4 hover:bg-red-50 hover:border-red-200 transition-all group">
-                        <div className="bg-white p-3 rounded-2xl text-red-600 shadow-sm group-hover:bg-red-600 group-hover:text-white transition-all"><Smartphone/></div>
-                        <div className="text-left"><p className="font-black uppercase text-xs text-black">Pago Móvil</p><p className="text-[9px] text-slate-500 font-bold uppercase">Transf. Inmediata</p></div>
-                    </button>
-                    <button onClick={() => setPaymentMethod('transferencia')} className="w-full p-6 bg-slate-50 rounded-3xl border border-slate-200 flex items-center gap-4 hover:bg-red-50 hover:border-red-200 transition-all group">
-                        <div className="bg-white p-3 rounded-2xl text-red-600 shadow-sm group-hover:bg-red-600 group-hover:text-white transition-all"><Building2/></div>
-                        <div className="text-left"><p className="font-black uppercase text-xs text-black">Zelle / Transferencia</p><p className="text-[9px] text-slate-500 font-bold uppercase">Bancos nacionales / USA</p></div>
-                    </button>
-                    <button onClick={() => setShowPay(false)} className="w-full mt-4 text-slate-400 font-black text-[10px] hover:text-red-600 uppercase tracking-widest">Cancelar</button>
-                </div>
-            ) : (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-                    <div className="bg-red-600 p-6 rounded-[2.5rem] mb-6 text-white text-center shadow-xl shadow-red-200 border-2 border-red-800"><p className="text-[10px] font-black uppercase opacity-70 mb-2">Datos para transferir</p><p className="text-sm font-black leading-relaxed">BANCO CENTRAL<br/>V-12.345.678<br/>0412-0000000</p></div>
-                    <div className="space-y-2 mb-6">
-                        <label className="text-[10px] font-black text-slate-500 ml-4 uppercase">Ref. de pago (4 últimos dígitos)</label>
-                        <input type="text" maxLength="4" placeholder="Ej: 9821" className="w-full p-5 bg-slate-50 border-2 border-slate-200 rounded-[2rem] font-black text-center outline-none focus:border-red-600 text-2xl tracking-[0.5em] shadow-inner text-black" onChange={e => setPayData({ref: e.target.value})} />
-                    </div>
-                    <button onClick={reportarPago} className="w-full bg-red-600 text-white p-6 rounded-[2rem] font-black uppercase text-xs shadow-xl shadow-red-200 transition-all hover:bg-red-700 active:scale-95 border border-red-800">Confirmar Mi Reporte</button>
-                    <button onClick={() => {setPaymentMethod(null);}} className="w-full mt-4 text-slate-400 hover:text-red-600 font-black text-[10px] uppercase py-2">Volver Atrás</button>
-                </div>
+        <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 mb-8">
+            <p className="text-slate-600 font-medium text-sm leading-relaxed mb-6">{selectedRifa.descripcion}</p>
+            
+            {/* BOTONES DE ACCIÓN PERFIL CLIENTE */}
+            {!isFinished && (
+              <div className="flex flex-wrap gap-3 mb-2">
+                <button 
+                  onClick={handleQuickSelect}
+                  className="flex-1 bg-zinc-900 text-white p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 border-2 border-zinc-800 hover:bg-black transition-all"
+                >
+                  <Star size={16} className="text-yellow-400 fill-yellow-400"/> Selección Automática
+                </button>
+                
+                {nums.some(n => n.comprador_id === userId) && (
+                  <button 
+                    onClick={descargarComprobanteTickets}
+                    className="flex-1 bg-white text-black p-4 rounded-2xl font-black uppercase text-[10px] border-2 border-slate-200 flex items-center justify-center gap-2 shadow-sm"
+                  >
+                    <Download size={16}/> Descargar Mis Tickets (PDF)
+                  </button>
+                )}
+              </div>
             )}
+        </div>
+
+        <div className="flex justify-between items-end mb-6">
+            <h3 className="font-black uppercase text-[11px] tracking-widest text-slate-400 flex items-center gap-2">
+                <Ticket size={14}/> Selecciona tus números
+            </h3>
+            <button onClick={() => setHideSold(!hideSold)} className="text-[10px] font-black uppercase text-red-600 bg-red-50 px-4 py-2 rounded-full border border-red-100">
+                {hideSold ? 'Mostrar todos' : 'Ocultar vendidos'}
+            </button>
+        </div>
+
+        {/* CUADRÍCULA DE NÚMEROS MODIFICADA */}
+        <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-3">
+          {nums.map(n => {
+            const isMine = n.comprador_id === userId;
+            const isSelected = cart.includes(n.id_numero);
+            const isPending = isMine && n.estado === 'apartado';
+            const isApproved = isMine && n.estado === 'pagado';
+
+            let bgColor = 'bg-red-600 border-red-700 text-white hover:bg-red-500 shadow-sm';
+            
+            if ((n.estado === 'pagado' || n.estado === 'apartado') && !isMine) {
+              bgColor = 'bg-slate-200 border-slate-300 text-slate-400 opacity-60';
+            }
+            
+            if (isMine) {
+              // Si está pendiente de aprobación por admin, parpadea
+              bgColor = `bg-black border-zinc-800 text-white shadow-xl ${isPending ? 'animate-pulse' : ''}`;
+            }
+            
+            if (isSelected) {
+              bgColor = 'bg-zinc-800 border-black text-white scale-110 z-10';
+            }
+
+            if (hideSold && n.estado !== 'disponible' && !isMine) return null;
+
+            return (
+              <button 
+                key={n.id_numero} 
+                disabled={(n.estado !== 'disponible' && !isMine) || isFinished}
+                onClick={() => {
+                  if(n.estado === 'disponible') {
+                    setCart(prev => prev.includes(n.id_numero) ? prev.filter(id => id !== n.id_numero) : [...prev, n.id_numero]);
+                  }
+                }}
+                className={`aspect-square rounded-2xl text-[11px] font-black border-2 transition-all relative flex items-center justify-center ${bgColor}`}
+              >
+                {n.numero}
+                {/* CHECK SÓLO CUANDO EL ADMIN APRUEBA */}
+                {isApproved && (
+                  <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full border-2 border-white p-0.5 shadow-md">
+                    <CheckCircle2 size={10} strokeWidth={4}/>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* BARRA DE PAGO FLOTANTE */}
+      {cart.length > 0 && !showPay && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-black text-white p-5 rounded-[2.5rem] shadow-2xl flex items-center justify-between z-50 animate-bounce-subtle">
+           <div>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Seleccionados</p>
+              <p className="text-xl font-black">{cart.length} Números</p>
+           </div>
+           <button onClick={() => setShowPay(true)} className="bg-red-600 px-8 py-3 rounded-2xl font-black uppercase text-xs hover:bg-red-500 transition-colors">Comprar Ahora</button>
+        </div>
+      )}
+
+      {/* MODAL DE PAGO */}
+      {showPay && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-[3rem] overflow-hidden animate-slide-up">
+            <div className="p-8">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-black uppercase">Confirmar Pago</h3>
+                <button onClick={() => setShowPay(false)} className="bg-slate-100 p-2 rounded-full"><X/></button>
+              </div>
+              
+              <div className="bg-zinc-50 p-6 rounded-3xl mb-6 border border-slate-100">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-red-100 text-red-600 p-2 rounded-xl"><CreditCard size={20}/></div>
+                  <span className="font-bold text-sm uppercase tracking-widest text-slate-500">Datos de transferencia</span>
+                </div>
+                <p className="font-black text-lg mb-1">{selectedRifa.metodo_pago}</p>
+              </div>
+
+              <div className="mb-8">
+                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 ml-2">Referencia del comprobante</label>
+                <input 
+                  type="text" 
+                  value={refPago} 
+                  onChange={(e) => setRefPago(e.target.value)}
+                  placeholder="Ej: 123456789"
+                  className="w-full bg-slate-100 border-2 border-transparent focus:border-red-600 p-5 rounded-3xl outline-none font-bold transition-all"
+                />
+              </div>
+
+              <button 
+                onClick={handleBuy}
+                disabled={loading || !refPago}
+                className="w-full bg-black text-white p-6 rounded-[2rem] font-black uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-3"
+              >
+                {loading ? <Loader2 className="animate-spin"/> : 'Enviar Reporte de Pago'}
+              </button>
+            </div>
           </div>
         </div>
       )}
