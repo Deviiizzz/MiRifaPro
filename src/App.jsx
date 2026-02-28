@@ -13,9 +13,9 @@ import * as XLSX from 'xlsx';
 import './index.css'; 
 
 const ESTADOS = {
-  disponible: { bg: 'bg-green-500', border: 'border-green-600', text: 'text-white', label: 'Libre' },
-  apartado: { bg: 'bg-red-600', border: 'border-red-700', text: 'text-white', label: 'Revision' },
-  pagado: { bg: 'bg-blue-600', border: 'border-blue-700', text: 'text-white', label: 'Vendido' }
+  disponible: { bg: 'bg-zinc-100', border: 'border-zinc-300', text: 'text-zinc-600', label: 'Libre' },
+  apartado: { bg: 'bg-amber-500', border: 'border-amber-600', text: 'text-white', label: 'Revision' },
+  pagado: { bg: 'bg-red-600', border: 'border-red-700', text: 'text-white', label: 'Vendido' }
 };
 
 // --- COMPONENTE DE ACCESO ---
@@ -51,47 +51,47 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 font-sans">
-      <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-slate-200">
+    <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-4 font-sans">
+      <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-zinc-200">
         <div className="flex justify-center mb-4">
-            <div className="bg-blue-600 p-4 rounded-3xl rotate-12 shadow-lg shadow-blue-200">
+            <div className="bg-red-600 p-4 rounded-3xl rotate-12 shadow-lg shadow-red-200">
                 <Trophy size={40} className="text-white"/>
             </div>
         </div>
-        <h2 className="text-4xl font-black text-center mb-1 italic tracking-tighter text-blue-600 uppercase">AlexCars' Edition</h2>
-        <p className="text-center text-slate-400 text-[10px] mb-8 font-black uppercase tracking-[0.2em]">Sistema Profesional de Sorteos</p>
+        <h2 className="text-4xl font-black text-center mb-1 italic tracking-tighter text-zinc-900 uppercase">AlexCars' 9801</h2>
+        <p className="text-center text-red-600 text-[10px] mb-8 font-black uppercase tracking-[0.2em]">Pintura Automotriz • Sorteos</p>
         
         <form onSubmit={handleAuth} className="space-y-4">
           {isRegistering && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 ml-2 uppercase">Nombre</label>
-                <input type="text" required className="w-full p-4 bg-slate-50 rounded-2xl outline-none border border-slate-100 focus:border-blue-500 transition-all text-sm font-bold" onChange={e => setFormData({...formData, nombre: e.target.value})} />
+                <label className="text-[10px] font-bold text-zinc-400 ml-2 uppercase">Nombre</label>
+                <input type="text" required className="w-full p-4 bg-zinc-50 rounded-2xl outline-none border border-zinc-100 focus:border-red-500 transition-all text-sm font-bold" onChange={e => setFormData({...formData, nombre: e.target.value})} />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 ml-2 uppercase">Apellido</label>
-                <input type="text" required className="w-full p-4 bg-slate-50 rounded-2xl outline-none border border-slate-100 focus:border-blue-500 transition-all text-sm font-bold" onChange={e => setFormData({...formData, apellido: e.target.value})} />
+                <label className="text-[10px] font-bold text-zinc-400 ml-2 uppercase">Apellido</label>
+                <input type="text" required className="w-full p-4 bg-zinc-50 rounded-2xl outline-none border border-zinc-100 focus:border-red-500 transition-all text-sm font-bold" onChange={e => setFormData({...formData, apellido: e.target.value})} />
               </div>
             </div>
           )}
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 ml-2 uppercase">Teléfono</label>
+            <label className="text-[10px] font-bold text-zinc-400 ml-2 uppercase">Teléfono</label>
             <div className="relative">
-                <Smartphone className="absolute left-4 top-4 text-slate-300" size={18}/>
-                <input type="tel" required className="w-full p-4 pl-12 bg-slate-50 rounded-2xl outline-none border border-slate-100 focus:border-blue-500 transition-all text-sm font-bold" onChange={e => setFormData({...formData, telefono: e.target.value})} />
+                <Smartphone className="absolute left-4 top-4 text-zinc-300" size={18}/>
+                <input type="tel" required className="w-full p-4 pl-12 bg-zinc-50 rounded-2xl outline-none border border-zinc-100 focus:border-red-500 transition-all text-sm font-bold" onChange={e => setFormData({...formData, telefono: e.target.value})} />
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 ml-2 uppercase">Contraseña</label>
-            <input type="password" required className="w-full p-4 bg-slate-50 rounded-2xl outline-none border border-slate-100 focus:border-blue-500 transition-all text-sm font-bold" onChange={e => setFormData({...formData, password: e.target.value})} />
+            <label className="text-[10px] font-bold text-zinc-400 ml-2 uppercase">Contraseña</label>
+            <input type="password" required className="w-full p-4 bg-zinc-50 rounded-2xl outline-none border border-zinc-100 focus:border-red-500 transition-all text-sm font-bold" onChange={e => setFormData({...formData, password: e.target.value})} />
           </div>
           
-          <button className="w-full bg-blue-600 text-white p-5 rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all active:scale-95 flex items-center justify-center gap-2">
+          <button className="w-full bg-red-600 text-white p-5 rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-red-700 shadow-xl shadow-red-100 transition-all active:scale-95 flex items-center justify-center gap-2">
             {loading ? <Loader2 className="animate-spin" /> : (isRegistering ? 'Crear Cuenta' : 'Iniciar Sesión')}
           </button>
         </form>
         
-        <button onClick={() => setIsRegistering(!isRegistering)} className="w-full text-center mt-8 text-[11px] font-black text-slate-400 uppercase tracking-tighter hover:text-blue-600 transition-all">
+        <button onClick={() => setIsRegistering(!isRegistering)} className="w-full text-center mt-8 text-[11px] font-black text-zinc-400 uppercase tracking-tighter hover:text-red-600 transition-all">
           {isRegistering ? '¿Ya tienes una cuenta? Entrar ahora' : '¿Eres nuevo? Regístrate aquí'}
         </button>
       </div>
@@ -122,7 +122,6 @@ const AdminPanel = () => {
   const calculateStats = async () => {
   const { data: nums, error } = await supabase
     .from('numeros')
-    // Cambiamos 'rifas(precio)' por la relación específica del número
     .select(`
       estado,
       rifas!numeros_id_rifa_fkey (
@@ -140,8 +139,6 @@ const AdminPanel = () => {
   let revision = 0;
   
   nums?.forEach(n => {
-    // IMPORTANTE: Ahora el objeto se llamará 'rifas' pero debemos 
-    // acceder con cuidado por si la respuesta cambia de estructura
     const precioTicket = n.rifas?.precio || 0;
 
     if (n.estado === 'pagado') { 
@@ -383,13 +380,13 @@ const AdminPanel = () => {
   const ticketGanador = selectedRifa?.id_ganador ? numsRifa.find(n => n.id_numero === selectedRifa.id_ganador) : null;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20 font-sans text-slate-800">
-      <nav className="bg-white border-b border-slate-200 p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
+    <div className="min-h-screen bg-zinc-50 pb-20 font-sans text-zinc-900">
+      <nav className="bg-zinc-950 border-b border-zinc-800 p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
         <div className="flex items-center gap-2">
-            <div className="bg-blue-600 p-2 rounded-xl text-white"><Building2 size={18}/></div>
-            <h1 className="font-black italic text-xl text-blue-600 tracking-tighter uppercase">AlexCars' Edition ADMIN</h1>
+            <div className="bg-red-600 p-2 rounded-xl text-white"><Building2 size={18}/></div>
+            <h1 className="font-black italic text-xl text-white tracking-tighter uppercase">AlexCars' Admin</h1>
         </div>
-        <button onClick={async () => { await supabase.auth.signOut(); }} className="text-red-500 p-2 bg-red-50 rounded-xl transition-all hover:bg-red-100 flex items-center gap-2 text-xs font-black">
+        <button onClick={async () => { await supabase.auth.signOut(); }} className="text-white p-2 bg-red-600 rounded-xl transition-all hover:bg-red-700 flex items-center gap-2 text-xs font-black">
           <LogOut size={18}/> SALIR
         </button>
       </nav>
@@ -398,51 +395,51 @@ const AdminPanel = () => {
         {view === 'list' && (
           <div className="max-w-5xl mx-auto space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
+              <div className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex items-center gap-4">
                 <div className="bg-green-100 p-3 rounded-2xl text-green-600"><CreditCard/></div>
-                <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recaudado</p><p className="text-2xl font-black text-slate-900">${stats.recaudado}</p></div>
+                <div><p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Recaudado</p><p className="text-2xl font-black text-zinc-900">${stats.recaudado}</p></div>
               </div>
-              <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
-                <div className="bg-blue-100 p-3 rounded-2xl text-blue-600"><Ticket/></div>
-                <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vendidos</p><p className="text-2xl font-black text-slate-900">{stats.vendidos}</p></div>
+              <div className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex items-center gap-4">
+                <div className="bg-red-50 p-3 rounded-2xl text-red-600"><Ticket/></div>
+                <div><p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Vendidos</p><p className="text-2xl font-black text-zinc-900">{stats.vendidos}</p></div>
               </div>
-              <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
-                <div className="bg-red-100 p-3 rounded-2xl text-red-600 animate-pulse"><AlertCircle/></div>
-                <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">En Revisión</p><p className="text-2xl font-black text-slate-900">{stats.pendientes}</p></div>
+              <div className="bg-white p-6 rounded-[2rem] border border-zinc-100 shadow-sm flex items-center gap-4">
+                <div className="bg-amber-100 p-3 rounded-2xl text-amber-600 animate-pulse"><AlertCircle/></div>
+                <div><p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">En Revisión</p><p className="text-2xl font-black text-zinc-900">{stats.pendientes}</p></div>
               </div>
             </div>
 
             <div className="flex justify-between items-center">
-                <h2 className="text-xl font-black italic uppercase tracking-tighter text-slate-400">Tus Sorteos</h2>
-                <button onClick={() => setView('create')} className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95 text-xs uppercase">
+                <h2 className="text-xl font-black italic uppercase tracking-tighter text-zinc-400">Tus Sorteos</h2>
+                <button onClick={() => setView('create')} className="bg-red-600 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg shadow-red-100 hover:bg-red-700 transition-all active:scale-95 text-xs uppercase">
                     <Plus size={18}/> Crear Rifa
                 </button>
             </div>
             
             <div className="grid gap-4 md:grid-cols-2">
               {rifas.map(r => (
-                <div key={r.id_rifa} className="bg-white p-4 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center gap-4 group transition-all hover:shadow-xl relative overflow-hidden">
-                  {r.estado === 'finalizada' && <div className="absolute top-0 right-0 bg-yellow-400 text-white text-[9px] font-black px-4 py-1 rounded-bl-xl z-10">FINALIZADA</div>}
+                <div key={r.id_rifa} className="bg-white p-4 rounded-[2.5rem] shadow-sm border border-zinc-100 flex items-center gap-4 group transition-all hover:shadow-xl relative overflow-hidden">
+                  {r.estado === 'finalizada' && <div className="absolute top-0 right-0 bg-red-600 text-white text-[9px] font-black px-4 py-1 rounded-bl-xl z-10">FINALIZADA</div>}
                   {r.imagen_url ? (
-                    <img src={r.imagen_url} className={`w-20 h-20 rounded-[1.8rem] object-cover bg-slate-100 shadow-md shadow-slate-100 ${r.estado === 'finalizada' ? 'grayscale opacity-80' : ''}`} />
+                    <img src={r.imagen_url} className={`w-20 h-20 rounded-[1.8rem] object-cover bg-zinc-100 shadow-md shadow-zinc-100 ${r.estado === 'finalizada' ? 'grayscale opacity-80' : ''}`} />
                   ) : (
-                    <div className="w-20 h-20 rounded-[1.8rem] bg-slate-50 flex items-center justify-center text-slate-200"><ImageIcon size={32}/></div>
+                    <div className="w-20 h-20 rounded-[1.8rem] bg-zinc-50 flex items-center justify-center text-zinc-200"><ImageIcon size={32}/></div>
                   )}
                   <div onClick={() => openRifaDetail(r)} className="cursor-pointer flex-1">
                     <div className="flex items-center gap-2">
-                        <h3 className="font-black uppercase text-sm leading-tight text-slate-700">{r.nombre}</h3>
+                        <h3 className="font-black uppercase text-sm leading-tight text-zinc-700">{r.nombre}</h3>
                         {pendientesNotif[r.id_rifa] > 0 && (
-                            <span className="bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full animate-bounce">
+                            <span className="bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full animate-bounce">
                                 {pendientesNotif[r.id_rifa]} PENDIENTES
                             </span>
                         )}
                     </div>
-                    <p className="text-[10px] text-slate-400 font-bold mt-1">Finaliza: {r.fecha_fin}</p>
-                    <p className="text-blue-600 font-black text-xs mt-1">${r.precio} USD</p>
+                    <p className="text-[10px] text-zinc-400 font-bold mt-1">Finaliza: {r.fecha_fin}</p>
+                    <p className="text-red-600 font-black text-xs mt-1">${r.precio} USD</p>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <button onClick={() => { setSelectedRifa(r); setView('edit'); }} className="text-blue-500 bg-blue-50 p-3 rounded-2xl hover:bg-blue-100 transition-all"><Edit3 size={18}/></button>
-                    <button onClick={async () => { if(window.confirm("¿Seguro de borrar esta rifa? Todos los números se perderán.")) { await supabase.from('rifas').delete().eq('id_rifa', r.id_rifa); fetchRifas(); calculateStats(); } }} className="text-slate-300 hover:text-red-500 bg-slate-50 p-3 rounded-2xl transition-all"><Trash2 size={18}/></button>
+                    <button onClick={() => { setSelectedRifa(r); setView('edit'); }} className="text-zinc-500 bg-zinc-50 p-3 rounded-2xl hover:bg-zinc-100 transition-all"><Edit3 size={18}/></button>
+                    <button onClick={async () => { if(window.confirm("¿Seguro de borrar esta rifa? Todos los números se perderán.")) { await supabase.from('rifas').delete().eq('id_rifa', r.id_rifa); fetchRifas(); calculateStats(); } }} className="text-zinc-300 hover:text-red-500 bg-zinc-50 p-3 rounded-2xl transition-all"><Trash2 size={18}/></button>
                   </div>
                 </div>
               ))}
@@ -452,15 +449,15 @@ const AdminPanel = () => {
 
         {view === 'detail' && selectedRifa && (
           <div className="space-y-6">
-            <div className="flex flex-wrap justify-between items-center gap-4 bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
-                <button onClick={() => setView('list')} className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest"><ChevronLeft size={18}/> Volver al Listado</button>
+            <div className="flex flex-wrap justify-between items-center gap-4 bg-white p-4 rounded-3xl border border-zinc-100 shadow-sm">
+                <button onClick={() => setView('list')} className="flex items-center gap-2 text-xs font-black text-zinc-400 uppercase tracking-widest"><ChevronLeft size={18}/> Volver al Listado</button>
                 <div className="flex flex-wrap gap-2">
-                    <button onClick={exportToPDF} className="bg-slate-900 text-white p-3 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2"><FileText size={16}/> PDF</button>
+                    <button onClick={exportToPDF} className="bg-zinc-900 text-white p-3 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2"><FileText size={16}/> PDF</button>
                     <button onClick={exportToExcel} className="bg-green-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2"><Download size={16}/> EXCEL</button>
                     {selectedRifa.estado === 'activa' && (
                         <>
-                            <button onClick={() => setShowManualAssign(true)} className="bg-blue-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 shadow-lg shadow-blue-100"><Plus size={16}/> Venta Manual</button>
-                            <button onClick={realizarSorteo} disabled={loadingAction} className="bg-yellow-500 text-white p-3 px-4 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 shadow-lg shadow-yellow-200 hover:bg-yellow-600 transition-all ml-4">
+                            <button onClick={() => setShowManualAssign(true)} className="bg-red-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 shadow-lg shadow-red-100"><Plus size={16}/> Venta Manual</button>
+                            <button onClick={realizarSorteo} disabled={loadingAction} className="bg-zinc-900 text-white p-3 px-4 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 shadow-lg shadow-zinc-200 hover:bg-black transition-all ml-4">
                                 {loadingAction ? <Loader2 size={16} className="animate-spin"/> : <Crown size={18}/>} Realizar Sorteo
                             </button>
                         </>
@@ -471,11 +468,11 @@ const AdminPanel = () => {
             <div className="flex flex-col lg:flex-row gap-6">
               <div className="lg:w-2/3 space-y-4">
                 {selectedRifa.estado === 'finalizada' && ticketGanador && (
-                    <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-yellow-200 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden border-4 border-yellow-300">
+                    <div className="bg-gradient-to-r from-red-600 to-red-800 p-8 rounded-[2.5rem] text-white shadow-xl shadow-red-200 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden border-4 border-red-500">
                         <div className="bg-white/20 p-5 rounded-3xl backdrop-blur-sm animate-celebration relative z-10"><Crown size={56} className="text-white drop-shadow-md"/></div>
                         <div className="text-center md:text-left relative z-10">
                             <h3 className="text-3xl font-black italic uppercase tracking-tighter drop-shadow-md">¡Tenemos un Ganador!</h3>
-                            <p className="text-sm font-bold mt-2 uppercase tracking-widest opacity-90">Ticket de la suerte: <span className="bg-white text-yellow-600 px-2 py-1 rounded-md font-black">#{ticketGanador.numero}</span></p>
+                            <p className="text-sm font-bold mt-2 uppercase tracking-widest opacity-90">Ticket de la suerte: <span className="bg-white text-red-600 px-2 py-1 rounded-md font-black">#{ticketGanador.numero}</span></p>
                             <div className="mt-4 bg-black/10 p-4 rounded-2xl inline-block backdrop-blur-md">
                                 <p className="font-black text-lg">{ticketGanador.usuarios?.nombre} {ticketGanador.usuarios?.apellido}</p>
                                 <p className="text-sm flex items-center gap-2 justify-center md:justify-start mt-1"><Phone size={14}/> {ticketGanador.usuarios?.telefono}</p>
@@ -485,22 +482,22 @@ const AdminPanel = () => {
                     </div>
                 )}
 
-                <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex gap-6 items-center">
+                <div className="bg-white p-6 rounded-[2.5rem] border border-zinc-100 shadow-sm flex gap-6 items-center">
                     {selectedRifa.imagen_url && <img src={selectedRifa.imagen_url} className="w-24 h-24 rounded-3xl object-cover shadow-lg" />}
                     <div>
-                        <h2 className="text-3xl font-black uppercase italic text-slate-900 leading-none">{selectedRifa.nombre}</h2>
-                        <p className="text-xs text-slate-400 font-bold mt-2 uppercase tracking-widest">{selectedRifa.estado === 'activa' ? 'Control de tickets en tiempo real' : 'Sorteo Finalizado'}</p>
+                        <h2 className="text-3xl font-black uppercase italic text-zinc-900 leading-none">{selectedRifa.nombre}</h2>
+                        <p className="text-xs text-zinc-400 font-bold mt-2 uppercase tracking-widest">{selectedRifa.estado === 'activa' ? 'Control de tickets en tiempo real' : 'Sorteo Finalizado'}</p>
                     </div>
                 </div>
                 
-                <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                <div className="bg-white p-6 rounded-[2.5rem] border border-zinc-100 shadow-sm">
                   <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
                     {numsRifa.map(n => {
                       let btnClass = `aspect-square rounded-xl text-[10px] font-black border-2 transition-all shadow-sm ${ESTADOS[n.estado].bg} ${ESTADOS[n.estado].border} ${ESTADOS[n.estado].text}`;
                       if (n.estado !== 'disponible') btnClass += ' scale-95';
                       else btnClass += ' hover:scale-105';
                       if (selectedRifa.estado === 'finalizada' && n.id_numero === selectedRifa.id_ganador) {
-                          btnClass = 'aspect-square rounded-xl text-[10px] font-black border-4 bg-yellow-400 border-yellow-500 text-white shadow-lg shadow-yellow-200 scale-110 animate-pulse z-10';
+                          btnClass = 'aspect-square rounded-xl text-[10px] font-black border-4 bg-red-600 border-red-700 text-white shadow-lg shadow-red-200 scale-110 animate-pulse z-10';
                       }
                       return (
                         <button key={n.id_numero} onClick={() => n.estado !== 'disponible' && setNumDetail(n)} className={btnClass}>{n.numero}</button>
@@ -511,30 +508,30 @@ const AdminPanel = () => {
               </div>
 
               <div className="lg:w-1/3">
-                <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm sticky top-24 max-h-[80vh] overflow-y-auto custom-scrollbar">
-                  <h3 className="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-[0.2em] flex items-center gap-2"><User size={14}/> Lista de Participantes</h3>
+                <div className="bg-white p-6 rounded-[2.5rem] border border-zinc-100 shadow-sm sticky top-24 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                  <h3 className="text-[10px] font-black uppercase text-zinc-400 mb-6 tracking-[0.2em] flex items-center gap-2"><User size={14}/> Lista de Participantes</h3>
                   <div className="space-y-4">
                     {Object.values(clientesAgrupados).map((item) => {
                       const tieneGanador = item.numeros.some(n => n.id_numero === selectedRifa.id_ganador);
                       return (
-                      <div key={item.info?.id_usuario} className={`p-5 rounded-3xl border-2 transition-all ${tieneGanador ? 'border-yellow-300 bg-yellow-50' : item.tienePendientes ? 'border-red-200 bg-red-50/50' : 'border-slate-50 bg-slate-50/30'}`}>
+                      <div key={item.info?.id_usuario} className={`p-5 rounded-3xl border-2 transition-all ${tieneGanador ? 'border-red-500 bg-red-50' : item.tienePendientes ? 'border-amber-200 bg-amber-50/50' : 'border-zinc-50 bg-zinc-50/30'}`}>
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1">
-                            <p className="font-black text-xs uppercase leading-tight text-slate-800 flex items-center gap-2">
+                            <p className="font-black text-xs uppercase leading-tight text-zinc-800 flex items-center gap-2">
                                 {item.info?.nombre} {item.info?.apellido}
-                                {tieneGanador && <Star size={12} className="text-yellow-500 fill-yellow-500"/>}
+                                {tieneGanador && <Star size={12} className="text-red-600 fill-red-600"/>}
                             </p>
-                            <p className="text-[10px] text-slate-500 font-black flex items-center gap-1 mt-1"><Phone size={10} className="text-blue-500"/> {item.info?.telefono}</p>
+                            <p className="text-[10px] text-zinc-500 font-black flex items-center gap-1 mt-1"><Phone size={10} className="text-red-500"/> {item.info?.telefono}</p>
                           </div>
                           {item.tienePendientes && selectedRifa.estado === 'activa' && (
-                            <button onClick={() => aprobarTodoElCliente(item.info?.id_usuario)} className="bg-red-600 text-white text-[9px] font-black px-3 py-1.5 rounded-xl shadow-lg shadow-red-100 hover:bg-red-700 uppercase">Aprobar</button>
+                            <button onClick={() => aprobarTodoElCliente(item.info?.id_usuario)} className="bg-amber-500 text-white text-[9px] font-black px-3 py-1.5 rounded-xl shadow-lg shadow-amber-100 hover:bg-amber-600 uppercase">Aprobar</button>
                           )}
                         </div>
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           {item.numeros.map(n => {
                             const esEsteGanador = n.id_numero === selectedRifa.id_ganador;
                             return (
-                                <span key={n.id_numero} className={`text-[9px] font-black px-2 py-1 rounded-lg border ${esEsteGanador ? 'bg-yellow-400 text-white border-yellow-500 shadow-sm' : n.estado === 'apartado' ? 'bg-red-600 text-white border-red-700 animate-pulse' : 'bg-white text-slate-400 border-slate-100'}`}>
+                                <span key={n.id_numero} className={`text-[9px] font-black px-2 py-1 rounded-lg border ${esEsteGanador ? 'bg-red-600 text-white border-red-700 shadow-sm' : n.estado === 'apartado' ? 'bg-amber-500 text-white border-amber-600 animate-pulse' : 'bg-white text-zinc-400 border-zinc-100'}`}>
                                     {esEsteGanador && <Crown size={8} className="inline mr-1 -mt-0.5"/>}#{n.numero}
                                 </span>
                             )
@@ -550,48 +547,48 @@ const AdminPanel = () => {
         )}
 
         {(view === 'create' || view === 'edit') && (
-          <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-100 max-w-2xl mx-auto">
-            <button onClick={() => setView('list')} className="mb-6 flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest"><ChevronLeft size={18}/> Cancelar</button>
-            <h2 className="text-3xl font-black mb-8 uppercase italic text-slate-900 tracking-tighter">{view === 'create' ? 'Nueva Rifa' : 'Editar Sorteo'}</h2>
+          <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-zinc-100 max-w-2xl mx-auto">
+            <button onClick={() => setView('list')} className="mb-6 flex items-center gap-2 text-xs font-black text-zinc-400 uppercase tracking-widest"><ChevronLeft size={18}/> Cancelar</button>
+            <h2 className="text-3xl font-black mb-8 uppercase italic text-zinc-900 tracking-tighter">{view === 'create' ? 'Nueva Rifa' : 'Editar Sorteo'}</h2>
             <form onSubmit={view === 'create' ? crearRifa : handleEditRifa} className="space-y-6">
               <div className="flex justify-center">
-                <label className="group w-full flex flex-col items-center px-4 py-8 bg-slate-50 text-blue-500 rounded-[2rem] border-4 border-dashed border-slate-200 cursor-pointer hover:border-blue-300 hover:bg-blue-50 transition-all">
-                  <div className="bg-white p-4 rounded-full shadow-md text-blue-600 mb-4 group-hover:scale-110 transition-transform">
+                <label className="group w-full flex flex-col items-center px-4 py-8 bg-zinc-50 text-red-500 rounded-[2rem] border-4 border-dashed border-zinc-200 cursor-pointer hover:border-red-300 hover:bg-red-50 transition-all">
+                  <div className="bg-white p-4 rounded-full shadow-md text-red-600 mb-4 group-hover:scale-110 transition-transform">
                     <ImageIcon size={40} />
                   </div>
-                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">{imageFile ? imageFile.name : 'Cargar Foto del Premio'}</span>
+                  <span className="text-xs font-black uppercase tracking-widest text-zinc-500">{imageFile ? imageFile.name : 'Cargar Foto del Premio'}</span>
                   <input type='file' accept="image/*" className="hidden" onChange={(e) => setImageFile(e.target.files[0])} />
                 </label>
               </div>
               <div className="space-y-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Nombre del Premio</label>
-                    <input type="text" placeholder="Ej: iPhone 15 Pro Max" className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-100 outline-none focus:border-blue-500 font-bold" required 
+                    <label className="text-[10px] font-black text-zinc-400 ml-4 uppercase">Nombre del Premio</label>
+                    <input type="text" placeholder="Ej: Pintura General de Vehículo" className="w-full p-5 bg-zinc-50 rounded-3xl border border-zinc-100 outline-none focus:border-red-500 font-bold" required 
                         value={view === 'edit' ? selectedRifa.nombre : newRifa.nombre}
                         onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, nombre: e.target.value}) : setNewRifa({...newRifa, nombre: e.target.value})} />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Descripción Detallada</label>
-                    <textarea placeholder="Cuéntale a tus clientes sobre el sorteo..." className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-100 outline-none focus:border-blue-500 font-bold h-32" 
+                    <label className="text-[10px] font-black text-zinc-400 ml-4 uppercase">Descripción Detallada</label>
+                    <textarea placeholder="Cuéntale a tus clientes sobre el sorteo..." className="w-full p-5 bg-zinc-50 rounded-3xl border border-zinc-100 outline-none focus:border-red-500 font-bold h-32" 
                         value={view === 'edit' ? selectedRifa.descripcion : newRifa.descripcion}
                         onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, descripcion: e.target.value}) : setNewRifa({...newRifa, descripcion: e.target.value})} />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                        <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Cant. Números</label>
-                        <input type="number" disabled={view === 'edit'} className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-100 font-black text-lg text-blue-600" value={view === 'edit' ? selectedRifa.cantidad_numeros : newRifa.cantidad} onChange={e => setNewRifa({...newRifa, cantidad: e.target.value})} />
+                        <label className="text-[10px] font-black text-zinc-400 ml-4 uppercase">Cant. Números</label>
+                        <input type="number" disabled={view === 'edit'} className="w-full p-5 bg-zinc-50 rounded-3xl border border-zinc-100 font-black text-lg text-red-600" value={view === 'edit' ? selectedRifa.cantidad_numeros : newRifa.cantidad} onChange={e => setNewRifa({...newRifa, cantidad: e.target.value})} />
                     </div>
                     <div className="space-y-1">
-                        <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Precio x Ticket ($)</label>
-                        <input type="number" step="0.01" disabled={view === 'edit'} className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-100 font-black text-lg text-green-600" value={view === 'edit' ? selectedRifa.precio : newRifa.precio} onChange={e => setNewRifa({...newRifa, precio: parseFloat(e.target.value)})} />
+                        <label className="text-[10px] font-black text-zinc-400 ml-4 uppercase">Precio x Ticket ($)</label>
+                        <input type="number" step="0.01" disabled={view === 'edit'} className="w-full p-5 bg-zinc-50 rounded-3xl border border-zinc-100 font-black text-lg text-red-600" value={view === 'edit' ? selectedRifa.precio : newRifa.precio} onChange={e => setNewRifa({...newRifa, precio: parseFloat(e.target.value)})} />
                     </div>
                   </div>
-                  <div className="space-y-1 bg-blue-50 p-4 rounded-3xl border border-blue-100">
-                    <label className="text-[10px] font-black text-blue-400 ml-2 uppercase flex items-center gap-2"><Calendar size={14}/> Fecha de Finalización</label>
-                    <input type="date" className="w-full p-4 bg-white rounded-2xl border-none outline-none font-black text-blue-600 uppercase" value={view === 'edit' ? selectedRifa.fecha_fin : newRifa.fecha} onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, fecha_fin: e.target.value}) : setNewRifa({...newRifa, fecha: e.target.value})} />
+                  <div className="space-y-1 bg-zinc-950 p-4 rounded-3xl border border-zinc-800">
+                    <label className="text-[10px] font-black text-red-500 ml-2 uppercase flex items-center gap-2"><Calendar size={14}/> Fecha de Finalización</label>
+                    <input type="date" className="w-full p-4 bg-zinc-900 text-white rounded-2xl border-none outline-none font-black uppercase" value={view === 'edit' ? selectedRifa.fecha_fin : newRifa.fecha} onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, fecha_fin: e.target.value}) : setNewRifa({...newRifa, fecha: e.target.value})} />
                   </div>
               </div>
-              <button disabled={loadingAction} className="w-full bg-blue-600 text-white p-6 rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
+              <button disabled={loadingAction} className="w-full bg-red-600 text-white p-6 rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-xl shadow-red-100 hover:bg-red-700 transition-all flex items-center justify-center gap-2">
                 {loadingAction ? <Loader2 className="animate-spin" /> : 'Confirmar Sorteo'}
               </button>
             </form>
@@ -600,62 +597,62 @@ const AdminPanel = () => {
       </main>
 
       {showManualAssign && (
-        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-zinc-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
            <div className="bg-white p-8 rounded-[3rem] w-full max-w-md shadow-2xl">
             <div className="flex justify-between items-center mb-8">
-                <h3 className="text-2xl font-black uppercase italic text-slate-900 tracking-tighter">Venta Directa</h3>
-                <button onClick={() => setShowManualAssign(false)} className="text-slate-300 hover:text-slate-900"><X/></button>
+                <h3 className="text-2xl font-black uppercase italic text-zinc-900 tracking-tighter">Venta Directa</h3>
+                <button onClick={() => setShowManualAssign(false)} className="text-zinc-300 hover:text-zinc-900"><X/></button>
             </div>
             <form onSubmit={handleManualAssignment} className="space-y-4">
-              <input type="text" required placeholder="Tickets (Separar por comas)" className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-bold" onChange={e => setManualData({...manualData, numeros: e.target.value})} />
+              <input type="text" required placeholder="Tickets (Separar por comas)" className="w-full p-4 bg-zinc-50 rounded-2xl border border-zinc-100 font-bold" onChange={e => setManualData({...manualData, numeros: e.target.value})} />
               <div className="grid grid-cols-2 gap-3">
-                <input type="text" placeholder="Nombre" required className="p-4 bg-slate-50 rounded-2xl border border-slate-100 font-bold" onChange={e => setManualData({...manualData, nombre: e.target.value})} />
-                <input type="text" placeholder="Apellido" required className="p-4 bg-slate-50 rounded-2xl border border-slate-100 font-bold" onChange={e => setManualData({...manualData, apellido: e.target.value})} />
+                <input type="text" placeholder="Nombre" required className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 font-bold" onChange={e => setManualData({...manualData, nombre: e.target.value})} />
+                <input type="text" placeholder="Apellido" required className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 font-bold" onChange={e => setManualData({...manualData, apellido: e.target.value})} />
               </div>
-              <input type="tel" placeholder="Teléfono" required className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-bold" onChange={e => setManualData({...manualData, telefono: e.target.value})} />
-              <select className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-black uppercase text-xs" onChange={e => setManualData({...manualData, estado: e.target.value})}>
+              <input type="tel" placeholder="Teléfono" required className="w-full p-4 bg-zinc-50 rounded-2xl border border-zinc-100 font-bold" onChange={e => setManualData({...manualData, telefono: e.target.value})} />
+              <select className="w-full p-4 bg-zinc-50 rounded-2xl border border-zinc-100 font-black uppercase text-xs" onChange={e => setManualData({...manualData, estado: e.target.value})}>
                 <option value="apartado">🟡 PONER EN REVISIÓN</option>
-                <option value="pagado">🔵 MARCAR COMO VENDIDO</option>
+                <option value="pagado">🔴 MARCAR COMO VENDIDO</option>
               </select>
-              <button className="w-full bg-slate-900 text-white p-5 rounded-3xl font-black uppercase text-xs tracking-widest shadow-xl shadow-slate-200 mt-4">Confirmar Asignación</button>
+              <button className="w-full bg-zinc-900 text-white p-5 rounded-3xl font-black uppercase text-xs tracking-widest shadow-xl shadow-zinc-200 mt-4">Confirmar Asignación</button>
             </form>
           </div>
         </div>
       )}
 
       {numDetail && (
-        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-zinc-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
           <div className="bg-white p-8 rounded-[3.5rem] w-full max-w-sm shadow-2xl relative overflow-hidden">
             <div className={`absolute top-0 left-0 right-0 h-2 ${ESTADOS[numDetail.estado].bg}`}></div>
             {selectedRifa?.estado === 'finalizada' && numDetail.id_numero === selectedRifa.id_ganador && (
-                <div className="absolute top-0 left-0 right-0 h-8 bg-yellow-400 flex items-center justify-center text-yellow-900 text-[10px] font-black uppercase animate-pulse"><Crown size={12} className="mr-1"/> TICKET GANADOR</div>
+                <div className="absolute top-0 left-0 right-0 h-8 bg-red-600 flex items-center justify-center text-white text-[10px] font-black uppercase animate-pulse"><Crown size={12} className="mr-1"/> TICKET GANADOR</div>
             )}
             <div className={`flex justify-between items-center mb-6 ${selectedRifa?.estado === 'finalizada' && numDetail.id_numero === selectedRifa.id_ganador ? 'mt-6' : ''}`}>
-                <h3 className="text-3xl font-black italic uppercase text-slate-900 tracking-tighter">Ticket #{numDetail.numero}</h3>
-                <button onClick={() => setNumDetail(null)} className="text-slate-300 hover:text-slate-900"><X/></button>
+                <h3 className="text-3xl font-black italic uppercase text-zinc-900 tracking-tighter">Ticket #{numDetail.numero}</h3>
+                <button onClick={() => setNumDetail(null)} className="text-zinc-300 hover:text-zinc-900"><X/></button>
             </div>
-            <div className="space-y-4 mb-8 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+            <div className="space-y-4 mb-8 bg-zinc-50 p-6 rounded-[2rem] border border-zinc-100">
                 <div className="flex items-center gap-3">
-                    <div className="bg-white p-2 rounded-xl text-blue-600 shadow-sm"><User size={18}/></div>
-                    <div><p className="text-[9px] font-black text-slate-400 uppercase">Cliente</p><p className="text-sm font-black text-slate-800">{numDetail.usuarios?.nombre} {numDetail.usuarios?.apellido}</p></div>
+                    <div className="bg-white p-2 rounded-xl text-red-600 shadow-sm"><User size={18}/></div>
+                    <div><p className="text-[9px] font-black text-zinc-400 uppercase">Cliente</p><p className="text-sm font-black text-zinc-800">{numDetail.usuarios?.nombre} {numDetail.usuarios?.apellido}</p></div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="bg-white p-2 rounded-xl text-green-600 shadow-sm"><Phone size={18}/></div>
-                    <div><p className="text-[9px] font-black text-slate-400 uppercase">Teléfono</p><p className="text-sm font-black text-slate-800">{numDetail.usuarios?.telefono}</p></div>
+                    <div className="bg-white p-2 rounded-xl text-zinc-600 shadow-sm"><Phone size={18}/></div>
+                    <div><p className="text-[9px] font-black text-zinc-400 uppercase">Teléfono</p><p className="text-sm font-black text-zinc-800">{numDetail.usuarios?.telefono}</p></div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="bg-white p-2 rounded-xl text-slate-600 shadow-sm"><CreditCard size={18}/></div>
-                    <div><p className="text-[9px] font-black text-slate-400 uppercase">Referencia</p><p className="text-sm font-black text-slate-800 tracking-widest">{numDetail.referencia_pago || 'SIN REF.'}</p></div>
+                    <div className="bg-white p-2 rounded-xl text-zinc-600 shadow-sm"><CreditCard size={18}/></div>
+                    <div><p className="text-[9px] font-black text-zinc-400 uppercase">Referencia</p><p className="text-sm font-black text-zinc-800 tracking-widest">{numDetail.referencia_pago || 'SIN REF.'}</p></div>
                 </div>
             </div>
             {selectedRifa.estado === 'activa' && (
                 <div className="grid grid-cols-1 gap-3">
                     {numDetail.estado === 'apartado' && (
-                        <button onClick={() => handleActionNumber(numDetail.id_numero, 'pagado')} className="bg-blue-600 text-white p-5 rounded-3xl font-black text-xs uppercase shadow-xl shadow-blue-100 flex items-center justify-center gap-2">
+                        <button onClick={() => handleActionNumber(numDetail.id_numero, 'pagado')} className="bg-red-600 text-white p-5 rounded-3xl font-black text-xs uppercase shadow-xl shadow-red-100 flex items-center justify-center gap-2">
                             <CheckCircle2 size={18}/> Confirmar Pago
                         </button>
                     )}
-                    <button onClick={() => handleActionNumber(numDetail.id_numero, 'disponible')} className="bg-red-50 text-red-600 p-5 rounded-3xl font-black text-xs uppercase hover:bg-red-100 transition-all flex items-center justify-center gap-2">
+                    <button onClick={() => handleActionNumber(numDetail.id_numero, 'disponible')} className="bg-zinc-50 text-red-600 p-5 rounded-3xl font-black text-xs uppercase hover:bg-red-100 transition-all flex items-center justify-center gap-2">
                         <Trash2 size={18}/> Liberar Ticket
                     </button>
                 </div>
@@ -713,13 +710,13 @@ const ClienteView = ({ userId }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
-      <header className="bg-white p-5 border-b border-slate-100 flex justify-between items-center sticky top-0 z-20 shadow-sm">
+    <div className="min-h-screen bg-zinc-50 font-sans text-zinc-900">
+      <header className="bg-zinc-950 p-5 border-b border-zinc-800 flex justify-between items-center sticky top-0 z-20 shadow-sm">
         <div className="flex items-center gap-2">
-            <div className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-100"><Trophy size={20}/></div>
-            <h1 className="font-black italic text-2xl tracking-tighter text-blue-600 uppercase">AlexCars' Edition</h1>
+            <div className="bg-red-600 p-2 rounded-xl text-white shadow-lg shadow-red-900/20"><Trophy size={20}/></div>
+            <h1 className="font-black italic text-2xl tracking-tighter text-white uppercase">AlexCars'</h1>
         </div>
-        <button onClick={async () => { await supabase.auth.signOut(); }} className="p-3 text-slate-300 bg-slate-50 rounded-2xl hover:text-red-500 hover:bg-red-50 transition-all">
+        <button onClick={async () => { await supabase.auth.signOut(); }} className="p-3 text-zinc-400 bg-zinc-900 rounded-2xl hover:text-red-500 hover:bg-red-50 transition-all">
           <LogOut size={22}/>
         </button>
       </header>
@@ -727,36 +724,36 @@ const ClienteView = ({ userId }) => {
       <main className="p-4 max-w-2xl mx-auto">
         {!selectedRifa ? (
           <div className="space-y-6 mt-4">
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-[3rem] text-white shadow-2xl shadow-blue-100 relative overflow-hidden">
+            <div className="bg-gradient-to-br from-red-600 to-zinc-900 p-8 rounded-[3rem] text-white shadow-2xl shadow-red-100 relative overflow-hidden">
                 <PartyPopper className="absolute -right-4 -bottom-4 opacity-20 rotate-12" size={140}/>
                 <h2 className="text-3xl font-black italic uppercase leading-none mb-2">¡Mucha Suerte!</h2>
-                <p className="text-blue-100 text-xs font-bold uppercase tracking-widest opacity-80">Elige un sorteo y participa ahora</p>
+                <p className="text-red-100 text-xs font-bold uppercase tracking-widest opacity-80">Elige un sorteo y participa ahora</p>
             </div>
             <div className="flex items-center gap-4 px-2">
-                <div className="h-px bg-slate-200 flex-1"></div>
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Sorteos</h3>
-                <div className="h-px bg-slate-200 flex-1"></div>
+                <div className="h-px bg-zinc-200 flex-1"></div>
+                <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em]">Sorteos Disponibles</h3>
+                <div className="h-px bg-zinc-200 flex-1"></div>
             </div>
             {rifas.map(r => {
               const isFinished = r.estado === 'finalizada';
               const iWon = isFinished && r.id_ganador && misNumeros.some(n => n.id_numero === r.id_ganador);
-              const cardClasses = iWon ? "bg-gradient-to-r from-yellow-100 to-yellow-50 border-yellow-400 shadow-md" : "bg-white border-slate-100 hover:border-blue-500 shadow-sm";
+              const cardClasses = iWon ? "bg-gradient-to-r from-red-100 to-white border-red-400 shadow-md" : "bg-white border-zinc-100 hover:border-red-500 shadow-sm";
               return (
               <div key={r.id_rifa} onClick={() => selectRifa(r)} className={`p-5 rounded-[2.8rem] border flex gap-5 items-center transition-all group active:scale-95 cursor-pointer relative overflow-hidden ${cardClasses}`}>
-                <img src={r.imagen_url || 'https://via.placeholder.com/150'} className={`w-24 h-24 rounded-[2rem] object-cover bg-slate-50 shadow-xl shadow-slate-200 group-hover:rotate-3 transition-transform ${isFinished && !iWon ? 'grayscale opacity-70' : ''}`} />
+                <img src={r.imagen_url || 'https://via.placeholder.com/150'} className={`w-24 h-24 rounded-[2rem] object-cover bg-zinc-50 shadow-xl shadow-zinc-200 group-hover:rotate-3 transition-transform ${isFinished && !iWon ? 'grayscale opacity-70' : ''}`} />
                 <div className="flex-1 z-10">
-                  <h3 className="text-xl font-black uppercase italic leading-none text-slate-800">{r.nombre}</h3>
+                  <h3 className="text-xl font-black uppercase italic leading-none text-zinc-800">{r.nombre}</h3>
                   <div className="flex items-center gap-2 mt-2">
-                    <span className="bg-green-100 text-green-600 text-[10px] font-black px-2 py-1 rounded-lg">${r.precio} USD</span>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase">{r.cantidad_numeros} Números</span>
+                    <span className="bg-red-50 text-red-600 text-[10px] font-black px-2 py-1 rounded-lg">${r.precio} USD</span>
+                    <span className="text-[10px] text-zinc-400 font-bold uppercase">{r.cantidad_numeros} Números</span>
                   </div>
                   <div className="mt-4 flex items-center justify-between">
                       {isFinished ? (
-                          iWon ? (<div className="text-yellow-600 font-black text-[10px] uppercase flex items-center gap-1 bg-yellow-100 px-3 py-1.5 rounded-full"><Crown size={14}/> ¡GANASTE! Ver Detalles</div>) : (<div className="text-slate-400 font-black text-[10px] uppercase bg-slate-100 px-3 py-1.5 rounded-full">Sorteo Finalizado</div>)
-                      ) : (<div className="text-blue-600 font-black text-[10px] uppercase flex items-center gap-1">Participar <ChevronLeft size={14} className="rotate-180"/></div>)}
+                          iWon ? (<div className="text-red-600 font-black text-[10px] uppercase flex items-center gap-1 bg-red-50 px-3 py-1.5 rounded-full"><Crown size={14}/> ¡GANASTE!</div>) : (<div className="text-zinc-400 font-black text-[10px] uppercase bg-zinc-100 px-3 py-1.5 rounded-full">Finalizado</div>)
+                      ) : (<div className="text-red-600 font-black text-[10px] uppercase flex items-center gap-1">Participar <ChevronLeft size={14} className="rotate-180"/></div>)}
                   </div>
                 </div>
-                {iWon && <Star size={100} className="absolute -right-6 -bottom-6 text-yellow-200 opacity-50 rotate-45"/>}
+                {iWon && <Star size={100} className="absolute -right-6 -bottom-6 text-red-600 opacity-10 rotate-45"/>}
               </div>
             )})}
           </div>
@@ -769,51 +766,50 @@ const ClienteView = ({ userId }) => {
                 return (
                     <>
                         <div className="flex justify-between items-center mb-6 pt-2">
-                          <button onClick={() => setSelectedRifa(null)} className="flex items-center gap-2 font-black text-slate-400 text-[10px] uppercase tracking-widest px-4 py-2 bg-white rounded-full border border-slate-100 shadow-sm"><ChevronLeft size={16}/> Atrás</button>
+                          <button onClick={() => setSelectedRifa(null)} className="flex items-center gap-2 font-black text-zinc-400 text-[10px] uppercase tracking-widest px-4 py-2 bg-white rounded-full border border-zinc-100 shadow-sm"><ChevronLeft size={16}/> Atrás</button>
                           {!isFinished && (
-                              <button onClick={() => setHideSold(!hideSold)} className={`flex items-center gap-2 px-6 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-md ${hideSold ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-white text-slate-500 border border-slate-200'}`}>
+                              <button onClick={() => setHideSold(!hideSold)} className={`flex items-center gap-2 px-6 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-md ${hideSold ? 'bg-red-600 text-white shadow-red-200' : 'bg-white text-zinc-500 border border-zinc-200'}`}>
                                 {hideSold ? <Eye size={16}/> : <EyeOff size={16}/>} {hideSold ? 'Ver Todo' : 'Ver Libres'}
                               </button>
                           )}
                         </div>
                         {isFinished && iWonThisRifa && (
-                            <div className="fireworks-bg bg-yellow-500 p-8 rounded-[3rem] text-white shadow-2xl shadow-yellow-200 mb-8 text-center border-4 border-yellow-300 relative overflow-hidden">
-                                <div className="animate-celebration inline-block mb-4 bg-white/20 p-5 rounded-[2rem] backdrop-blur-md"><Crown size={64} className="text-yellow-100 drop-shadow-lg"/></div>
+                            <div className="bg-red-600 p-8 rounded-[3rem] text-white shadow-2xl shadow-red-200 mb-8 text-center border-4 border-red-400 relative overflow-hidden">
+                                <div className="animate-celebration inline-block mb-4 bg-white/20 p-5 rounded-[2rem] backdrop-blur-md"><Crown size={64} className="text-white drop-shadow-lg"/></div>
                                 <h2 className="text-4xl font-black italic uppercase leading-none mb-2 drop-shadow-md">¡FELICIDADES!</h2>
-                                <p className="text-yellow-100 text-sm font-bold uppercase tracking-widest drop-shadow-sm mb-6">Eres el afortunado ganador</p>
-                                <div className="bg-white text-yellow-600 font-black text-3xl py-4 px-10 rounded-full inline-block shadow-lg border-2 border-yellow-100">TICKET #{elTicketGanador?.numero}</div>
-                                <p className="text-[10px] text-yellow-100 mt-6 font-bold uppercase">Nos pondremos en contacto contigo pronto.</p>
+                                <p className="text-red-100 text-sm font-bold uppercase tracking-widest drop-shadow-sm mb-6">Eres el afortunado ganador</p>
+                                <div className="bg-white text-red-600 font-black text-3xl py-4 px-10 rounded-full inline-block shadow-lg">TICKET #{elTicketGanador?.numero}</div>
                             </div>
                         )}
                         {isFinished && !iWonThisRifa && elTicketGanador && (
-                            <div className="bg-slate-100 p-8 rounded-[3rem] text-slate-500 text-center mb-8 border border-slate-200">
-                                <Trophy size={40} className="mx-auto mb-4 opacity-40"/><h3 className="text-2xl font-black uppercase italic tracking-tighter text-slate-600 mb-2">Sorteo Finalizado</h3>
-                                <p className="text-xs font-bold">El ticket ganador fue el <span className="text-slate-800 font-black px-3 py-1 bg-white rounded-xl border border-slate-300 ml-1 text-sm">#{elTicketGanador.numero}</span></p>
-                                <p className="text-[10px] uppercase font-bold text-slate-400 mt-4 tracking-widest">¡Suerte para la próxima!</p>
+                            <div className="bg-zinc-100 p-8 rounded-[3rem] text-zinc-500 text-center mb-8 border border-zinc-200">
+                                <Trophy size={40} className="mx-auto mb-4 opacity-40"/><h3 className="text-2xl font-black uppercase italic tracking-tighter text-zinc-600 mb-2">Sorteo Finalizado</h3>
+                                <p className="text-xs font-bold">El ticket ganador fue el <span className="text-red-600 font-black px-3 py-1 bg-white rounded-xl border border-red-300 ml-1 text-sm">#{elTicketGanador.numero}</span></p>
                             </div>
                         )}
                         {!isFinished && (
-                            <div className="bg-white p-8 rounded-[3rem] border border-slate-100 mb-8 shadow-sm relative overflow-hidden">
-                              <div className="absolute top-6 right-8 bg-blue-600 text-white text-[10px] font-black px-4 py-2 rounded-2xl shadow-lg shadow-blue-100">${selectedRifa.precio} USD</div>
-                              <h2 className="text-3xl font-black uppercase italic leading-none text-slate-900 pr-20">{selectedRifa.nombre}</h2>
-                              <div className="flex items-center gap-2 mt-4 text-slate-400 font-bold text-xs"><Calendar size={14} className="text-blue-500"/> Finaliza el: {selectedRifa.fecha_fin}</div>
-                              <div className="mt-6 p-4 bg-slate-50 rounded-[1.5rem] border border-slate-50"><p className="text-[11px] text-slate-500 leading-relaxed font-bold uppercase tracking-tight">{selectedRifa.descripcion}</p></div>
+                            <div className="bg-white p-8 rounded-[3rem] border border-zinc-100 mb-8 shadow-sm relative overflow-hidden">
+                              <div className="absolute top-6 right-8 bg-red-600 text-white text-[10px] font-black px-4 py-2 rounded-2xl shadow-lg shadow-red-100">${selectedRifa.precio} USD</div>
+                              <h2 className="text-3xl font-black uppercase italic leading-none text-zinc-900 pr-20">{selectedRifa.nombre}</h2>
+                              <div className="flex items-center gap-2 mt-4 text-zinc-400 font-bold text-xs"><Calendar size={14} className="text-red-500"/> Finaliza el: {selectedRifa.fecha_fin}</div>
+                              <div className="mt-6 p-4 bg-zinc-50 rounded-[1.5rem] border border-zinc-50"><p className="text-[11px] text-zinc-500 leading-relaxed font-bold uppercase tracking-tight">{selectedRifa.descripcion}</p></div>
                             </div>
                         )}
-                        <div className={`grid grid-cols-5 sm:grid-cols-8 gap-3 bg-white p-6 rounded-[3rem] shadow-inner ${isFinished ? 'opacity-70 pointer-events-none border border-slate-200' : 'border border-slate-100'}`}>
+                        <div className={`grid grid-cols-5 sm:grid-cols-8 gap-3 bg-white p-6 rounded-[3rem] shadow-inner ${isFinished ? 'opacity-70 pointer-events-none border border-zinc-200' : 'border border-zinc-100'}`}>
                           {nums.map(n => {
                             const isMine = n.comprador_id === userId;
                             const isSelected = cart.includes(n.id_numero);
-                            let bgColor = 'bg-green-500 border-green-600';
-                            if (n.estado === 'pagado') bgColor = 'bg-slate-200 border-slate-300 text-slate-400';
-                            if (n.estado === 'apartado') bgColor = 'bg-red-600 border-red-700 text-white';
-                            if (isMine) bgColor = 'bg-blue-600 border-blue-700 text-white shadow-xl shadow-blue-100 z-10';
-                            if (isSelected) bgColor = 'bg-slate-900 border-black text-white scale-110 z-10';
-                            if (isFinished && n.id_numero === selectedRifa.id_ganador) bgColor = 'bg-yellow-400 border-yellow-500 text-white shadow-lg shadow-yellow-200 scale-110 z-20 animate-pulse';
+                            let bgColor = 'bg-zinc-100 border-zinc-200 text-zinc-400';
+                            if (n.estado === 'disponible') bgColor = 'bg-white border-zinc-200 text-zinc-600';
+                            if (n.estado === 'pagado') bgColor = 'bg-red-600 border-red-700 text-white shadow-md shadow-red-100 opacity-60';
+                            if (n.estado === 'apartado') bgColor = 'bg-amber-500 border-amber-600 text-white animate-pulse';
+                            if (isMine) bgColor = 'bg-red-600 border-red-700 text-white shadow-xl shadow-red-200 z-10';
+                            if (isSelected) bgColor = 'bg-zinc-900 border-black text-white scale-110 z-10';
+                            if (isFinished && n.id_numero === selectedRifa.id_ganador) bgColor = 'bg-red-600 border-red-700 text-white shadow-lg shadow-red-200 scale-110 z-20 animate-pulse';
                             if (hideSold && n.estado !== 'disponible' && !isMine && !isFinished) return null;
                             return (
-                              <button key={n.id_numero} disabled={(n.estado !== 'disponible' && !isMine) || isFinished} onClick={() => { if(n.estado === 'disponible' && !isFinished) setCart(prev => prev.includes(n.id_numero) ? prev.filter(id => id !== n.id_numero) : [...prev, n.id_numero]); }} className={`aspect-square rounded-[1.2rem] text-[10px] font-black border-2 transition-all relative flex items-center justify-center ${bgColor} ${!isFinished && isMine ? 'scale-105' : ''}`}>
-                                {n.numero}{isMine && !isFinished && (<div className="absolute -top-2 -right-2 bg-white text-blue-600 rounded-full border-2 border-blue-600 p-0.5 shadow-md"><CheckCircle2 size={10} strokeWidth={4}/></div>)}
+                              <button key={n.id_numero} disabled={(n.estado !== 'disponible' && !isMine) || isFinished} onClick={() => { if(n.estado === 'disponible' && !isFinished) setCart(prev => prev.includes(n.id_numero) ? prev.filter(id => id !== n.id_numero) : [...prev, n.id_numero]); }} className={`aspect-square rounded-[1.2rem] text-[10px] font-black border-2 transition-all relative flex items-center justify-center ${bgColor}`}>
+                                {n.numero}{isMine && !isFinished && (<div className="absolute -top-2 -right-2 bg-white text-red-600 rounded-full border-2 border-red-600 p-0.5 shadow-md"><CheckCircle2 size={10} strokeWidth={4}/></div>)}
                               </button>
                             );
                           })}
@@ -822,12 +818,12 @@ const ClienteView = ({ userId }) => {
                 )
             })()}
             {cart.length > 0 && selectedRifa.estado === 'activa' && (
-              <div className="fixed bottom-8 left-4 right-4 bg-slate-900 text-white p-7 rounded-[3rem] flex justify-between items-center shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-40 border border-slate-800">
+              <div className="fixed bottom-8 left-4 right-4 bg-zinc-950 text-white p-7 rounded-[3rem] flex justify-between items-center shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-40 border border-zinc-800">
                 <div className="flex items-center gap-4">
-                    <div className="bg-slate-800 p-3 rounded-2xl text-blue-500 shadow-inner"><Ticket/></div>
-                    <div><p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{cart.length} Seleccionados</p><p className="text-3xl font-black italic tracking-tighter">${(cart.length * selectedRifa.precio).toFixed(2)}</p></div>
+                    <div className="bg-zinc-900 p-3 rounded-2xl text-red-500 shadow-inner"><Ticket/></div>
+                    <div><p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">{cart.length} Seleccionados</p><p className="text-3xl font-black italic tracking-tighter">${(cart.length * selectedRifa.precio).toFixed(2)}</p></div>
                 </div>
-                <button onClick={() => setShowPay(true)} className="bg-blue-600 px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest hover:bg-blue-500 transition-all active:scale-90 shadow-xl shadow-blue-900/20">Pagar Ahora</button>
+                <button onClick={() => setShowPay(true)} className="bg-red-600 px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest hover:bg-red-500 transition-all active:scale-90 shadow-xl shadow-red-900/40">Pagar Ahora</button>
               </div>
             )}
           </div>
@@ -835,31 +831,31 @@ const ClienteView = ({ userId }) => {
       </main>
 
       {showPay && (
-        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-zinc-900/95 backdrop-blur-md flex items-center justify-center p-4 z-50">
            <div className="bg-white p-8 rounded-[3.5rem] w-full max-w-sm shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-2 bg-blue-600"></div>
-            <h3 className="text-3xl font-black mb-2 uppercase italic text-slate-900 tracking-tighter">Completar Pago</h3>
+            <div className="absolute top-0 left-0 right-0 h-2 bg-red-600"></div>
+            <h3 className="text-3xl font-black mb-2 uppercase italic text-zinc-900 tracking-tighter">Completar Pago</h3>
             {!paymentMethod ? (
                 <div className="space-y-3">
-                    <button onClick={() => setPaymentMethod('pago_movil')} className="w-full p-6 bg-slate-50 rounded-3xl border border-slate-100 flex items-center gap-4 hover:bg-blue-50 hover:border-blue-200 transition-all group">
-                        <div className="bg-white p-3 rounded-2xl text-blue-600 shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-all"><Smartphone/></div>
-                        <div className="text-left"><p className="font-black uppercase text-xs">Pago Móvil</p><p className="text-[9px] text-slate-400 font-bold uppercase">Transf. Inmediata</p></div>
+                    <button onClick={() => setPaymentMethod('pago_movil')} className="w-full p-6 bg-zinc-50 rounded-3xl border border-zinc-100 flex items-center gap-4 hover:bg-red-50 hover:border-red-200 transition-all group">
+                        <div className="bg-white p-3 rounded-2xl text-red-600 shadow-sm group-hover:bg-red-600 group-hover:text-white transition-all"><Smartphone/></div>
+                        <div className="text-left"><p className="font-black uppercase text-xs">Pago Móvil</p><p className="text-[9px] text-zinc-400 font-bold uppercase">Transf. Inmediata</p></div>
                     </button>
-                    <button onClick={() => setPaymentMethod('transferencia')} className="w-full p-6 bg-slate-50 rounded-3xl border border-slate-100 flex items-center gap-4 hover:bg-blue-50 hover:border-blue-200 transition-all group">
-                        <div className="bg-white p-3 rounded-2xl text-blue-600 shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-all"><Building2/></div>
-                        <div className="text-left"><p className="font-black uppercase text-xs">Zelle / Transferencia</p><p className="text-[9px] text-slate-400 font-bold uppercase">Bancos nacionales / USA</p></div>
+                    <button onClick={() => setPaymentMethod('transferencia')} className="w-full p-6 bg-zinc-50 rounded-3xl border border-zinc-100 flex items-center gap-4 hover:bg-red-50 hover:border-red-200 transition-all group">
+                        <div className="bg-white p-3 rounded-2xl text-red-600 shadow-sm group-hover:bg-red-600 group-hover:text-white transition-all"><Building2/></div>
+                        <div className="text-left"><p className="font-black uppercase text-xs">Transferencia / Zelle</p><p className="text-[9px] text-zinc-400 font-bold uppercase">Datos Bancarios</p></div>
                     </button>
-                    <button onClick={() => setShowPay(false)} className="w-full mt-4 text-slate-400 font-black text-[10px] uppercase tracking-widest">Cancelar</button>
+                    <button onClick={() => setShowPay(false)} className="w-full mt-4 text-zinc-400 font-black text-[10px] uppercase tracking-widest">Cancelar</button>
                 </div>
             ) : (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-                    <div className="bg-blue-600 p-6 rounded-[2.5rem] mb-6 text-white text-center shadow-xl shadow-blue-100"><p className="text-[10px] font-black uppercase opacity-70 mb-2">Datos para transferir</p><p className="text-sm font-black leading-relaxed">BANCO CENTRAL<br/>V-12.345.678<br/>0412-0000000</p></div>
+                    <div className="bg-red-600 p-6 rounded-[2.5rem] mb-6 text-white text-center shadow-xl shadow-red-100"><p className="text-[10px] font-black uppercase opacity-70 mb-2">Datos para transferir</p><p className="text-sm font-black leading-relaxed">BANCO CENTRAL<br/>V-12.345.678<br/>0412-0000000</p></div>
                     <div className="space-y-2 mb-6">
-                        <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Ref. de pago (4 últimos dígitos)</label>
-                        <input type="text" maxLength="4" placeholder="Ej: 9821" className="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-[2rem] font-black text-center outline-none focus:border-blue-500 text-2xl tracking-[0.5em] shadow-inner" onChange={e => setPayData({ref: e.target.value})} />
+                        <label className="text-[10px] font-black text-zinc-400 ml-4 uppercase">Ref. de pago (4 últimos dígitos)</label>
+                        <input type="text" maxLength="4" placeholder="Ej: 9821" className="w-full p-5 bg-zinc-50 border-2 border-zinc-100 rounded-[2rem] font-black text-center outline-none focus:border-red-500 text-2xl tracking-[0.5em] shadow-inner" onChange={e => setPayData({ref: e.target.value})} />
                     </div>
-                    <button onClick={reportarPago} className="w-full bg-blue-600 text-white p-6 rounded-[2rem] font-black uppercase text-xs shadow-xl shadow-blue-200 transition-all hover:bg-blue-700 active:scale-95">Confirmar Mi Reporte</button>
-                    <button onClick={() => {setPaymentMethod(null);}} className="w-full mt-4 text-slate-400 font-black text-[10px] uppercase py-2">Volver Atrás</button>
+                    <button onClick={reportarPago} className="w-full bg-red-600 text-white p-6 rounded-[2rem] font-black uppercase text-xs shadow-xl shadow-red-200 transition-all hover:bg-red-700 active:scale-95">Confirmar Mi Reporte</button>
+                    <button onClick={() => {setPaymentMethod(null);}} className="w-full mt-4 text-zinc-400 font-black text-[10px] uppercase py-2">Volver Atrás</button>
                 </div>
             )}
           </div>
@@ -869,7 +865,6 @@ const ClienteView = ({ userId }) => {
   );
 };
 
-// --- APP PRINCIPAL ---
 // --- APP PRINCIPAL ---
 export default function App() {
   const [session, setSession] = useState(null);
@@ -883,23 +878,21 @@ export default function App() {
     } catch { 
       setRole('cliente'); 
     } finally { 
-      setLoading(false); // Quitamos el loading SOLO cuando ya sabemos el rol
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    // Revisión inicial al cargar la página
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session); 
       if (session) checkRole(session.user.id); 
       else setLoading(false);
     });
 
-    // Escuchador automático de Supabase (Login / Logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(s); 
       if (s) {
-        setLoading(true); // Ponemos a cargar mientras buscamos el rol del nuevo usuario
+        setLoading(true);
         checkRole(s.user.id); 
       } else { 
         setRole(null); 
@@ -911,15 +904,14 @@ export default function App() {
   }, []);
 
   if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
-        <div className="bg-white p-10 rounded-[3rem] shadow-2xl flex flex-col items-center border border-slate-100">
-            <Loader2 className="animate-spin text-blue-600 mb-4" size={48}/>
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] animate-pulse">Cargando AlexCars' Edition...</p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-950">
+        <div className="bg-zinc-900 p-10 rounded-[3rem] shadow-2xl flex flex-col items-center border border-zinc-800">
+            <Loader2 className="animate-spin text-red-600 mb-4" size={48}/>
+            <p className="text-[10px] font-black uppercase text-white tracking-[0.4em] animate-pulse">AlexCars' Edition...</p>
         </div>
     </div>
   );
 
-  // ¡Fíjate que quitamos el onLogin={setSession}!
   if (!session) return <Auth />; 
   
   return role === 'admin' ? <AdminPanel /> : <ClienteView userId={session.user.id} />;
