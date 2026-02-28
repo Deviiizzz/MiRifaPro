@@ -391,7 +391,7 @@ const AdminPanel = () => {
         <button onClick={async () => { await supabase.auth.signOut(); }} className="text-red-600 p-2 bg-red-50 rounded-xl transition-all hover:bg-red-100 flex items-center gap-2 text-xs font-black">
           <LogOut size={18}/> SALIR
         </button>
-      </div>
+      </nav>
 
       <main className="p-4 max-w-[1400px] mx-auto">
         {view === 'list' && (
@@ -663,7 +663,6 @@ const AdminPanel = () => {
           </div>
         </div>
       )}
-      </main> 
     </div>
   );
 };
