@@ -668,295 +668,268 @@ const AdminPanel = () => {
 };
 
 // --- VISTA CLIENTE ---
-const ClientePanel = ({ userId, onLogout }) => {
+const ClientePanel = ({ session }) => {
+  const userId = session.user.id;
   const [rifas, setRifas] = useState([]);
   const [selectedRifa, setSelectedRifa] = useState(null);
   const [nums, setNums] = useState([]);
   const [cart, setCart] = useState([]);
   const [showPay, setShowPay] = useState(false);
-  const [refPago, setRefPago] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [payData, setPayData] = useState({ ref: '' });
   const [hideSold, setHideSold] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState(null);
+  const [misNumeros, setMisNumeros] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
 
-  useEffect(() => {
-    fetchRifas();
-  }, []);
-
-  useEffect(() => {
-    if (selectedRifa) {
-      const sub = supabase
-        .channel(`public:numeros:${selectedRifa.id_rifa}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'numeros' }, () => fetchNumeros(selectedRifa.id_rifa))
-        .subscribe();
-      fetchNumeros(selectedRifa.id_rifa);
-      return () => { supabase.removeChannel(sub); };
-    }
-  }, [selectedRifa]);
+  useEffect(() => { 
+    fetchRifas(); 
+    fetchMisNumeros();
+  }, [userId, selectedRifa]);
 
   const fetchRifas = async () => {
-    const { data } = await supabase.from('rifas').select('*').order('created_at', { ascending: false });
+    const { data } = await supabase.from('rifas').select('*').order('estado', { ascending: true }).order('creado_en', { ascending: false });
     setRifas(data || []);
   };
 
-  const fetchNumeros = async (id) => {
-    const { data } = await supabase.from('numeros').select('*').eq('rifa_id', id).order('numero', { ascending: true });
-    setNums(data || []);
+  const fetchMisNumeros = async () => {
+    const { data } = await supabase.from('numeros')
+      .select('*, rifas(nombre, precio)')
+      .eq('comprador_id', userId);
+    setMisNumeros(data || []);
   };
 
-  // --- NUEVA FUNCIÓN: SELECCIÓN AUTOMÁTICA ---
-  const handleQuickSelect = () => {
-    const cantidadStr = prompt("¿Cuántos números deseas comprar al azar?");
-    const cantidad = parseInt(cantidadStr);
+  const selectRifa = async (rifa) => {
+    setSelectedRifa(rifa);
+    const { data } = await supabase.from('numeros').select('*').eq('id_rifa', rifa.id_rifa).order('numero', { ascending: true });
+    setNums(data || []);
+    setCart([]);
+  };
 
-    if (isNaN(cantidad) || cantidad <= 0) return;
+  // --- FUNCIÓN SELECCIÓN AUTOMÁTICA ---
+  const handleAutoSelect = () => {
+    const qty = parseInt(prompt("¿Cuántos números deseas que seleccionemos por ti?"), 10);
+    if (isNaN(qty) || qty <= 0) return;
 
-    const disponibles = nums.filter(n => n.estado === 'disponible');
-
-    if (cantidad > disponibles.length) {
+    const disponibles = nums.filter(n => n.estado === 'disponible' && !cart.includes(n.id_numero));
+    
+    if (disponibles.length < qty) {
       alert(`Lo sentimos, solo quedan ${disponibles.length} números disponibles.`);
       return;
     }
 
+    // Mezclar y seleccionar
     const seleccionados = [...disponibles]
       .sort(() => 0.5 - Math.random())
-      .slice(0, cantidad)
+      .slice(0, qty)
       .map(n => n.id_numero);
 
-    setCart(seleccionados);
-    setShowPay(true); // Redirige directamente al pago
+    setCart(prev => [...new Set([...prev, ...seleccionados])]);
+    setShowPay(true);
   };
 
-  // --- NUEVA FUNCIÓN: DESCARGAR COMPROBANTE PDF ---
-  const descargarComprobanteTickets = () => {
+  // --- FUNCIÓN PDF COMPROBANTE ---
+  const descargarComprobante = (rifaNombre) => {
     const doc = new jsPDF();
-    const misTickets = nums.filter(n => n.comprador_id === userId);
+    const misTicketsRifa = misNumeros.filter(n => n.rifas.nombre === rifaNombre);
     
     doc.setFontSize(22);
-    doc.setTextColor(220, 38, 38);
-    doc.text("ALEXCARS - COMPROBANTE", 14, 20);
-    
+    doc.text("ALEXCARS' EDITION", 105, 20, { align: "center" });
     doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
-    doc.text(`Rifa: ${selectedRifa.nombre}`, 14, 30);
-    doc.text(`Fecha de descarga: ${new Date().toLocaleString()}`, 14, 37);
-
-    const tableData = misTickets.map(n => [
-      `#${n.numero}`,
-      n.estado === 'pagado' ? 'CONFIRMADO' : 'PENDIENTE DE APROBACIÓN',
-      n.referencia_pago || 'Sin referencia'
-    ]);
-
-    autoTable(doc, {
-      head: [['Ticket', 'Estado de Pago', 'Referencia']],
-      body: tableData,
+    doc.text("Comprobante de Participación Oficial", 105, 30, { align: "center" });
+    
+    doc.autoTable({
       startY: 45,
+      head: [['Sorteo', 'Ticket #', 'Estado', 'Propietario']],
+      body: misTicketsRifa.map(t => [
+        t.rifas.nombre, 
+        `#${t.numero}`, 
+        t.estado === 'pagado' ? 'CONFIRMADO' : 'EN REVISIÓN',
+        `${session.user.user_metadata.nombre} ${session.user.user_metadata.apellido}`
+      ]),
       theme: 'grid',
-      headStyles: { fillColor: [0, 0, 0] }
+      headStyles: { fillColor: [220, 38, 38] }
     });
 
-    doc.save(`Mis_Tickets_AlexCars.pdf`);
+    doc.save(`Tickets_${rifaNombre}.pdf`);
   };
 
-  const handleBuy = async () => {
-    if (!refPago) return alert("Pon la referencia del comprobante");
-    setLoading(true);
-    const { error } = await supabase.from('numeros').update({
-      estado: 'apartado',
-      comprador_id: userId,
-      referencia_pago: refPago
+  const reportarPago = async () => {
+    if(!payData.ref || payData.ref.length < 4) return alert("Ingresa los últimos 4 dígitos de la referencia");
+    const { error } = await supabase.from('numeros').update({ 
+        estado: 'apartado', comprador_id: userId, referencia_pago: payData.ref 
     }).in('id_numero', cart);
-
-    if (!error) {
-      alert("¡Listo! Espera a que el administrador apruebe tu pago.");
-      setCart([]);
-      setRefPago('');
-      setShowPay(false);
+    if(!error) { 
+        alert("¡Reporte de pago enviado! Tu ticket estará en revisión."); 
+        setSelectedRifa(null); setShowPay(false); setPaymentMethod(null);
+        fetchMisNumeros();
     }
-    setLoading(false);
   };
 
-  if (!selectedRifa) {
-    return (
-      <div className="min-h-screen bg-zinc-100 p-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-center mb-10">
-            <h1 className="text-3xl font-black uppercase tracking-tighter italic">Alex<span className="text-red-600">Cars'</span></h1>
-            <button onClick={onLogout} className="bg-white p-3 rounded-2xl shadow-sm text-red-600"><LogOut size={20}/></button>
+  // Agrupamos mis tickets por rifa para el historial
+  const ticketsAgrupados = misNumeros.reduce((acc, item) => {
+    const nombre = item.rifas?.nombre || 'Sorteo';
+    if (!acc[nombre]) acc[nombre] = [];
+    acc[nombre].push(item);
+    return acc;
+  }, {});
+
+  return (
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
+      <header className="bg-white p-5 border-b border-slate-200 flex justify-between items-center sticky top-0 z-20 shadow-sm">
+        <div className="flex items-center gap-2">
+            <div className="bg-red-600 p-2 rounded-xl text-white shadow-lg border-2 border-black"><Trophy size={20}/></div>
+            <h1 className="font-black italic text-2xl tracking-tighter text-black uppercase">AlexCars</h1>
+        </div>
+        <div className="flex gap-2">
+            <button onClick={() => setShowHistory(!showHistory)} className="p-3 text-slate-600 bg-slate-100 rounded-2xl hover:bg-slate-200 transition-all flex items-center gap-2 text-xs font-black uppercase">
+                {showHistory ? <X size={18}/> : <Ticket size={18}/>}
+            </button>
+            <button onClick={async () => { await supabase.auth.signOut(); }} className="p-3 text-slate-400 bg-slate-100 rounded-2xl hover:text-red-600 transition-all">
+              <LogOut size={22}/>
+            </button>
+        </div>
+      </header>
+
+      <main className="p-4 max-w-2xl mx-auto">
+        {showHistory ? (
+          /* --- SECCIÓN HISTORIAL DE TICKETS --- */
+          <div className="space-y-6 mt-4">
+            <h2 className="text-2xl font-black italic uppercase text-black">Mis Participaciones</h2>
+            {Object.keys(ticketsAgrupados).length === 0 ? (
+                <p className="text-center py-20 text-slate-400 font-bold uppercase text-xs">Aún no tienes tickets.</p>
+            ) : (
+                Object.entries(ticketsAgrupados).map(([nombre, tickets]) => (
+                    <div key={nombre} className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-black uppercase text-sm text-red-600 italic">{nombre}</h3>
+                            <button onClick={() => descargarComprobante(nombre)} className="text-[10px] font-black bg-slate-900 text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-black transition-all">
+                                <Download size={14}/> PDF
+                            </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {tickets.map(t => (
+                                <span key={t.id_numero} className={`text-[10px] font-black px-3 py-1.5 rounded-lg border ${t.estado === 'pagado' ? 'bg-black text-white' : 'bg-red-600 text-white animate-pulse'}`}>
+                                    #{t.numero} {t.estado === 'pagado' ? '✓' : '...'}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                ))
+            )}
           </div>
-          <div className="grid gap-6">
+        ) : !selectedRifa ? (
+          /* --- VISTA DE RIFAS --- */
+          <div className="space-y-6 mt-4">
+            <div className="bg-gradient-to-br from-zinc-900 to-black p-8 rounded-[3rem] text-white shadow-2xl relative overflow-hidden border border-zinc-800">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-red-600 blur-[80px] opacity-40"></div>
+                <PartyPopper className="absolute -right-4 -bottom-4 text-red-600 opacity-20 rotate-12" size={140}/>
+                <h2 className="text-3xl font-black italic uppercase mb-2 relative z-10">¡Mucha Suerte!</h2>
+                <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest relative z-10">Selecciona un sorteo</p>
+            </div>
             {rifas.map(r => (
-              <div key={r.id_rifa} onClick={() => setSelectedRifa(r)} className="bg-white p-6 rounded-[2.5rem] shadow-xl border-2 border-transparent hover:border-red-600 transition-all cursor-pointer group">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h2 className="text-xl font-black uppercase mb-1">{r.nombre}</h2>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{r.descripcion}</p>
+              <div key={r.id_rifa} onClick={() => selectRifa(r)} className="p-5 bg-white rounded-[2.8rem] border border-slate-200 flex gap-5 items-center transition-all active:scale-95 cursor-pointer hover:border-red-600 shadow-sm group">
+                <img src={r.imagen_url || 'https://via.placeholder.com/150'} className="w-24 h-24 rounded-[2rem] object-cover bg-slate-50 group-hover:rotate-3 transition-transform" />
+                <div className="flex-1">
+                  <h3 className="text-xl font-black uppercase italic text-black leading-none">{r.nombre}</h3>
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className="bg-red-50 text-red-600 border border-red-100 text-[10px] font-black px-2 py-1 rounded-lg">${r.precio} USD</span>
+                    <div className="text-red-600 font-black text-[10px] uppercase flex items-center gap-1">Participar <ChevronLeft size={14} className="rotate-180"/></div>
                   </div>
-                  <ChevronLeft className="rotate-180 text-slate-300 group-hover:text-red-600 transition-colors" />
                 </div>
               </div>
             ))}
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  const isFinished = selectedRifa.estado === 'finalizado';
-  const elTicketGanador = nums.find(n => n.numero === selectedRifa.numero_ganador);
-
-  return (
-    <div className="min-h-screen bg-zinc-50 pb-24">
-      <div className="bg-white border-b border-slate-200 p-6 sticky top-0 z-30">
-        <div className="max-w-4xl mx-auto flex items-center gap-4">
-          <button onClick={() => { setSelectedRifa(null); setCart([]); }} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><ChevronLeft/></button>
-          <h1 className="text-lg font-black uppercase tracking-tight">{selectedRifa.nombre}</h1>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto p-6">
-        {isFinished && elTicketGanador && (
-          <div className="bg-black text-white p-8 rounded-[3rem] mb-8 text-center border-4 border-yellow-500 shadow-2xl relative overflow-hidden">
-             <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
-                <PartyPopper size={200} className="absolute -bottom-10 -right-10 rotate-12" />
-             </div>
-             <Trophy className="mx-auto mb-4 text-yellow-500" size={48}/>
-             <h2 className="text-sm font-black uppercase tracking-[0.3em] mb-2 text-yellow-500">¡Sorteo Finalizado!</h2>
-             <div className="text-6xl font-black mb-4">#{elTicketGanador.numero}</div>
-             <p className="text-[10px] uppercase font-bold text-zinc-400">Ganador: {elTicketGanador.nombre_comprador || 'Sorteo Cerrado'}</p>
-          </div>
-        )}
-
-        <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 mb-8">
-            <p className="text-slate-600 font-medium text-sm leading-relaxed mb-6">{selectedRifa.descripcion}</p>
-            
-            {/* BOTONES DE ACCIÓN PERFIL CLIENTE */}
-            {!isFinished && (
-              <div className="flex flex-wrap gap-3 mb-2">
-                <button 
-                  onClick={handleQuickSelect}
-                  className="flex-1 bg-zinc-900 text-white p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 border-2 border-zinc-800 hover:bg-black transition-all"
-                >
-                  <Star size={16} className="text-yellow-400 fill-yellow-400"/> Selección Automática
+        ) : (
+          /* --- DETALLE DE RIFA Y GRILLA --- */
+          <div className="pb-40">
+            <div className="flex justify-between items-center mb-6 pt-2">
+                <button onClick={() => setSelectedRifa(null)} className="flex items-center gap-2 font-black text-slate-500 text-[10px] uppercase px-4 py-2 bg-white rounded-full border border-slate-200 shadow-sm"><ChevronLeft size={16}/> Volver</button>
+                <button onClick={handleAutoSelect} className="bg-black text-white px-6 py-2 rounded-full text-[10px] font-black uppercase flex items-center gap-2 shadow-lg shadow-slate-200">
+                    <Star size={16} className="text-yellow-400 fill-yellow-400"/> Selección Automática
                 </button>
-                
-                {nums.some(n => n.comprador_id === userId) && (
-                  <button 
-                    onClick={descargarComprobanteTickets}
-                    className="flex-1 bg-white text-black p-4 rounded-2xl font-black uppercase text-[10px] border-2 border-slate-200 flex items-center justify-center gap-2 shadow-sm"
-                  >
-                    <Download size={16}/> Descargar Mis Tickets (PDF)
-                  </button>
-                )}
+            </div>
+            
+            <div className="bg-white p-8 rounded-[3rem] border border-slate-200 mb-8 shadow-sm">
+                <h2 className="text-3xl font-black uppercase italic text-black">{selectedRifa.nombre}</h2>
+                <div className="mt-6 p-4 bg-slate-50 rounded-[1.5rem] border border-slate-100"><p className="text-[11px] text-slate-600 leading-relaxed font-bold uppercase">{selectedRifa.descripcion}</p></div>
+            </div>
+
+            <div className="grid grid-cols-5 sm:grid-cols-8 gap-3 bg-white p-6 rounded-[3rem] border border-slate-200">
+                {nums.map(n => {
+                    const isMine = n.comprador_id === userId;
+                    const isSelected = cart.includes(n.id_numero);
+                    const isPending = isMine && n.estado === 'apartado';
+                    const isConfirmed = isMine && n.estado === 'pagado';
+                    
+                    let bgColor = 'bg-red-600 border-red-700 text-white'; // Libres
+                    if (n.estado !== 'disponible' && !isMine) bgColor = 'bg-slate-200 border-slate-300 text-slate-400 opacity-60';
+                    
+                    // Lógica solicitada: Parpadeo para espera, Negro fijo para aprobado
+                    if (isPending) bgColor = 'bg-black border-zinc-800 text-white animate-pulse scale-105 z-10';
+                    if (isConfirmed) bgColor = 'bg-black border-zinc-800 text-white shadow-xl';
+                    if (isSelected) bgColor = 'bg-zinc-800 border-black text-white scale-110 z-10';
+
+                    return (
+                        <button 
+                            key={n.id_numero} 
+                            disabled={n.estado !== 'disponible' && !isMine} 
+                            onClick={() => { if(n.estado === 'disponible') setCart(prev => prev.includes(n.id_numero) ? prev.filter(id => id !== n.id_numero) : [...prev, n.id_numero]); }}
+                            className={`aspect-square rounded-[1.2rem] text-[10px] font-black border-2 transition-all relative flex items-center justify-center ${bgColor}`}
+                        >
+                            {n.numero}
+                            {/* Check solo si está PAGADO (aprobado) */}
+                            {isConfirmed && (
+                                <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full border-2 border-white p-0.5 shadow-md">
+                                    <CheckCircle2 size={10} strokeWidth={4}/>
+                                </div>
+                            )}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {cart.length > 0 && (
+              <div className="fixed bottom-8 left-4 right-4 bg-black text-white p-7 rounded-[3rem] flex justify-between items-center shadow-2xl z-40 border-2 border-zinc-800">
+                <div>
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">{cart.length} Tickets</p>
+                    <p className="text-3xl font-black italic">${(cart.length * selectedRifa.precio).toFixed(2)}</p>
+                </div>
+                <button onClick={() => setShowPay(true)} className="bg-red-600 px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest hover:bg-red-500 transition-all border border-red-800">Pagar Ahora</button>
               </div>
             )}
-        </div>
+          </div>
+        )}
+      </main>
 
-        <div className="flex justify-between items-end mb-6">
-            <h3 className="font-black uppercase text-[11px] tracking-widest text-slate-400 flex items-center gap-2">
-                <Ticket size={14}/> Selecciona tus números
-            </h3>
-            <button onClick={() => setHideSold(!hideSold)} className="text-[10px] font-black uppercase text-red-600 bg-red-50 px-4 py-2 rounded-full border border-red-100">
-                {hideSold ? 'Mostrar todos' : 'Ocultar vendidos'}
-            </button>
-        </div>
-
-        {/* CUADRÍCULA DE NÚMEROS MODIFICADA */}
-        <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-3">
-          {nums.map(n => {
-            const isMine = n.comprador_id === userId;
-            const isSelected = cart.includes(n.id_numero);
-            const isPending = isMine && n.estado === 'apartado';
-            const isApproved = isMine && n.estado === 'pagado';
-
-            let bgColor = 'bg-red-600 border-red-700 text-white hover:bg-red-500 shadow-sm';
-            
-            if ((n.estado === 'pagado' || n.estado === 'apartado') && !isMine) {
-              bgColor = 'bg-slate-200 border-slate-300 text-slate-400 opacity-60';
-            }
-            
-            if (isMine) {
-              // Si está pendiente de aprobación por admin, parpadea
-              bgColor = `bg-black border-zinc-800 text-white shadow-xl ${isPending ? 'animate-pulse' : ''}`;
-            }
-            
-            if (isSelected) {
-              bgColor = 'bg-zinc-800 border-black text-white scale-110 z-10';
-            }
-
-            if (hideSold && n.estado !== 'disponible' && !isMine) return null;
-
-            return (
-              <button 
-                key={n.id_numero} 
-                disabled={(n.estado !== 'disponible' && !isMine) || isFinished}
-                onClick={() => {
-                  if(n.estado === 'disponible') {
-                    setCart(prev => prev.includes(n.id_numero) ? prev.filter(id => id !== n.id_numero) : [...prev, n.id_numero]);
-                  }
-                }}
-                className={`aspect-square rounded-2xl text-[11px] font-black border-2 transition-all relative flex items-center justify-center ${bgColor}`}
-              >
-                {n.numero}
-                {/* CHECK SÓLO CUANDO EL ADMIN APRUEBA */}
-                {isApproved && (
-                  <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full border-2 border-white p-0.5 shadow-md">
-                    <CheckCircle2 size={10} strokeWidth={4}/>
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* BARRA DE PAGO FLOTANTE */}
-      {cart.length > 0 && !showPay && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-black text-white p-5 rounded-[2.5rem] shadow-2xl flex items-center justify-between z-50 animate-bounce-subtle">
-           <div>
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Seleccionados</p>
-              <p className="text-xl font-black">{cart.length} Números</p>
-           </div>
-           <button onClick={() => setShowPay(true)} className="bg-red-600 px-8 py-3 rounded-2xl font-black uppercase text-xs hover:bg-red-500 transition-colors">Comprar Ahora</button>
-        </div>
-      )}
-
-      {/* MODAL DE PAGO */}
+      {/* El modal de pago se mantiene igual pero puedes asegurar que limpie el carrito al terminar */}
       {showPay && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-end sm:items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-[3rem] overflow-hidden animate-slide-up">
-            <div className="p-8">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-black uppercase">Confirmar Pago</h3>
-                <button onClick={() => setShowPay(false)} className="bg-slate-100 p-2 rounded-full"><X/></button>
-              </div>
-              
-              <div className="bg-zinc-50 p-6 rounded-3xl mb-6 border border-slate-100">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="bg-red-100 text-red-600 p-2 rounded-xl"><CreditCard size={20}/></div>
-                  <span className="font-bold text-sm uppercase tracking-widest text-slate-500">Datos de transferencia</span>
+        <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-md flex items-center justify-center p-4 z-50">
+           <div className="bg-white p-8 rounded-[3.5rem] w-full max-w-sm shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-2 bg-red-600"></div>
+            <h3 className="text-3xl font-black mb-6 uppercase italic text-black tracking-tighter">Completar Pago</h3>
+            {!paymentMethod ? (
+                <div className="space-y-3">
+                    <button onClick={() => setPaymentMethod('pago_movil')} className="w-full p-6 bg-slate-50 rounded-3xl border border-slate-200 flex items-center gap-4 hover:border-red-200">
+                        <Smartphone className="text-red-600"/>
+                        <div className="text-left"><p className="font-black uppercase text-xs text-black">Pago Móvil</p></div>
+                    </button>
+                    <button onClick={() => setPaymentMethod('transferencia')} className="w-full p-6 bg-slate-50 rounded-3xl border border-slate-200 flex items-center gap-4 hover:border-red-200">
+                        <Building2 className="text-red-600"/>
+                        <div className="text-left"><p className="font-black uppercase text-xs text-black">Zelle / Transf.</p></div>
+                    </button>
+                    <button onClick={() => setShowPay(false)} className="w-full mt-4 text-slate-400 font-black text-[10px] uppercase">Cancelar</button>
                 </div>
-                <p className="font-black text-lg mb-1">{selectedRifa.metodo_pago}</p>
-              </div>
-
-              <div className="mb-8">
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 ml-2">Referencia del comprobante</label>
-                <input 
-                  type="text" 
-                  value={refPago} 
-                  onChange={(e) => setRefPago(e.target.value)}
-                  placeholder="Ej: 123456789"
-                  className="w-full bg-slate-100 border-2 border-transparent focus:border-red-600 p-5 rounded-3xl outline-none font-bold transition-all"
-                />
-              </div>
-
-              <button 
-                onClick={handleBuy}
-                disabled={loading || !refPago}
-                className="w-full bg-black text-white p-6 rounded-[2rem] font-black uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-3"
-              >
-                {loading ? <Loader2 className="animate-spin"/> : 'Enviar Reporte de Pago'}
-              </button>
-            </div>
+            ) : (
+                <div className="space-y-4">
+                    <div className="bg-red-600 p-6 rounded-[2rem] text-white text-center">
+                        <p className="text-[10px] font-black uppercase opacity-70 mb-2">Datos de pago</p>
+                        <p className="text-sm font-black">BANCO CENTRAL<br/>V-12.345.678<br/>0412-0000000</p>
+                    </div>
+                    <input type="text" maxLength="4" placeholder="Últimos 4 dígitos" className="w-full p-5 bg-slate-50 border-2 border-slate-200 rounded-[2rem] font-black text-center text-2xl outline-none focus:border-red-600" onChange={e => setPayData({ref: e.target.value})} />
+                    <button onClick={reportarPago} className="w-full bg-red-600 text-white p-6 rounded-[2rem] font-black uppercase text-xs shadow-xl">Confirmar Reporte</button>
+                    <button onClick={() => setPaymentMethod(null)} className="w-full text-slate-400 font-black text-[10px] uppercase">Volver</button>
+                </div>
+            )}
           </div>
         </div>
       )}
