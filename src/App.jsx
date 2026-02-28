@@ -385,11 +385,9 @@ const AdminPanel = () => {
     <div className="min-h-screen bg-slate-50 pb-20 font-sans text-slate-800">
       <nav className="bg-white border-b border-red-100 p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
         <div className="flex items-center gap-2">
-            <img 
-  src={logo} 
-  alt="Logo Admin" 
-  className="h-10 w-auto object-contain mr-2" 
-/>
+          <div className="bg-red-600 p-2 rounded-xl text-white shadow-md border border-red-800">
+              <Building2 size={18}/>
+          </div>
         <button onClick={async () => { await supabase.auth.signOut(); }} className="text-red-600 p-2 bg-red-50 rounded-xl transition-all hover:bg-red-100 flex items-center gap-2 text-xs font-black">
           <LogOut size={18}/> SALIR
         </button>
@@ -720,13 +718,9 @@ const ClientePanel = ({ session }) => {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
       <header className="bg-white p-5 border-b border-slate-200 flex justify-between items-center sticky top-0 z-20 shadow-sm">
         <div className="flex items-center gap-2">
-            <div className="flex items-center">
-    <img 
-      src={logo} 
-      alt="Logo" 
-      className="h-12 w-auto object-contain mr-2" 
-    />
-</div>
+          <div className="bg-red-600 p-2 rounded-xl text-white shadow-lg shadow-red-200 border-2 border-black">
+              <Trophy size={20}/>
+          </div>
         <button onClick={async () => { await supabase.auth.signOut(); }} className="p-3 text-slate-400 bg-slate-100 rounded-2xl hover:text-red-600 hover:bg-red-50 transition-all">
           <LogOut size={22}/>
         </button>
