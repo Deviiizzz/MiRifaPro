@@ -75,8 +75,8 @@ const Auth = () => {
                 <Trophy size={40} className="text-white"/>
             </div>
         </div>
-        <h2 className="text-4xl font-black text-center mb-1 italic tracking-tighter text-black uppercase">AlexCars' 9801</h2>
-        <p className="text-center text-red-600 text-[10px] mb-8 font-black uppercase tracking-[0.2em]">Pintura Automotriz & Sorteos</p>
+        <h2 className="text-4xl font-black text-center mb-1 italic tracking-tighter text-black uppercase">AlexCars' Edition</h2>
+        <p className="text-center text-red-600 text-[10px] mb-8 font-black uppercase tracking-[0.2em]">Sistema de Sorteos Profesional</p>
         
         <form onSubmit={handleAuth} className="space-y-4">
           {isRegistering && (
@@ -383,7 +383,7 @@ const AdminPanel = () => {
       <nav className="bg-white border-b border-red-100 p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
         <div className="flex items-center gap-2">
             <div className="bg-red-600 p-2 rounded-xl text-white shadow-md border border-red-800"><Building2 size={18}/></div>
-            <h1 className="font-black italic text-xl text-slate-900 tracking-tighter uppercase">AlexCars' <span className="text-red-600">ADMIN</span></h1>
+            <h1 className="font-black italic text-xl text-slate-900 tracking-tighter uppercase">AlexCars' Edition<span className="text-red-600">ADMIN</span></h1>
         </div>
         <button onClick={async () => { await supabase.auth.signOut(); }} className="text-red-600 p-2 bg-red-50 rounded-xl transition-all hover:bg-red-100 flex items-center gap-2 text-xs font-black">
           <LogOut size={18}/> SALIR
@@ -715,7 +715,7 @@ const ClientePanel = ({ session }) => {
       <header className="bg-white p-5 border-b border-slate-200 flex justify-between items-center sticky top-0 z-20 shadow-sm">
         <div className="flex items-center gap-2">
             <div className="bg-red-600 p-2 rounded-xl text-white shadow-lg shadow-red-200 border-2 border-black"><Trophy size={20}/></div>
-            <h1 className="font-black italic text-2xl tracking-tighter text-black uppercase">AlexCars' 9801</h1>
+            <h1 className="font-black italic text-2xl tracking-tighter text-black uppercase">AlexCars' Edition</h1>
         </div>
         <button onClick={async () => { await supabase.auth.signOut(); }} className="p-3 text-slate-400 bg-slate-100 rounded-2xl hover:text-red-600 hover:bg-red-50 transition-all">
           <LogOut size={22}/>
@@ -949,7 +949,7 @@ const App = () => {
         <div className="bg-black p-10 rounded-[3rem] shadow-2xl flex flex-col items-center border border-zinc-800 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-red-600"></div>
             <Loader2 className="animate-spin text-red-600 mb-4" size={48}/>
-            <p className="text-[10px] font-black uppercase text-zinc-400 tracking-[0.4em] animate-pulse">Cargando AlexCars...</p>
+            <p className="text-[10px] font-black uppercase text-zinc-400 tracking-[0.4em] animate-pulse">Cargando AlexCars' Edition...</p>
         </div>
     </div>
   );
