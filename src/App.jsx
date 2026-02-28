@@ -11,6 +11,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import './index.css'; 
+import logo from './logo.png';
 
 // --- COLORES ESPECÍFICOS PARA EL ADMIN ---
 const ESTADOS = {
@@ -71,10 +72,12 @@ const Auth = () => {
       <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-slate-200 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-red-700 via-red-500 to-black"></div>
         <div className="flex justify-center mb-4 mt-2">
-            <div className="bg-red-600 p-4 rounded-3xl rotate-12 shadow-lg shadow-red-200 border-2 border-black">
-                <Trophy size={40} className="text-white"/>
-            </div>
-        </div>
+    <img 
+      src={logo} 
+      alt="Logo" 
+      className="w-32 h-auto object-contain" 
+    />
+</div>
         <h2 className="text-4xl font-black text-center mb-1 italic tracking-tighter text-black uppercase">AlexCars' Edition</h2>
         <p className="text-center text-red-600 text-[10px] mb-8 font-black uppercase tracking-[0.2em]">Sistema de Sorteos Profesional</p>
         
