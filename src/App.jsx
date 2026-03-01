@@ -692,28 +692,43 @@ const ClientePanel = ({ session }) => {
   };
 
   const fetchMisNumeros = async () => {
-    // CORRECCIÓN: Se asegura la relación con la tabla rifas para obtener nombre, precio y fecha
-    const { data, error } = await supabase
-      .from('numeros')
-      .select(`
-        id_numero, 
-        id_rifa, 
-        numero, 
-        estado, 
-        rifas (
-          nombre, 
-          precio, 
-          fecha_fin
-        )
-      `)
-      .eq('comprador_id', userId);
-    
-    if (error) {
-      console.error("Error al obtener tickets:", error);
-    } else {
-      setMisNumeros(data || []);
+    try {
+        // 1. Traemos solo los números del usuario
+        const { data: tickets, error: errorTickets } = await supabase
+            .from('numeros')
+            .select('id_numero, id_rifa, numero, estado, comprador_id')
+            .eq('comprador_id', userId);
+
+        if (errorTickets) throw errorTickets;
+
+        if (!tickets || tickets.length === 0) {
+            setMisNumeros([]);
+            return;
+        }
+
+        // 2. Traemos la información de las rifas para esos tickets
+        const { data: infoRifas, error: errorRifas } = await supabase
+            .from('rifas')
+            .select('id_rifa, nombre, precio, fecha_fin');
+
+        if (errorRifas) throw errorRifas;
+
+        // 3. Unimos los datos manualmente en el código (así no dependemos de la relación de Supabase)
+        const ticketsCombinados = tickets.map(t => {
+            const dataRifa = infoRifas.find(r => r.id_rifa === t.id_rifa);
+            return {
+                ...t,
+                rifas: dataRifa // Esto mantiene tu estructura original para que el PDF no falle
+            };
+        });
+
+        setMisNumeros(ticketsCombinados);
+        console.log("Tickets cargados con éxito:", ticketsCombinados);
+
+    } catch (err) {
+        console.error("Error detallado en fetchMisNumeros:", err);
     }
-  };
+};
 
   const selectRifa = async (rifa) => {
     setSelectedRifa(rifa);
