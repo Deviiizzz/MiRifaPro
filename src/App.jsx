@@ -120,7 +120,6 @@ const Auth = () => {
 };
 
 // --- PANEL ADMINISTRADOR ---
-// --- PANEL ADMINISTRADOR ---
 const AdminPanel = ({ tasaBcv }) => {
   const [rifas, setRifas] = useState([]);
   const [view, setView] = useState('list');
@@ -188,15 +187,16 @@ const AdminPanel = ({ tasaBcv }) => {
   };
 
   const realizarSorteo = async () => {
-    const pagados = numsRifa.filter(n => n.estado === 'pagado');
-    if (pagados.length === 0) {
-      alert("No puedes hacer el sorteo. Aún no hay tickets pagados confirmados.");
+    if (numsRifa.length === 0) {
+      alert("No hay números generados en esta rifa.");
       return;
     }
-    if (!window.confirm("¿Estás seguro de finalizar la rifa y realizar el sorteo? El sistema elegirá un ganador al azar entre los tickets VENDIDOS. Esta acción no se puede deshacer.")) return;
+
+    if (!window.confirm("¿Estás seguro de finalizar la rifa y realizar el sorteo? El sistema elegirá un ganador al azar entre TODOS los números (vendidos y no vendidos). Esta acción no se puede deshacer.")) return;
 
     setLoadingAction(true);
-    const ganador = pagados[Math.floor(Math.random() * pagados.length)];
+    // Ahora elegimos entre TODOS los números de la rifa
+    const ganador = numsRifa[Math.floor(Math.random() * numsRifa.length)];
 
     const { error } = await supabase.from('rifas').update({
       estado: 'finalizada',
@@ -204,7 +204,7 @@ const AdminPanel = ({ tasaBcv }) => {
     }).eq('id_rifa', selectedRifa.id_rifa);
 
     if (!error) {
-      alert(`¡SORTEO REALIZADO! 🎉 El ticket ganador es el #${ganador.numero}`);
+      alert(`¡SORTEO REALIZADO! 🎉 El número ganador es el #${ganador.numero}`);
       const updatedRifa = { ...selectedRifa, estado: 'finalizada', id_ganador: ganador.id_numero };
       setSelectedRifa(updatedRifa);
       setRifas(rifas.map(r => r.id_rifa === updatedRifa.id_rifa ? updatedRifa : r));
@@ -484,8 +484,12 @@ const AdminPanel = ({ tasaBcv }) => {
                             <h3 className="text-3xl font-black italic uppercase tracking-tighter drop-shadow-md">¡Tenemos un Ganador!</h3>
                             <p className="text-sm font-bold mt-2 uppercase tracking-widest opacity-90">Ticket de la suerte: <span className="bg-white text-yellow-600 px-2 py-1 rounded-md font-black">#{ticketGanador.numero}</span></p>
                             <div className="mt-4 bg-black/10 p-4 rounded-2xl inline-block backdrop-blur-md">
-                                <p className="font-black text-lg">{ticketGanador.usuarios?.nombre} {ticketGanador.usuarios?.apellido}</p>
-                                <p className="text-sm flex items-center gap-2 justify-center md:justify-start mt-1"><Phone size={14}/> {ticketGanador.usuarios?.telefono}</p>
+                                <p className="font-black text-lg">
+                                  {ticketGanador.usuarios ? `${ticketGanador.usuarios.nombre} ${ticketGanador.usuarios.apellido}` : "Ticket no vendido (Vacante)"}
+                                </p>
+                                {ticketGanador.usuarios && (
+                                  <p className="text-sm flex items-center gap-2 justify-center md:justify-start mt-1"><Phone size={14}/> {ticketGanador.usuarios.telefono}</p>
+                                )}
                             </div>
                         </div>
                         <PartyPopper size={120} className="absolute -right-10 -bottom-10 text-white opacity-20 rotate-12"/>
@@ -524,7 +528,6 @@ const AdminPanel = ({ tasaBcv }) => {
                   <div className="space-y-4">
                     {Object.values(clientesAgrupados).map((item) => {
                       const tieneGanador = item.numeros.some(n => n.id_numero === selectedRifa.id_ganador);
-                      // Cálculo de montos para el admin
                       const numPendientes = item.numeros.filter(n => n.estado === 'apartado').length;
                       const montoUSD = (numPendientes * selectedRifa.precio).toFixed(2);
                       const montoBS = tasaBcv ? (numPendientes * selectedRifa.precio * tasaBcv).toFixed(2) : null;
@@ -543,7 +546,6 @@ const AdminPanel = ({ tasaBcv }) => {
                             {item.tienePendientes && selectedRifa.estado === 'activa' && (
                               <button onClick={() => aprobarTodoElCliente(item.info?.id_usuario)} className="bg-red-600 text-white text-[9px] font-black px-3 py-1.5 rounded-xl shadow-lg shadow-red-200 hover:bg-red-700 uppercase mb-1">Aprobar</button>
                             )}
-                            {/* --- MONTO A VERIFICAR --- */}
                             {item.tienePendientes && selectedRifa?.precio > 0 && selectedRifa.estado === 'activa' && (
                               <div className="text-right bg-white px-2 py-1 rounded-lg border border-red-100 shadow-sm">
                                 <p className="text-[10px] font-black text-red-600">A COBRAR: ${montoUSD}</p>
