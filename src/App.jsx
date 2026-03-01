@@ -133,6 +133,10 @@ const AdminPanel = ({ tasaBcv }) => {
   const [showManualAssign, setShowManualAssign] = useState(false);
   const [manualData, setManualData] = useState({ numeros: '', nombre: '', apellido: '', telefono: '', estado: 'apartado' });
   const [pendientesNotif, setPendientesNotif] = useState({});
+  
+  // Nuevos estados para el control del Sorteo
+  const [showSorteoModal, setShowSorteoModal] = useState(false);
+  const [manualWinningNumber, setManualWinningNumber] = useState('');
 
   useEffect(() => { 
     fetchRifas(); 
@@ -186,17 +190,29 @@ const AdminPanel = ({ tasaBcv }) => {
     setView('detail');
   };
 
-  const realizarSorteo = async () => {
+  const realizarSorteo = async (tipo, numeroManual = null) => {
     if (numsRifa.length === 0) {
       alert("No hay números generados en esta rifa.");
       return;
     }
 
-    if (!window.confirm("¿Estás seguro de finalizar la rifa y realizar el sorteo? El sistema elegirá un ganador al azar entre TODOS los números (vendidos y no vendidos). Esta acción no se puede deshacer.")) return;
+    let ganador = null;
+
+    if (tipo === 'azar') {
+      if (!window.confirm("¿Estás seguro de finalizar la rifa y elegir un ganador AL AZAR? Esta acción no se puede deshacer.")) return;
+      ganador = numsRifa[Math.floor(Math.random() * numsRifa.length)];
+    } else if (tipo === 'manual') {
+      const numBuscado = parseInt(numeroManual);
+      ganador = numsRifa.find(n => n.numero === numBuscado);
+      
+      if (!ganador) {
+        alert(`El número ${numBuscado} no pertenece a los tickets de esta rifa.`);
+        return;
+      }
+      if (!window.confirm(`¿Confirmas que el número ganador es el #${ganador.numero}? Esta acción finalizará el sorteo.`)) return;
+    }
 
     setLoadingAction(true);
-    // Ahora elegimos entre TODOS los números de la rifa
-    const ganador = numsRifa[Math.floor(Math.random() * numsRifa.length)];
 
     const { error } = await supabase.from('rifas').update({
       estado: 'finalizada',
@@ -208,6 +224,8 @@ const AdminPanel = ({ tasaBcv }) => {
       const updatedRifa = { ...selectedRifa, estado: 'finalizada', id_ganador: ganador.id_numero };
       setSelectedRifa(updatedRifa);
       setRifas(rifas.map(r => r.id_rifa === updatedRifa.id_rifa ? updatedRifa : r));
+      setShowSorteoModal(false);
+      setManualWinningNumber('');
     } else { alert("Error al realizar el sorteo: " + error.message); }
     setLoadingAction(false);
   };
@@ -467,7 +485,7 @@ const AdminPanel = ({ tasaBcv }) => {
                     {selectedRifa.estado === 'activa' && (
                         <>
                             <button onClick={() => setShowManualAssign(true)} className="bg-black text-white p-3 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 shadow-lg shadow-zinc-300 hover:bg-zinc-800"><Plus size={16}/> Venta Manual</button>
-                            <button onClick={realizarSorteo} disabled={loadingAction} className="bg-yellow-500 text-white p-3 px-4 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 shadow-lg shadow-yellow-200 hover:bg-yellow-600 transition-all ml-4">
+                            <button onClick={() => setShowSorteoModal(true)} disabled={loadingAction} className="bg-yellow-500 text-white p-3 px-4 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 shadow-lg shadow-yellow-200 hover:bg-yellow-600 transition-all ml-4">
                                 {loadingAction ? <Loader2 size={16} className="animate-spin"/> : <Crown size={18}/>} Realizar Sorteo
                             </button>
                         </>
@@ -559,7 +577,7 @@ const AdminPanel = ({ tasaBcv }) => {
                             const esEsteGanador = n.id_numero === selectedRifa.id_ganador;
                             return (
                                 <span key={n.id_numero} className={`text-[9px] font-black px-2 py-1 rounded-lg border ${esEsteGanador ? 'bg-yellow-400 text-white border-yellow-500 shadow-sm' : n.estado === 'apartado' ? 'bg-red-600 text-white border-red-700 animate-pulse' : 'bg-black text-white border-zinc-800'}`}>
-                                    {esEsteGanador && <Council size={8} className="inline mr-1 -mt-0.5"/>}#{n.numero}
+                                    {esEsteGanador && <Crown size={8} className="inline mr-1 -mt-0.5"/>}#{n.numero}
                                 </span>
                             )
                           })}
@@ -568,6 +586,64 @@ const AdminPanel = ({ tasaBcv }) => {
                     )})}
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Opciones de Sorteo */}
+        {showSorteoModal && (
+          <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
+            <div className="bg-white p-8 rounded-[3rem] w-full max-w-sm shadow-2xl border-2 border-yellow-400 relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-2 bg-yellow-400"></div>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-black uppercase italic text-black tracking-tighter">Opciones de Sorteo</h3>
+                <button onClick={() => setShowSorteoModal(false)} className="text-slate-300 hover:text-red-600 transition-colors"><X size={24}/></button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Opción 1: Lotería Manual */}
+                <div className="bg-slate-50 p-5 rounded-[2rem] border border-slate-200">
+                  <h4 className="font-black text-sm uppercase mb-1 flex items-center gap-2 text-slate-800"><Building2 size={16} className="text-slate-400"/> Agencia de Lotería</h4>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase mb-4 leading-tight">Ingresa manualmente el número que salió en el sorteo (ej. Triple Zulia)</p>
+                  <div className="flex gap-2">
+                    <input 
+                      type="number" 
+                      placeholder="N° Ganador" 
+                      className="flex-1 p-4 bg-white rounded-2xl border border-slate-200 font-black outline-none focus:border-yellow-400 text-center text-lg"
+                      value={manualWinningNumber}
+                      onChange={e => setManualWinningNumber(e.target.value)}
+                    />
+                    <button 
+                      onClick={() => {
+                        if(!manualWinningNumber) return alert("Por favor ingresa un número primero.");
+                        realizarSorteo('manual', manualWinningNumber);
+                      }}
+                      className="bg-black text-white px-6 rounded-2xl font-black text-xs uppercase hover:bg-zinc-800 transition-all shadow-md active:scale-95"
+                      disabled={loadingAction}
+                    >
+                      OK
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 px-2">
+                  <div className="h-px bg-slate-200 flex-1"></div>
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">O BIEN</h3>
+                  <div className="h-px bg-slate-200 flex-1"></div>
+                </div>
+
+                {/* Opción 2: Sorteo al Azar */}
+                <button 
+                  onClick={() => realizarSorteo('azar')} 
+                  className="w-full bg-yellow-500 text-white p-6 rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-xl shadow-yellow-200 hover:bg-yellow-600 transition-all active:scale-95 flex flex-col items-center justify-center gap-1 border border-yellow-600"
+                  disabled={loadingAction}
+                >
+                  <div className="flex items-center gap-2">
+                    <PartyPopper size={20}/> Sorteo Al Azar
+                  </div>
+                  <span className="text-[9px] font-bold opacity-80 normal-case tracking-normal">El sistema elegirá automáticamente</span>
+                </button>
               </div>
             </div>
           </div>
@@ -652,7 +728,7 @@ const AdminPanel = ({ tasaBcv }) => {
           <div className="bg-white p-8 rounded-[3.5rem] w-full max-w-sm shadow-2xl relative overflow-hidden">
             <div className={`absolute top-0 left-0 right-0 h-2 ${ESTADOS[numDetail.estado].bg}`}></div>
             {selectedRifa?.estado === 'finalizada' && numDetail.id_numero === selectedRifa.id_ganador && (
-                <div className="absolute top-0 left-0 right-0 h-8 bg-yellow-400 flex items-center justify-center text-yellow-900 text-[10px] font-black uppercase animate-pulse"><Council size={12} className="mr-1"/> TICKET GANADOR</div>
+                <div className="absolute top-0 left-0 right-0 h-8 bg-yellow-400 flex items-center justify-center text-yellow-900 text-[10px] font-black uppercase animate-pulse"><Crown size={12} className="mr-1"/> TICKET GANADOR</div>
             )}
             <div className={`flex justify-between items-center mb-6 ${selectedRifa?.estado === 'finalizada' && numDetail.id_numero === selectedRifa.id_ganador ? 'mt-6' : ''}`}>
                 <h3 className="text-3xl font-black italic uppercase text-black tracking-tighter">Ticket #{numDetail.numero}</h3>
