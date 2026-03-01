@@ -143,6 +143,27 @@ const AdminPanel = ({ tasaBcv }) => {
     calculateStats();
   }, []);
 
+  // --- INTEGRACIÓN WHATSAPP ---
+  const formatPhone = (telefono) => {
+    if (!telefono) return '';
+    let cleaned = String(telefono).replace(/\D/g, ''); // Remover todo lo que no sea dígito
+    if (cleaned.startsWith('0')) {
+      return '58' + cleaned.substring(1);
+    }
+    if (!cleaned.startsWith('58')) {
+      return '58' + cleaned;
+    }
+    return cleaned;
+  };
+
+  const enviarWhatsapp = (telefono, mensaje) => {
+    if (!telefono) return;
+    const num = formatPhone(telefono);
+    const url = `https://wa.me/${num}?text=${encodeURIComponent(mensaje)}`;
+    window.open(url, '_blank');
+  };
+  // ----------------------------
+
   const calculateStats = async () => {
     const { data: nums, error } = await supabase
       .from('numeros')
@@ -221,6 +242,13 @@ const AdminPanel = ({ tasaBcv }) => {
 
     if (!error) {
       alert(`¡SORTEO REALIZADO! 🎉 El número ganador es el #${ganador.numero}`);
+      
+      // NOTIFICACIÓN WHATSAPP GANADOR
+      if (ganador.usuarios && ganador.usuarios.telefono) {
+        const mensaje = `¡FELICIDADES ${ganador.usuarios.nombre} ${ganador.usuarios.apellido}! 🎉 Eres el ganador del sorteo *${selectedRifa.nombre}* con el ticket de la suerte #${ganador.numero}. Nos comunicaremos contigo para la entrega de tu premio. 🏆`;
+        enviarWhatsapp(ganador.usuarios.telefono, mensaje);
+      }
+
       const updatedRifa = { ...selectedRifa, estado: 'finalizada', id_ganador: ganador.id_numero };
       setSelectedRifa(updatedRifa);
       setRifas(rifas.map(r => r.id_rifa === updatedRifa.id_rifa ? updatedRifa : r));
@@ -238,6 +266,13 @@ const AdminPanel = ({ tasaBcv }) => {
     
     await supabase.from('numeros').update(updateData).eq('id_numero', numId);
     await openRifaDetail(selectedRifa);
+    
+    // NOTIFICACIÓN WHATSAPP PAGO INDIVIDUAL
+    if (nuevoEstado === 'pagado' && numDetail && numDetail.usuarios) {
+      const mensaje = `¡Hola ${numDetail.usuarios.nombre} ${numDetail.usuarios.apellido}! ✅ Tu ticket #${numDetail.numero} para el sorteo *${selectedRifa.nombre}* ha sido aprobado. Oficialmente estás participando. ¡Mucha suerte! 🍀`;
+      enviarWhatsapp(numDetail.usuarios.telefono, mensaje);
+    }
+
     setNumDetail(null);
     calculateStats();
     setLoadingAction(false);
@@ -246,6 +281,11 @@ const AdminPanel = ({ tasaBcv }) => {
   const aprobarTodoElCliente = async (clienteId) => {
     if(!window.confirm("¿Confirmar todos los pagos pendientes de este cliente?")) return;
     setLoadingAction(true);
+    
+    const clienteData = clientesAgrupados[clienteId];
+    const ticketsPendientes = clienteData?.numeros.filter(n => n.estado === 'apartado') || [];
+    const numerosTickets = ticketsPendientes.map(n => n.numero).join(', ');
+
     const { error } = await supabase
       .from('numeros')
       .update({ estado: 'pagado' })
@@ -253,7 +293,14 @@ const AdminPanel = ({ tasaBcv }) => {
       .eq('comprador_id', clienteId)
       .eq('estado', 'apartado');
     
-    if(!error) openRifaDetail(selectedRifa);
+    if(!error) {
+      // NOTIFICACIÓN WHATSAPP PAGO MASIVO
+      if (clienteData?.info?.telefono && numerosTickets) {
+        const mensaje = `¡Hola ${clienteData.info.nombre} ${clienteData.info.apellido}! ✅ Tus tickets #${numerosTickets} para el sorteo *${selectedRifa.nombre}* han sido aprobados. Oficialmente estás participando. ¡Mucha suerte! 🍀`;
+        enviarWhatsapp(clienteData.info.telefono, mensaje);
+      }
+      openRifaDetail(selectedRifa);
+    }
     calculateStats();
     setLoadingAction(false);
   };
@@ -506,7 +553,11 @@ const AdminPanel = ({ tasaBcv }) => {
                                   {ticketGanador.usuarios ? `${ticketGanador.usuarios.nombre} ${ticketGanador.usuarios.apellido}` : "Ticket no vendido (Vacante)"}
                                 </p>
                                 {ticketGanador.usuarios && (
-                                  <p className="text-sm flex items-center gap-2 justify-center md:justify-start mt-1"><Phone size={14}/> {ticketGanador.usuarios.telefono}</p>
+                                  <div className="text-sm flex items-center justify-center md:justify-start mt-1">
+                                      <button onClick={() => enviarWhatsapp(ticketGanador.usuarios.telefono, `¡Hola ${ticketGanador.usuarios.nombre}! Te contactamos de AlexCars' Edition para coordinar la entrega de tu premio.`)} className="flex items-center gap-2 hover:text-green-300 transition-colors" title="Contactar por WhatsApp">
+                                          <Smartphone size={16} className="text-green-300"/> {ticketGanador.usuarios.telefono}
+                                      </button>
+                                  </div>
                                 )}
                             </div>
                         </div>
@@ -558,7 +609,11 @@ const AdminPanel = ({ tasaBcv }) => {
                                 {item.info?.nombre} {item.info?.apellido}
                                 {tieneGanador && <Star size={12} className="text-yellow-500 fill-yellow-500"/>}
                             </p>
-                            <p className="text-[10px] text-slate-500 font-black flex items-center gap-1 mt-1"><Phone size={10} className="text-slate-400"/> {item.info?.telefono}</p>
+                            <div className="text-[10px] text-slate-500 font-black mt-1">
+                                <button onClick={() => enviarWhatsapp(item.info?.telefono, `¡Hola ${item.info?.nombre}! Te contactamos de AlexCars' Edition.`)} className="flex items-center gap-1 hover:text-green-600 transition-colors" title="Contactar por WhatsApp">
+                                    <Smartphone size={12} className="text-green-500"/> {item.info?.telefono}
+                                </button>
+                            </div>
                           </div>
                           <div className="flex flex-col items-end gap-1">
                             {item.tienePendientes && selectedRifa.estado === 'activa' && (
@@ -741,7 +796,9 @@ const AdminPanel = ({ tasaBcv }) => {
                     <div><p className="text-[9px] font-black text-slate-400 uppercase">Cliente</p><p className="text-sm font-black text-slate-800">{numDetail.usuarios?.nombre} {numDetail.usuarios?.apellido}</p></div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="bg-white p-2 rounded-xl text-red-600 shadow-sm"><Phone size={18}/></div>
+                    <button onClick={() => enviarWhatsapp(numDetail.usuarios?.telefono, `¡Hola ${numDetail.usuarios?.nombre}! Te contactamos de AlexCars' Edition sobre tu ticket #${numDetail.numero}.`)} className="bg-white p-2 rounded-xl text-green-600 shadow-sm hover:bg-green-50 transition-all cursor-pointer" title="Contactar por WhatsApp">
+                        <Smartphone size={18}/>
+                    </button>
                     <div><p className="text-[9px] font-black text-slate-400 uppercase">Teléfono</p><p className="text-sm font-black text-slate-800">{numDetail.usuarios?.telefono}</p></div>
                 </div>
                 <div className="flex items-center gap-3">
