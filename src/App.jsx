@@ -668,7 +668,6 @@ const AdminPanel = () => {
 };
 
 // --- VISTA CLIENTE ---
-// --- VISTA CLIENTE ---
 const ClientePanel = ({ session }) => {
   const userId = session.user.id;
   const [rifas, setRifas] = useState([]);
@@ -680,7 +679,7 @@ const ClientePanel = ({ session }) => {
   const [hideSold, setHideSold] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState(null);
   const [misNumeros, setMisNumeros] = useState([]);
-  const [showMisTickets, setShowMisTickets] = useState(false); // NUEVO: Estado para vista de Mis Tickets
+  const [showMisTickets, setShowMisTickets] = useState(false);
 
   useEffect(() => { 
     fetchRifas(); 
@@ -693,9 +692,27 @@ const ClientePanel = ({ session }) => {
   };
 
   const fetchMisNumeros = async () => {
-    // MODIFICADO: Traemos el estado y los detalles de la rifa para el PDF
-    const { data } = await supabase.from('numeros').select('id_numero, id_rifa, numero, estado, rifas(nombre, precio, fecha_fin)').eq('comprador_id', userId);
-    setMisNumeros(data || []);
+    // CORRECCIÓN: Se asegura la relación con la tabla rifas para obtener nombre, precio y fecha
+    const { data, error } = await supabase
+      .from('numeros')
+      .select(`
+        id_numero, 
+        id_rifa, 
+        numero, 
+        estado, 
+        rifas (
+          nombre, 
+          precio, 
+          fecha_fin
+        )
+      `)
+      .eq('comprador_id', userId);
+    
+    if (error) {
+      console.error("Error al obtener tickets:", error);
+    } else {
+      setMisNumeros(data || []);
+    }
   };
 
   const selectRifa = async (rifa) => {
@@ -710,63 +727,72 @@ const ClientePanel = ({ session }) => {
     const { error } = await supabase.from('numeros').update({ 
         estado: 'apartado', comprador_id: userId, referencia_pago: payData.ref 
     }).in('id_numero', cart);
+    
     if(!error) { 
         alert("¡Reporte de pago enviado! Tu ticket estará en revisión."); 
-        setSelectedRifa(null); setShowPay(false); setPaymentMethod(null);
-        fetchMisNumeros(); // Actualizamos los tickets del usuario
+        setSelectedRifa(null); 
+        setShowPay(false); 
+        setPaymentMethod(null);
+        await fetchMisNumeros(); // Refresca la lista inmediatamente
     }
   };
 
-  // NUEVO: Función para selección automática de tickets
   const handleSeleccionAutomatica = () => {
     const disponibles = nums.filter(n => n.estado === 'disponible');
     if (disponibles.length === 0) return alert("Lo sentimos, no hay números disponibles en este sorteo.");
 
     const cantidadStr = window.prompt(`¿Cuántos números al azar deseas comprar? (Máximo disponible: ${disponibles.length})`, "1");
-    if (!cantidadStr) return; // Si el usuario cancela
+    if (!cantidadStr) return;
 
     const cantidad = parseInt(cantidadStr);
     if (isNaN(cantidad) || cantidad <= 0) return alert("Por favor, ingresa una cantidad válida.");
-    if (cantidad > disponibles.length) return alert("No hay suficientes números disponibles para esa cantidad.");
+    if (cantidad > disponibles.length) return alert("No hay suficientes números disponibles.");
 
-    // Seleccionar al azar
     const shuffled = [...disponibles].sort(() => 0.5 - Math.random());
     const seleccionados = shuffled.slice(0, cantidad).map(n => n.id_numero);
 
     setCart(seleccionados);
-    setShowPay(true); // Redirigir directamente al pago
+    setShowPay(true);
   };
 
-  // NUEVO: Función para generar y descargar comprobante en PDF
   const descargarComprobante = (rifaNombre, numeros) => {
     const doc = new jsPDF();
     doc.setFontSize(18);
-    doc.text("Comprobante de Participación - AlexCars' Edition", 14, 20);
-    doc.setFontSize(12);
-    doc.text(`Sorteo: ${rifaNombre}`, 14, 30);
-    doc.text(`Fecha de emisión: ${new Date().toLocaleDateString()}`, 14, 40);
+    doc.setTextColor(220, 38, 38);
+    doc.text("ALEXCARS' EDITION", 14, 20);
+    
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text("Comprobante de Participación", 14, 30);
+    
+    doc.setFontSize(10);
+    doc.text(`Sorteo: ${rifaNombre}`, 14, 40);
+    doc.text(`Fecha: ${new Date().toLocaleString()}`, 14, 45);
 
     const tableData = numeros.map(n => [
         `Ticket #${n.numero}`, 
-        n.estado === 'pagado' ? 'APROBADO' : 'EN REVISIÓN'
+        n.estado === 'pagado' ? 'CONFIRMADO' : 'EN REVISIÓN'
     ]);
 
     autoTable(doc, { 
         head: [['Número de Ticket', 'Estado']], 
         body: tableData, 
-        startY: 50,
-        theme: 'striped',
-        headStyles: { fillColor: [220, 38, 38] } // Rojo estilo App
+        startY: 55,
+        theme: 'grid',
+        headStyles: { fillColor: [0, 0, 0] }
     });
 
-    doc.save(`Comprobante_${rifaNombre}.pdf`);
+    doc.save(`Ticket_${rifaNombre.replace(/\s+/g, '_')}.pdf`);
   };
 
-  // Agrupar tickets del usuario por rifa para la vista de "Mis Tickets"
+  // Agrupación de tickets por rifa
   const misTicketsAgrupados = misNumeros.reduce((acc, n) => {
     if (n.rifas) {
-        if (!acc[n.id_rifa]) acc[n.id_rifa] = { infoRifa: n.rifas, numeros: [] };
-        acc[n.id_rifa].numeros.push(n);
+        const idRifa = n.id_rifa;
+        if (!acc[idRifa]) {
+            acc[idRifa] = { infoRifa: n.rifas, numeros: [] };
+        }
+        acc[idRifa].numeros.push(n);
     }
     return acc;
   }, {});
@@ -779,19 +805,17 @@ const ClientePanel = ({ session }) => {
             <h1 className="font-black italic text-2xl tracking-tighter text-black uppercase">AlexCars' Edition</h1>
         </div>
         <div className="flex items-center gap-3">
-            {/* NUEVO: Botón de Mis Tickets */}
             <button onClick={() => {setShowMisTickets(true); setSelectedRifa(null);}} className="p-3 text-slate-600 bg-slate-100 rounded-2xl hover:text-red-600 hover:bg-red-50 transition-all flex items-center gap-2 font-black text-[10px] uppercase">
                 <Ticket size={18}/> Mis Tickets
             </button>
             <button onClick={async () => { await supabase.auth.signOut(); }} className="p-3 text-slate-400 bg-slate-100 rounded-2xl hover:text-red-600 hover:bg-red-50 transition-all">
-            <LogOut size={22}/>
+                <LogOut size={22}/>
             </button>
         </div>
       </header>
 
       <main className="p-4 max-w-2xl mx-auto">
         {showMisTickets ? (
-            // NUEVO: Vista de Mis Tickets
             <div className="space-y-6 mt-4 pb-20">
                 <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-black italic uppercase tracking-tighter text-black">Mis Sorteos</h2>
@@ -805,7 +829,7 @@ const ClientePanel = ({ session }) => {
                     </div>
                 ) : (
                     Object.values(misTicketsAgrupados).map((grupo, idx) => (
-                        <div key={idx} className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm">
+                        <div key={idx} className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm mb-4">
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <h3 className="text-xl font-black uppercase italic leading-none text-black">{grupo.infoRifa.nombre}</h3>
@@ -875,7 +899,6 @@ const ClientePanel = ({ session }) => {
                           <button onClick={() => setSelectedRifa(null)} className="flex items-center gap-2 font-black text-slate-500 hover:text-black text-[10px] uppercase tracking-widest px-4 py-2 bg-white rounded-full border border-slate-200 shadow-sm"><ChevronLeft size={16}/> Atrás</button>
                           {!isFinished && (
                               <div className="flex gap-2">
-                                  {/* NUEVO: Botón de Selección Automática */}
                                   <button onClick={handleSeleccionAutomatica} className="flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-md bg-zinc-900 text-white hover:bg-black">
                                     <PartyPopper size={14}/> Selección Azar
                                   </button>
@@ -891,14 +914,12 @@ const ClientePanel = ({ session }) => {
                                 <h2 className="text-4xl font-black italic uppercase leading-none mb-2 drop-shadow-md">¡FELICIDADES!</h2>
                                 <p className="text-yellow-100 text-sm font-bold uppercase tracking-widest drop-shadow-sm mb-6">Eres el afortunado ganador</p>
                                 <div className="bg-white text-yellow-600 font-black text-3xl py-4 px-10 rounded-full inline-block shadow-lg border-2 border-yellow-100">TICKET #{elTicketGanador?.numero}</div>
-                                <p className="text-[10px] text-yellow-100 mt-6 font-bold uppercase">Nos pondremos en contacto contigo pronto.</p>
                             </div>
                         )}
                         {isFinished && !iWonThisRifa && elTicketGanador && (
                             <div className="bg-slate-200 p-8 rounded-[3rem] text-slate-500 text-center mb-8 border border-slate-300">
                                 <Trophy size={40} className="mx-auto mb-4 opacity-40"/><h3 className="text-2xl font-black uppercase italic tracking-tighter text-slate-700 mb-2">Sorteo Finalizado</h3>
                                 <p className="text-xs font-bold">El ticket ganador fue el <span className="text-black font-black px-3 py-1 bg-white rounded-xl border border-slate-300 ml-1 text-sm">#{elTicketGanador.numero}</span></p>
-                                <p className="text-[10px] uppercase font-bold text-slate-500 mt-4 tracking-widest">¡Suerte para la próxima!</p>
                             </div>
                         )}
                         {!isFinished && (
@@ -913,34 +934,22 @@ const ClientePanel = ({ session }) => {
                           {nums.map(n => {
                             const isMine = n.comprador_id === userId;
                             const isSelected = cart.includes(n.id_numero);
-                            
-                            // MODIFICADO: Lógica de colores del CLIENTE y estados de aprobación
-                            let bgColor = 'bg-red-600 border-red-700 text-white hover:bg-red-500 shadow-sm'; // Libres = Rojos
+                            let bgColor = 'bg-red-600 border-red-700 text-white hover:bg-red-500 shadow-sm'; 
                             let showCheck = false;
                             
                             if (n.estado === 'pagado' || n.estado === 'apartado') {
-                                bgColor = 'bg-slate-200 border-slate-300 text-slate-400 opacity-60'; // Vendidos o apartados ajenos = Gris opaco
+                                bgColor = 'bg-slate-200 border-slate-300 text-slate-400 opacity-60';
                             }
-                            
                             if (isMine) {
                                 if (n.estado === 'apartado') {
-                                    // Ticket en revisión (parpadea, sin check)
                                     bgColor = 'bg-black border-zinc-800 text-white shadow-xl shadow-black/20 z-10 animate-pulse opacity-80'; 
                                 } else if (n.estado === 'pagado') {
-                                    // Ticket aprobado (fijo, con check)
                                     bgColor = 'bg-black border-zinc-800 text-white shadow-xl shadow-black/20 z-10 scale-105'; 
                                     showCheck = true;
                                 }
                             }
-
-                            if (isSelected) {
-                                bgColor = 'bg-zinc-800 border-black text-white scale-110 z-10';
-                            }
-
-                            if (isFinished && n.id_numero === selectedRifa.id_ganador) {
-                                bgColor = 'bg-yellow-400 border-yellow-500 text-white shadow-lg shadow-yellow-200 scale-110 z-20 animate-pulse'; // Ganador = Dorado parpadeante
-                            }
-                            
+                            if (isSelected) bgColor = 'bg-zinc-800 border-black text-white scale-110 z-10';
+                            if (isFinished && n.id_numero === selectedRifa.id_ganador) bgColor = 'bg-yellow-400 border-yellow-500 text-white shadow-lg shadow-yellow-200 scale-110 z-20 animate-pulse';
                             if (hideSold && n.estado !== 'disponible' && !isMine && !isFinished) return null;
                             
                             return (
@@ -973,7 +982,7 @@ const ClientePanel = ({ session }) => {
 
       {showPay && (
         <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-md flex items-center justify-center p-4 z-50">
-           <div className="bg-white p-8 rounded-[3.5rem] w-full max-sm shadow-2xl relative overflow-hidden">
+           <div className="bg-white p-8 rounded-[3.5rem] w-full max-w-sm shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-2 bg-red-600"></div>
             <h3 className="text-3xl font-black mb-2 uppercase italic text-black tracking-tighter">Completar Pago</h3>
             {!paymentMethod ? (
