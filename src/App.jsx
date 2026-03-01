@@ -785,7 +785,7 @@ const ClientePanel = ({ session }) => {
     doc.save(`Ticket_${rifaNombre.replace(/\s+/g, '_')}.pdf`);
   };
 
-  // Agrupación de tickets por rifa
+  // Agrupación de tickets por rifa corregida para manejar datos nulos
   const misTicketsAgrupados = misNumeros.reduce((acc, n) => {
     if (n.rifas) {
         const idRifa = n.id_rifa;
