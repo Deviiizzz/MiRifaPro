@@ -693,42 +693,32 @@ const ClientePanel = ({ session }) => {
 
   const fetchMisNumeros = async () => {
     try {
-        // 1. Traemos solo los números del usuario
-        const { data: tickets, error: errorTickets } = await supabase
-            .from('numeros')
-            .select('id_numero, id_rifa, numero, estado, comprador_id')
-            .eq('comprador_id', userId);
+      // Especificamos la relación exacta usando !numeros_id_rifa_fkey
+      const { data, error } = await supabase
+        .from('numeros')
+        .select(`
+          id_numero, 
+          id_rifa, 
+          numero, 
+          estado, 
+          rifas!numeros_id_rifa_fkey (
+            nombre, 
+            precio, 
+            fecha_fin
+          )
+        `)
+        .eq('comprador_id', userId);
 
-        if (errorTickets) throw errorTickets;
-
-        if (!tickets || tickets.length === 0) {
-            setMisNumeros([]);
-            return;
-        }
-
-        // 2. Traemos la información de las rifas para esos tickets
-        const { data: infoRifas, error: errorRifas } = await supabase
-            .from('rifas')
-            .select('id_rifa, nombre, precio, fecha_fin');
-
-        if (errorRifas) throw errorRifas;
-
-        // 3. Unimos los datos manualmente en el código (así no dependemos de la relación de Supabase)
-        const ticketsCombinados = tickets.map(t => {
-            const dataRifa = infoRifas.find(r => r.id_rifa === t.id_rifa);
-            return {
-                ...t,
-                rifas: dataRifa // Esto mantiene tu estructura original para que el PDF no falle
-            };
-        });
-
-        setMisNumeros(ticketsCombinados);
-        console.log("Tickets cargados con éxito:", ticketsCombinados);
-
+      if (error) {
+        console.error("Error al obtener tickets:", error);
+      } else {
+        console.log("Tickets obtenidos:", data);
+        setMisNumeros(data || []);
+      }
     } catch (err) {
-        console.error("Error detallado en fetchMisNumeros:", err);
+      console.error("Error inesperado:", err);
     }
-};
+  };
 
   const selectRifa = async (rifa) => {
     setSelectedRifa(rifa);
@@ -800,18 +790,17 @@ const ClientePanel = ({ session }) => {
     doc.save(`Ticket_${rifaNombre.replace(/\s+/g, '_')}.pdf`);
   };
 
-  // Agrupación de tickets por rifa corregida para manejar datos nulos
+  // Agrupar tickets del usuario por rifa para la vista de "Mis Tickets"
   const misTicketsAgrupados = misNumeros.reduce((acc, n) => {
-    if (n.rifas) {
-        const idRifa = n.id_rifa;
-        if (!acc[idRifa]) {
-            acc[idRifa] = { infoRifa: n.rifas, numeros: [] };
-        }
-        acc[idRifa].numeros.push(n);
+    // Verificamos que n.rifas exista para evitar errores visuales
+    const rifaData = n.rifas;
+    if (rifaData) {
+        if (!acc[n.id_rifa]) acc[n.id_rifa] = { infoRifa: rifaData, numeros: [] };
+        acc[n.id_rifa].numeros.push(n);
     }
     return acc;
   }, {});
-
+  
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
       <header className="bg-white p-5 border-b border-slate-200 flex justify-between items-center sticky top-0 z-20 shadow-sm">
