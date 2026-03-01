@@ -140,26 +140,25 @@ const AdminPanel = ({ tasaBcv }) => {
   }, []);
 
   const calculateStats = async () => {
-  const { data: nums, error } = await supabase
-    .from('numeros')
-    .select(`estado, rifas!numeros_id_rifa_fkey (precio)`);
+    const { data: nums, error } = await supabase
+      .from('numeros')
+      .select(`estado, rifas!numeros_id_rifa_fkey (precio)`);
 
-  if (error) { console.error("❌ Error detallado:", error); return; }
+    if (error) { console.error("Error stats:", error); return; }
 
-  let total = 0; let pagados = 0; let revision = 0;
-  
-  nums?.forEach(n => {
-    const precioTicket = n.rifas?.precio || 0;
-    if (n.estado === 'pagado') { total += precioTicket; pagados++; }
-    if (n.estado === 'apartado') { revision++; }
-  });
+    let total = 0; let pagados = 0; let revision = 0;
+    nums?.forEach(n => {
+      const precioTicket = n.rifas?.precio || 0;
+      if (n.estado === 'pagado') { total += precioTicket; pagados++; }
+      if (n.estado === 'apartado') { revision++; }
+    });
 
-  setStats({ 
-    recaudado: total.toLocaleString('en-US', { minimumFractionDigits: 2 }), 
-    vendidos: pagados, 
-    pendientes: revision 
-  });
-};
+    setStats({ 
+      recaudado: total.toLocaleString('en-US', { minimumFractionDigits: 2 }), 
+      vendidos: pagados, 
+      pendientes: revision 
+    });
+  };
   
   const fetchRifas = async () => {
     const { data } = await supabase.from('rifas').select('*').order('creado_en', { ascending: false });
@@ -192,7 +191,7 @@ const AdminPanel = ({ tasaBcv }) => {
       alert("No puedes hacer el sorteo. Aún no hay tickets pagados confirmados.");
       return;
     }
-    if (!window.confirm("¿Estás seguro de finalizar la rifa y realizar el sorteo? El sistema elegirá un ganador al azar entre los tickets VENDIDOS. Esta acción no se puede deshacer.")) return;
+    if (!window.confirm("¿Estás seguro de finalizar la rifa?")) return;
 
     setLoadingAction(true);
     const ganador = pagados[Math.floor(Math.random() * pagados.length)];
@@ -203,11 +202,11 @@ const AdminPanel = ({ tasaBcv }) => {
     }).eq('id_rifa', selectedRifa.id_rifa);
 
     if (!error) {
-      alert(`¡SORTEO REALIZADO! 🎉 El ticket ganador es el #${ganador.numero}`);
+      alert(`¡SORTEO REALIZADO! Ticket ganador #${ganador.numero}`);
       const updatedRifa = { ...selectedRifa, estado: 'finalizada', id_ganador: ganador.id_numero };
       setSelectedRifa(updatedRifa);
-      setRifas(rifas.map(r => r.id_rifa === updatedRifa.id_rifa ? updatedRifa : r));
-    } else { alert("Error al realizar el sorteo: " + error.message); }
+      fetchRifas();
+    }
     setLoadingAction(false);
   };
 
@@ -225,16 +224,14 @@ const AdminPanel = ({ tasaBcv }) => {
   };
 
   const aprobarTodoElCliente = async (clienteId) => {
-    if(!window.confirm("¿Confirmar todos los pagos pendientes de este cliente?")) return;
+    if(!window.confirm("¿Confirmar todos los pagos de este cliente?")) return;
     setLoadingAction(true);
-    const { error } = await supabase
-      .from('numeros')
-      .update({ estado: 'pagado' })
+    await supabase.from('numeros').update({ estado: 'pagado' })
       .eq('id_rifa', selectedRifa.id_rifa)
       .eq('comprador_id', clienteId)
       .eq('estado', 'apartado');
     
-    if(!error) openRifaDetail(selectedRifa);
+    openRifaDetail(selectedRifa);
     calculateStats();
     setLoadingAction(false);
   };
@@ -248,8 +245,7 @@ const AdminPanel = ({ tasaBcv }) => {
       if (imageFile) {
         const fileExt = imageFile.name.split('.').pop();
         const fileName = `${Math.random()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from('rifas_premios').upload(fileName, imageFile);
-        if (uploadError) throw uploadError;
+        await supabase.storage.from('rifas_premios').upload(fileName, imageFile);
         const { data: urlData } = supabase.storage.from('rifas_premios').getPublicUrl(fileName);
         publicUrl = urlData.publicUrl;
       }
@@ -267,45 +263,10 @@ const AdminPanel = ({ tasaBcv }) => {
       }));
       await supabase.from('numeros').insert(numEntries);
 
-      alert("Rifa creada exitosamente");
       setView('list');
       fetchRifas();
       calculateStats();
-      setImageFile(null);
-      setNewRifa({ nombre: '', descripcion: '', cantidad: 100, precio: 0, fecha: '' });
     } catch (err) { alert("Error: " + err.message); }
-    finally { setLoadingAction(false); }
-  };
-
-  const handleEditRifa = async (e) => {
-    e.preventDefault();
-    setLoadingAction(true);
-    let publicUrl = selectedRifa.imagen_url;
-
-    try {
-      if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from('rifas_premios').upload(fileName, imageFile);
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from('rifas_premios').getPublicUrl(fileName);
-        publicUrl = urlData.publicUrl;
-      }
-
-      const { error } = await supabase.from('rifas').update({
-        nombre: selectedRifa.nombre,
-        descripcion: selectedRifa.descripcion,
-        fecha_fin: selectedRifa.fecha_fin,
-        imagen_url: publicUrl
-      }).eq('id_rifa', selectedRifa.id_rifa);
-
-      if (error) throw error;
-
-      alert("Rifa actualizada");
-      setView('list');
-      fetchRifas();
-      setImageFile(null);
-    } catch (err) { alert("Error al editar: " + err.message); }
     finally { setLoadingAction(false); }
   };
 
@@ -314,27 +275,21 @@ const AdminPanel = ({ tasaBcv }) => {
     setLoadingAction(true);
     try {
       const numerosArray = manualData.numeros.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
-      if (numerosArray.length === 0) throw new Error("Ingresa números válidos");
-      
       let { data: usuario } = await supabase.from('usuarios').select('id_usuario').eq('telefono', manualData.telefono).maybeSingle();
       let clienteId = usuario?.id_usuario;
       
       if (!clienteId) {
-        const { data: newUser, error: createError } = await supabase.from('usuarios').insert([{
+        const { data: newUser } = await supabase.from('usuarios').insert([{
           nombre: manualData.nombre, apellido: manualData.apellido,
           telefono: manualData.telefono, rol: 'cliente'
         }]).select().single();
-        if (createError) throw createError;
         clienteId = newUser.id_usuario;
       }
 
-      const { error: updateError } = await supabase.from('numeros').update({
+      await supabase.from('numeros').update({
         estado: manualData.estado, comprador_id: clienteId, referencia_pago: 'VENTA_INTERNA'
       }).eq('id_rifa', selectedRifa.id_rifa).in('numero', numerosArray);
 
-      if (updateError) throw updateError;
-      
-      alert("Números asignados correctamente");
       setShowManualAssign(false);
       openRifaDetail(selectedRifa);
       calculateStats();
@@ -369,6 +324,7 @@ const AdminPanel = ({ tasaBcv }) => {
     XLSX.writeFile(wb, `Reporte_${selectedRifa.nombre}.xlsx`);
   };
 
+  // AGRUPAR CLIENTES PARA LA VISTA DETALLE
   const clientesAgrupados = numsRifa.reduce((acc, n) => {
     if (n.comprador_id) {
       const id = n.comprador_id;
@@ -420,17 +376,17 @@ const AdminPanel = ({ tasaBcv }) => {
 
             <div className="flex justify-between items-center">
                 <h2 className="text-xl font-black italic uppercase tracking-tighter text-slate-400">Tus Sorteos</h2>
-                <button onClick={() => setView('create')} className="bg-red-600 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg shadow-red-200 hover:bg-red-700 transition-all active:scale-95 text-xs uppercase">
+                <button onClick={() => setView('create')} className="bg-red-600 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg shadow-red-200 hover:bg-red-700 transition-all text-xs uppercase">
                     <Plus size={18}/> Crear Rifa
                 </button>
             </div>
             
             <div className="grid gap-4 md:grid-cols-2">
               {rifas.map(r => (
-                <div key={r.id_rifa} className="bg-white p-4 rounded-[2.5rem] shadow-sm border border-slate-200 flex items-center gap-4 group transition-all hover:shadow-xl hover:border-red-200 relative overflow-hidden">
+                <div key={r.id_rifa} className="bg-white p-4 rounded-[2.5rem] shadow-sm border border-slate-200 flex items-center gap-4 group transition-all hover:shadow-xl relative overflow-hidden">
                   {r.estado === 'finalizada' && <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-[9px] font-black px-4 py-1 rounded-bl-xl z-10">FINALIZADA</div>}
                   {r.imagen_url ? (
-                    <img src={r.imagen_url} className={`w-20 h-20 rounded-[1.8rem] object-cover bg-slate-100 shadow-md shadow-slate-200 ${r.estado === 'finalizada' ? 'grayscale opacity-80' : ''}`} />
+                    <img src={r.imagen_url} className={`w-20 h-20 rounded-[1.8rem] object-cover bg-slate-100 shadow-md ${r.estado === 'finalizada' ? 'grayscale opacity-80' : ''}`} />
                   ) : (
                     <div className="w-20 h-20 rounded-[1.8rem] bg-slate-50 flex items-center justify-center text-slate-300"><ImageIcon size={32}/></div>
                   )}
@@ -438,7 +394,7 @@ const AdminPanel = ({ tasaBcv }) => {
                     <div className="flex items-center gap-2">
                         <h3 className="font-black uppercase text-sm leading-tight text-slate-900">{r.nombre}</h3>
                         {pendientesNotif[r.id_rifa] > 0 && (
-                            <span className="bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full animate-bounce shadow-md">
+                            <span className="bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full animate-bounce">
                                 {pendientesNotif[r.id_rifa]} PENDIENTES
                             </span>
                         )}
@@ -447,8 +403,7 @@ const AdminPanel = ({ tasaBcv }) => {
                     <p className="text-red-600 font-black text-xs mt-1">${r.precio} USD</p>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <button onClick={() => { setSelectedRifa(r); setView('edit'); }} className="text-slate-600 bg-slate-100 p-3 rounded-2xl hover:bg-slate-200 transition-all"><Edit3 size={18}/></button>
-                    <button onClick={async () => { if(window.confirm("¿Seguro de borrar esta rifa? Todos los números se perderán.")) { await supabase.from('rifas').delete().eq('id_rifa', r.id_rifa); fetchRifas(); calculateStats(); } }} className="text-red-400 hover:text-red-600 bg-red-50 p-3 rounded-2xl transition-all"><Trash2 size={18}/></button>
+                    <button onClick={async () => { if(window.confirm("¿Seguro de borrar esta rifa?")) { await supabase.from('rifas').delete().eq('id_rifa', r.id_rifa); fetchRifas(); calculateStats(); } }} className="text-red-400 hover:text-red-600 bg-red-50 p-3 rounded-2xl transition-all"><Trash2 size={18}/></button>
                   </div>
                 </div>
               ))}
@@ -460,222 +415,252 @@ const AdminPanel = ({ tasaBcv }) => {
           <div className="space-y-6">
             <div className="flex flex-wrap justify-between items-center gap-4 bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
                 <button onClick={() => setView('list')} className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase tracking-widest hover:text-black"><ChevronLeft size={18}/> Volver</button>
-                <div className="flex flex-wrap gap-2">
-                    <button onClick={exportToPDF} className="bg-slate-900 text-white p-3 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 hover:bg-black"><FileText size={16}/> PDF</button>
-                    <button onClick={exportToExcel} className="bg-green-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 hover:bg-green-700"><Download size={16}/> EXCEL</button>
-                    {selectedRifa.estado === 'activa' && (
-                        <>
-                            <button onClick={() => setShowManualAssign(true)} className="bg-black text-white p-3 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 shadow-lg shadow-zinc-300 hover:bg-zinc-800"><Plus size={16}/> Venta Manual</button>
-                            <button onClick={realizarSorteo} disabled={loadingAction} className="bg-yellow-500 text-white p-3 px-4 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 shadow-lg shadow-yellow-200 hover:bg-yellow-600 transition-all ml-4">
-                                {loadingAction ? <Loader2 size={16} className="animate-spin"/> : <Crown size={18}/>} Realizar Sorteo
-                            </button>
-                        </>
+                <div className="flex gap-2">
+                    <button onClick={exportToPDF} className="p-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all flex items-center gap-2 text-[10px] font-black uppercase"><Download size={16}/> PDF</button>
+                    <button onClick={exportToExcel} className="p-3 bg-green-50 text-green-600 rounded-2xl hover:bg-green-100 transition-all flex items-center gap-2 text-[10px] font-black uppercase"><FileText size={16}/> EXCEL</button>
+                    <button onClick={() => setShowManualAssign(true)} className="p-3 bg-slate-900 text-white rounded-2xl hover:bg-black transition-all flex items-center gap-2 text-[10px] font-black uppercase"><Plus size={16}/> Venta Interna</button>
+                    {selectedRifa.estado !== 'finalizada' && (
+                        <button onClick={realizarSorteo} className="p-3 bg-yellow-400 text-yellow-900 rounded-2xl hover:bg-yellow-500 transition-all flex items-center gap-2 text-[10px] font-black uppercase"><Trophy size={16}/> Realizar Sorteo</button>
                     )}
                 </div>
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-6">
-              <div className="lg:w-2/3 space-y-4">
-                {selectedRifa.estado === 'finalizada' && ticketGanador && (
-                    <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-yellow-200 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden border-4 border-yellow-300">
-                        <div className="bg-white/20 p-5 rounded-3xl backdrop-blur-sm animate-celebration relative z-10"><Crown size={56} className="text-white drop-shadow-md"/></div>
-                        <div className="text-center md:text-left relative z-10">
-                            <h3 className="text-3xl font-black italic uppercase tracking-tighter drop-shadow-md">¡Tenemos un Ganador!</h3>
-                            <p className="text-sm font-bold mt-2 uppercase tracking-widest opacity-90">Ticket de la suerte: <span className="bg-white text-yellow-600 px-2 py-1 rounded-md font-black">#{ticketGanador.numero}</span></p>
-                            <div className="mt-4 bg-black/10 p-4 rounded-2xl inline-block backdrop-blur-md">
-                                <p className="font-black text-lg">{ticketGanador.usuarios?.nombre} {ticketGanador.usuarios?.apellido}</p>
-                                <p className="text-sm flex items-center gap-2 justify-center md:justify-start mt-1"><Phone size={14}/> {ticketGanador.usuarios?.telefono}</p>
-                            </div>
+            <div className="bg-black text-white p-8 rounded-[3rem] border border-zinc-800 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12"><Ticket size={120}/></div>
+                <div className="relative z-10">
+                    <p className="text-[10px] font-black text-red-500 uppercase tracking-[0.3em] mb-2">Panel de Control de Sorteo</p>
+                    <h2 className="text-4xl font-black italic uppercase tracking-tighter mb-4 leading-none">{selectedRifa.nombre}</h2>
+                    <div className="flex flex-wrap gap-4 mt-6">
+                        <div className="bg-zinc-900/50 backdrop-blur-md px-6 py-3 rounded-2xl border border-zinc-800">
+                            <p className="text-[9px] text-zinc-500 font-black uppercase tracking-widest mb-1">Precio Ticket</p>
+                            <p className="text-2xl font-black text-red-500">${selectedRifa.precio}</p>
                         </div>
-                        <PartyPopper size={120} className="absolute -right-10 -bottom-10 text-white opacity-20 rotate-12"/>
+                        <div className="bg-zinc-900/50 backdrop-blur-md px-6 py-3 rounded-2xl border border-zinc-800">
+                            <p className="text-[9px] text-zinc-500 font-black uppercase tracking-widest mb-1">Total Números</p>
+                            <p className="text-2xl font-black">{selectedRifa.cantidad_numeros}</p>
+                        </div>
+                        <div className="bg-zinc-900/50 backdrop-blur-md px-6 py-3 rounded-2xl border border-zinc-800">
+                            <p className="text-[9px] text-zinc-500 font-black uppercase tracking-widest mb-1">Fecha Límite</p>
+                            <p className="text-2xl font-black uppercase text-zinc-300">{selectedRifa.fecha_fin}</p>
+                        </div>
                     </div>
-                )}
+                </div>
+            </div>
 
-                <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm flex gap-6 items-center">
-                    {selectedRifa.imagen_url && <img src={selectedRifa.imagen_url} className="w-24 h-24 rounded-3xl object-cover shadow-lg" />}
+            {selectedRifa.estado === 'finalizada' && ticketGanador && (
+                <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 p-8 rounded-[3rem] text-yellow-950 shadow-xl flex items-center justify-between border-b-8 border-yellow-700">
                     <div>
-                        <h2 className="text-3xl font-black uppercase italic text-slate-900 leading-none">{selectedRifa.nombre}</h2>
-                        <p className="text-xs text-red-600 font-bold mt-2 uppercase tracking-widest">{selectedRifa.estado === 'activa' ? 'Control de tickets en tiempo real' : 'Sorteo Finalizado'}</p>
+                        <div className="flex items-center gap-2 mb-2">
+                            <Crown size={24}/>
+                            <p className="text-xs font-black uppercase tracking-[0.2em]">Ganador Oficial</p>
+                        </div>
+                        <h3 className="text-4xl font-black uppercase italic tracking-tighter">{ticketGanador.usuarios?.nombre} {ticketGanador.usuarios?.apellido}</h3>
+                        <p className="text-lg font-bold opacity-80">{ticketGanador.usuarios?.telefono}</p>
+                    </div>
+                    <div className="text-center bg-yellow-300/50 p-6 rounded-full border-4 border-yellow-200">
+                        <p className="text-[10px] font-black uppercase mb-1">Ticket #</p>
+                        <p className="text-6xl font-black tracking-tighter">{ticketGanador.numero}</p>
                     </div>
                 </div>
-                
-                <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm">
-                  <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-                    {numsRifa.map(n => {
-                      let btnClass = `aspect-square rounded-xl text-[10px] font-black border-2 transition-all shadow-sm ${ESTADOS[n.estado].bg} ${ESTADOS[n.estado].border} ${ESTADOS[n.estado].text}`;
-                      if (n.estado !== 'disponible') btnClass += ' scale-95';
-                      else btnClass += ' hover:scale-105 hover:bg-slate-300';
-                      
-                      if (selectedRifa.estado === 'finalizada' && n.id_numero === selectedRifa.id_ganador) {
-                          btnClass = 'aspect-square rounded-xl text-[10px] font-black border-4 bg-yellow-400 border-yellow-500 text-white shadow-lg shadow-yellow-200 scale-110 animate-pulse z-10';
-                      }
-                      return (
-                        <button key={n.id_numero} onClick={() => n.estado !== 'disponible' && setNumDetail(n)} className={btnClass}>{n.numero}</button>
-                      )
-                    })}
-                  </div>
-                </div>
-              </div>
+            )}
 
-              <div className="lg:w-1/3">
-                <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm sticky top-24 max-h-[80vh] overflow-y-auto custom-scrollbar">
-                  <h3 className="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-[0.2em] flex items-center gap-2"><User size={14}/> Lista de Participantes</h3>
-                  <div className="space-y-4">
-                    {Object.values(clientesAgrupados).map((item) => {
-                      const tieneGanador = item.numeros.some(n => n.id_numero === selectedRifa.id_ganador);
-                      return (
-                      <div key={item.info?.id_usuario} className={`p-5 rounded-3xl border-2 transition-all ${tieneGanador ? 'border-yellow-300 bg-yellow-50' : item.tienePendientes ? 'border-red-200 bg-red-50/50' : 'border-slate-100 bg-slate-50/50'}`}>
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="flex-1">
-                            <p className="font-black text-xs uppercase leading-tight text-slate-900 flex items-center gap-2">
-                                {item.info?.nombre} {item.info?.apellido}
-                                {tieneGanador && <Star size={12} className="text-yellow-500 fill-yellow-500"/>}
-                            </p>
-                            <p className="text-[10px] text-slate-500 font-black flex items-center gap-1 mt-1"><Phone size={10} className="text-slate-400"/> {item.info?.telefono}</p>
-                          </div>
-                          <div className="flex flex-col items-end gap-1">
-                            {item.tienePendientes && selectedRifa.estado === 'activa' && (
-                              <button onClick={() => aprobarTodoElCliente(item.info?.id_usuario)} className="bg-red-600 text-white text-[9px] font-black px-3 py-1.5 rounded-xl shadow-lg shadow-red-200 hover:bg-red-700 uppercase">Aprobar</button>
-                            )}
-                            {item.tienePendientes && tasaBcv && selectedRifa?.precio > 0 && selectedRifa.estado === 'activa' && (
-                              <div className="text-right mt-1">
-                                <p className="text-[10px] font-black text-slate-800">${(item.numeros.filter(n => n.estado === 'apartado').length * selectedRifa.precio).toFixed(2)}</p>
-                                <p className="text-[9px] font-bold text-slate-500">{(item.numeros.filter(n => n.estado === 'apartado').length * selectedRifa.precio * tasaBcv).toFixed(2)} Bs</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {item.numeros.map(n => {
-                            const esEsteGanador = n.id_numero === selectedRifa.id_ganador;
-                            return (
-                                <span key={n.id_numero} className={`text-[9px] font-black px-2 py-1 rounded-lg border ${esEsteGanador ? 'bg-yellow-400 text-white border-yellow-500 shadow-sm' : n.estado === 'apartado' ? 'bg-red-600 text-white border-red-700 animate-pulse' : 'bg-black text-white border-zinc-800'}`}>
-                                    {esEsteGanador && <Crown size={8} className="inline mr-1 -mt-0.5"/>}#{n.numero}
-                                </span>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )})}
-                  </div>
+            <div className="grid gap-6">
+              {Object.values(clientesAgrupados).length === 0 ? (
+                <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
+                    <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300"><User size={40}/></div>
+                    <p className="text-slate-400 font-black uppercase text-xs tracking-[0.2em]">No hay participantes registrados aún</p>
                 </div>
-              </div>
+              ) : (
+                Object.values(clientesAgrupados).map((cliente) => {
+                  // CORRECCIÓN SOLICITADA: CÁLCULO DE MONTOS
+                  const totalDolares = cliente.numeros.length * selectedRifa.precio;
+                  const totalBs = totalDolares * (tasaBcv || 0);
+
+                  return (
+                    <div key={cliente.info.id_usuario} className={`group relative p-8 rounded-[3rem] border-2 transition-all duration-300 ${cliente.tienePendientes ? 'bg-red-50 border-red-200 shadow-xl shadow-red-100' : 'bg-white border-slate-100 hover:border-slate-300'}`}>
+                      <div className="flex flex-wrap justify-between items-start gap-6">
+                        <div className="flex items-center gap-5">
+                          <div className="bg-slate-900 p-4 rounded-[1.8rem] text-white shadow-lg group-hover:scale-110 transition-transform"><User size={28}/></div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                                <h4 className="font-black uppercase text-xl text-slate-900 tracking-tighter">{cliente.info.nombre} {cliente.info.apellido}</h4>
+                                {cliente.tienePendientes && <span className="bg-red-600 text-white text-[8px] font-black px-2 py-0.5 rounded-full animate-pulse">REVISIÓN</span>}
+                            </div>
+                            <p className="text-slate-500 font-bold flex items-center gap-1.5 mt-1 text-sm"><Phone size={14}/> {cliente.info.telefono}</p>
+                          </div>
+                        </div>
+
+                        {/* BLOQUE DE PRECIO A PAGAR / VERIFICAR */}
+                        <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm text-right min-w-[160px]">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Monto a Verificar</p>
+                            <p className="text-2xl font-black text-green-600 leading-none">${totalDolares.toFixed(2)}</p>
+                            <p className="text-[10px] font-black text-slate-500 uppercase mt-1">≈ {totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })} BS</p>
+                        </div>
+
+                        {cliente.tienePendientes && (
+                          <button 
+                            onClick={() => aprobarTodoElCliente(cliente.info.id_usuario)}
+                            disabled={loadingAction}
+                            className="bg-green-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-green-700 shadow-xl shadow-green-100 flex items-center gap-2 active:scale-95 transition-all"
+                          >
+                            <CheckCircle2 size={18}/> {loadingAction ? '...' : 'Aprobar Todo'}
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-3 mt-8">
+                        {cliente.numeros.map(num => (
+                          <div 
+                            key={num.id_numero}
+                            onClick={() => setNumDetail(num)}
+                            className={`px-5 py-3 rounded-2xl text-sm font-black border-2 cursor-pointer transition-all hover:scale-105 ${
+                              num.estado === 'pagado' 
+                                ? 'bg-black border-zinc-800 text-white' 
+                                : 'bg-red-600 border-red-700 text-white shadow-lg shadow-red-200'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                                <Ticket size={14}/>
+                                #{num.numero}
+                                <span className="text-[9px] opacity-60 uppercase">{num.estado === 'apartado' ? 'Rev' : 'Ok'}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         )}
 
-        {(view === 'create' || view === 'edit') && (
-          <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-200 max-w-2xl mx-auto">
-            <button onClick={() => setView('list')} className="mb-6 flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest"><ChevronLeft size={18}/> Cancelar</button>
-            <h2 className="text-3xl font-black mb-8 uppercase italic text-black tracking-tighter">{view === 'create' ? 'Nueva Rifa' : 'Editar Sorteo'}</h2>
-            <form onSubmit={view === 'create' ? crearRifa : handleEditRifa} className="space-y-6">
-              <div className="flex justify-center">
-                <label className="group w-full flex flex-col items-center px-4 py-8 bg-slate-50 text-red-600 rounded-[2rem] border-4 border-dashed border-slate-200 cursor-pointer hover:border-red-300 hover:bg-red-50 transition-all">
-                  <div className="bg-white p-4 rounded-full shadow-md text-red-600 mb-4 group-hover:scale-110 transition-transform">
-                    <ImageIcon size={40} />
-                  </div>
-                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">{imageFile ? imageFile.name : 'Cargar Foto del Premio'}</span>
-                  <input type='file' accept="image/*" className="hidden" onChange={(e) => setImageFile(e.target.files[0])} />
-                </label>
-              </div>
-              <div className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Nombre del Premio</label>
-                    <input type="text" placeholder="Ej: Pintura General Sedan" className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-200 outline-none focus:border-red-500 font-bold text-slate-900" required 
-                        value={view === 'edit' ? selectedRifa.nombre : newRifa.nombre}
-                        onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, nombre: e.target.value}) : setNewRifa({...newRifa, nombre: e.target.value})} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Descripción Detallada</label>
-                    <textarea placeholder="Cuéntale a tus clientes sobre el sorteo..." className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-200 outline-none focus:border-red-500 font-bold h-32 text-slate-900" 
-                        value={view === 'edit' ? selectedRifa.descripcion : newRifa.descripcion}
-                        onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, descripcion: e.target.value}) : setNewRifa({...newRifa, descripcion: e.target.value})} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Cant. Números</label>
-                        <input type="number" disabled={view === 'edit'} className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-200 font-black text-lg text-black" value={view === 'edit' ? selectedRifa.cantidad_numeros : newRifa.cantidad} onChange={e => setNewRifa({...newRifa, cantidad: e.target.value})} />
+        {view === 'create' && (
+            <div className="max-w-3xl mx-auto bg-white p-10 rounded-[3.5rem] shadow-2xl border border-slate-200 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-2 bg-red-600"></div>
+                <div className="flex justify-between items-center mb-10">
+                    <div>
+                        <h2 className="text-3xl font-black uppercase italic tracking-tighter">Nueva Rifa</h2>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Configuración del Sorteo</p>
                     </div>
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Precio x Ticket ($)</label>
-                        <input type="number" step="0.01" disabled={view === 'edit'} className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-200 font-black text-lg text-red-600" value={view === 'edit' ? selectedRifa.precio : newRifa.precio} onChange={e => setNewRifa({...newRifa, precio: parseFloat(e.target.value)})} />
+                    <button onClick={() => setView('list')} className="p-3 bg-slate-100 rounded-full hover:bg-slate-200 transition-all"><X/></button>
+                </div>
+                <form onSubmit={crearRifa} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-4 tracking-widest">Nombre del Premio</label>
+                            <input type="text" required placeholder="Ej: Toyota Corolla 2024" className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-100 focus:border-red-600 outline-none font-bold text-slate-900 transition-all" onChange={e => setNewRifa({...newRifa, nombre: e.target.value})} />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-4 tracking-widest">Precio por Ticket ($)</label>
+                            <div className="relative">
+                                <CreditCard className="absolute left-5 top-5 text-slate-300" size={20}/>
+                                <input type="number" step="0.01" required placeholder="0.00" className="w-full p-5 pl-14 bg-slate-50 rounded-3xl border border-slate-100 focus:border-red-600 outline-none font-bold text-slate-900 transition-all" onChange={e => setNewRifa({...newRifa, precio: parseFloat(e.target.value)})} />
+                            </div>
+                        </div>
                     </div>
-                  </div>
-                  <div className="space-y-1 bg-zinc-900 p-4 rounded-3xl border border-zinc-800">
-                    <label className="text-[10px] font-black text-red-500 ml-2 uppercase flex items-center gap-2"><Calendar size={14}/> Fecha de Finalización</label>
-                    <input type="date" className="w-full p-4 bg-zinc-800 text-white rounded-2xl border-none outline-none font-black uppercase" value={view === 'edit' ? selectedRifa.fecha_fin : newRifa.fecha} onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, fecha_fin: e.target.value}) : setNewRifa({...newRifa, fecha: e.target.value})} />
-                  </div>
-              </div>
-              <button disabled={loadingAction} className="w-full bg-red-600 text-white p-6 rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-xl shadow-red-200 hover:bg-red-700 transition-all flex items-center justify-center gap-2 border border-red-800">
-                {loadingAction ? <Loader2 className="animate-spin" /> : 'Confirmar Sorteo'}
-              </button>
-            </form>
-          </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-4 tracking-widest">Cantidad de Números</label>
+                            <input type="number" required placeholder="100" className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-100 focus:border-red-600 outline-none font-bold text-slate-900 transition-all" onChange={e => setNewRifa({...newRifa, cantidad: parseInt(e.target.value)})} />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-4 tracking-widest">Fecha de Finalización</label>
+                            <div className="relative">
+                                <Calendar className="absolute left-5 top-5 text-slate-300" size={20}/>
+                                <input type="date" required className="w-full p-5 pl-14 bg-slate-50 rounded-3xl border border-slate-100 focus:border-red-600 outline-none font-bold text-slate-900 transition-all" onChange={e => setNewRifa({...newRifa, fecha: e.target.value})} />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase ml-4 tracking-widest">Descripción</label>
+                        <textarea className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-100 focus:border-red-600 outline-none font-bold text-slate-900 transition-all min-h-[100px]" onChange={e => setNewRifa({...newRifa, descripcion: e.target.value})}></textarea>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase ml-4 tracking-widest">Imagen Principal del Premio</label>
+                        <div className="border-2 border-dashed border-slate-200 p-8 rounded-[2rem] text-center hover:bg-slate-50 transition-all cursor-pointer relative">
+                            <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setImageFile(e.target.files[0])} />
+                            <div className="flex flex-col items-center gap-2">
+                                <ImageIcon className="text-slate-300" size={40}/>
+                                <p className="text-xs font-black text-slate-400 uppercase">{imageFile ? imageFile.name : 'Subir Imagen'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <button disabled={loadingAction} className="w-full bg-red-600 text-white p-6 rounded-[2rem] font-black uppercase tracking-[0.3em] mt-6 flex justify-center items-center gap-3 shadow-2xl shadow-red-200 hover:bg-red-700 active:scale-95 transition-all">
+                        {loadingAction ? <Loader2 className="animate-spin"/> : <CheckCircle2/>} {loadingAction ? 'CREANDO...' : 'LANZAR SORTEO'}
+                    </button>
+                </form>
+            </div>
         )}
       </main>
 
-      {showManualAssign && (
-        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
-           <div className="bg-white p-8 rounded-[3rem] w-full max-w-md shadow-2xl border-2 border-red-600">
-            <div className="flex justify-between items-center mb-8">
-                <h3 className="text-2xl font-black uppercase italic text-black tracking-tighter">Venta Directa</h3>
-                <button onClick={() => setShowManualAssign(false)} className="text-slate-300 hover:text-red-600"><X/></button>
+      {/* MODAL DETALLE DE TICKET */}
+      {numDetail && (
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-[3.5rem] overflow-hidden shadow-2xl border border-white/20 animate-in zoom-in duration-300">
+            <div className="bg-slate-900 p-8 text-white flex justify-between items-center relative">
+                <div className="absolute top-0 right-0 p-8 opacity-10 -rotate-12"><Ticket size={64}/></div>
+                <div className="relative z-10">
+                    <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">Ticket Seleccionado</p>
+                    <h3 className="text-4xl font-black uppercase tracking-tighter italic leading-none">#{numDetail.numero}</h3>
+                </div>
+                <button onClick={() => setNumDetail(null)} className="p-3 bg-white/10 rounded-full hover:bg-white/20 transition-all relative z-10"><X size={20}/></button>
             </div>
-            <form onSubmit={handleManualAssignment} className="space-y-4">
-              <input type="text" required placeholder="Tickets (Separar por comas)" className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 font-bold outline-none focus:border-red-500" onChange={e => setManualData({...manualData, numeros: e.target.value})} />
-              <div className="grid grid-cols-2 gap-3">
-                <input type="text" placeholder="Nombre" required className="p-4 bg-slate-50 rounded-2xl border border-slate-200 font-bold outline-none focus:border-red-500" onChange={e => setManualData({...manualData, nombre: e.target.value})} />
-                <input type="text" placeholder="Apellido" required className="p-4 bg-slate-50 rounded-2xl border border-slate-200 font-bold outline-none focus:border-red-500" onChange={e => setManualData({...manualData, apellido: e.target.value})} />
-              </div>
-              <input type="tel" placeholder="Teléfono" required className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 font-bold outline-none focus:border-red-500" onChange={e => setManualData({...manualData, telefono: e.target.value})} />
-              <select className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 font-black uppercase text-xs outline-none focus:border-red-500" onChange={e => setManualData({...manualData, estado: e.target.value})}>
-                <option value="apartado">🔴 PONER EN REVISIÓN</option>
-                <option value="pagado">⚫ MARCAR COMO VENDIDO</option>
-              </select>
-              <button className="w-full bg-black text-white p-5 rounded-3xl font-black uppercase text-xs tracking-widest shadow-xl shadow-slate-300 mt-4 hover:bg-zinc-800">Confirmar Asignación</button>
-            </form>
+            <div className="p-8 space-y-6">
+                <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+                    <p className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Datos del Comprador</p>
+                    <div className="flex items-center gap-4 mb-4">
+                        <div className="bg-white p-3 rounded-2xl shadow-sm text-slate-900"><User size={20}/></div>
+                        <div>
+                            <p className="font-black text-slate-900 uppercase tracking-tight">{numDetail.usuarios?.nombre} {numDetail.usuarios?.apellido}</p>
+                            <p className="text-sm font-bold text-slate-500">{numDetail.usuarios?.telefono}</p>
+                        </div>
+                    </div>
+                    <div className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center gap-3">
+                        <FileText className="text-red-500" size={18}/>
+                        <div>
+                            <p className="text-[9px] font-black text-slate-400 uppercase">Referencia de Pago</p>
+                            <p className="font-black text-slate-900">{numDetail.referencia_pago || 'SIN REF'}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-3">
+                    {numDetail.estado === 'apartado' && (
+                        <button onClick={() => handleActionNumber(numDetail.id_numero, 'pagado')} className="w-full p-5 bg-green-600 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-green-100 hover:bg-green-700 transition-all flex items-center justify-center gap-2">
+                            <CheckCircle2 size={18}/> Confirmar Pago
+                        </button>
+                    )}
+                    <button onClick={() => handleActionNumber(numDetail.id_numero, 'disponible')} className="w-full p-5 bg-slate-100 text-red-600 rounded-[1.5rem] font-black text-xs uppercase tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2">
+                        <Trash2 size={18}/> Liberar Ticket
+                    </button>
+                </div>
+            </div>
           </div>
         </div>
       )}
 
-      {numDetail && (
-        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-8 rounded-[3.5rem] w-full max-w-sm shadow-2xl relative overflow-hidden">
-            <div className={`absolute top-0 left-0 right-0 h-2 ${ESTADOS[numDetail.estado].bg}`}></div>
-            {selectedRifa?.estado === 'finalizada' && numDetail.id_numero === selectedRifa.id_ganador && (
-                <div className="absolute top-0 left-0 right-0 h-8 bg-yellow-400 flex items-center justify-center text-yellow-900 text-[10px] font-black uppercase animate-pulse"><Crown size={12} className="mr-1"/> TICKET GANADOR</div>
-            )}
-            <div className={`flex justify-between items-center mb-6 ${selectedRifa?.estado === 'finalizada' && numDetail.id_numero === selectedRifa.id_ganador ? 'mt-6' : ''}`}>
-                <h3 className="text-3xl font-black italic uppercase text-black tracking-tighter">Ticket #{numDetail.numero}</h3>
-                <button onClick={() => setNumDetail(null)} className="text-slate-300 hover:text-slate-900"><X/></button>
+      {/* MODAL VENTA INTERNA */}
+      {showManualAssign && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-md rounded-[3rem] p-8 shadow-2xl relative">
+                <button onClick={() => setShowManualAssign(false)} className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full"><X size={20}/></button>
+                <h3 className="text-2xl font-black uppercase italic mb-2">Venta Interna</h3>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Asignación Directa de Números</p>
+                <form onSubmit={handleManualAssignment} className="space-y-4">
+                    <input type="text" placeholder="Números (ej: 5, 12, 45)" className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-bold" onChange={e => setManualData({...manualData, numeros: e.target.value})} required />
+                    <div className="grid grid-cols-2 gap-4">
+                        <input type="text" placeholder="Nombre" className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-bold" onChange={e => setManualData({...manualData, nombre: e.target.value})} required />
+                        <input type="text" placeholder="Apellido" className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-bold" onChange={e => setManualData({...manualData, apellido: e.target.value})} required />
+                    </div>
+                    <input type="tel" placeholder="Teléfono" className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-bold" onChange={e => setManualData({...manualData, telefono: e.target.value})} required />
+                    <select className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-bold" onChange={e => setManualData({...manualData, estado: e.target.value})}>
+                        <option value="apartado">En Revisión</option>
+                        <option value="pagado">Pagado (Vendido)</option>
+                    </select>
+                    <button className="w-full bg-slate-900 text-white p-5 rounded-2xl font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all">Registrar Venta</button>
+                </form>
             </div>
-            <div className="space-y-4 mb-8 bg-slate-50 p-6 rounded-[2rem] border border-slate-200">
-                <div className="flex items-center gap-3">
-                    <div className="bg-white p-2 rounded-xl text-black shadow-sm"><User size={18}/></div>
-                    <div><p className="text-[9px] font-black text-slate-400 uppercase">Cliente</p><p className="text-sm font-black text-slate-800">{numDetail.usuarios?.nombre} {numDetail.usuarios?.apellido}</p></div>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="bg-white p-2 rounded-xl text-red-600 shadow-sm"><Phone size={18}/></div>
-                    <div><p className="text-[9px] font-black text-slate-400 uppercase">Teléfono</p><p className="text-sm font-black text-slate-800">{numDetail.usuarios?.telefono}</p></div>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="bg-white p-2 rounded-xl text-slate-600 shadow-sm"><CreditCard size={18}/></div>
-                    <div><p className="text-[9px] font-black text-slate-400 uppercase">Referencia</p><p className="text-sm font-black text-slate-800 tracking-widest">{numDetail.referencia_pago || 'SIN REF.'}</p></div>
-                </div>
-            </div>
-            {selectedRifa.estado === 'activa' && (
-                <div className="grid grid-cols-1 gap-3">
-                    {numDetail.estado === 'apartado' && (
-                        <button onClick={() => handleActionNumber(numDetail.id_numero, 'pagado')} className="bg-black text-white p-5 rounded-3xl font-black text-xs uppercase shadow-xl flex items-center justify-center gap-2 hover:bg-zinc-800">
-                            <CheckCircle2 size={18}/> Confirmar Pago
-                        </button>
-                    )}
-                    <button onClick={() => handleActionNumber(numDetail.id_numero, 'disponible')} className="bg-red-50 text-red-600 p-5 rounded-3xl font-black text-xs uppercase hover:bg-red-100 transition-all flex items-center justify-center gap-2 border border-red-100">
-                        <Trash2 size={18}/> Liberar Ticket
-                    </button>
-                </div>
-            )}
-          </div>
         </div>
       )}
     </div>
