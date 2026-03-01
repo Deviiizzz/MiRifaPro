@@ -591,7 +591,7 @@ const AdminPanel = ({ tasaBcv }) => {
           </div>
         )}
 
-        {/* Modal de Opciones de Sorteo */}
+        {/* Modal de Opciones de Sorteo Corregido */}
         {showSorteoModal && (
           <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
             <div className="bg-white p-8 rounded-[3rem] w-full max-w-sm shadow-2xl border-2 border-yellow-400 relative overflow-hidden">
@@ -602,15 +602,16 @@ const AdminPanel = ({ tasaBcv }) => {
               </div>
 
               <div className="space-y-6">
-                {/* Opción 1: Lotería Manual */}
+                {/* Opción 1: Lotería Manual - Botón abajo corregido */}
                 <div className="bg-slate-50 p-5 rounded-[2rem] border border-slate-200">
                   <h4 className="font-black text-sm uppercase mb-1 flex items-center gap-2 text-slate-800"><Building2 size={16} className="text-slate-400"/> Agencia de Lotería</h4>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase mb-4 leading-tight">Ingresa manualmente el número que salió en el sorteo (ej. Triple Zulia)</p>
-                  <div className="flex gap-2">
+                  <p className="text-[10px] text-slate-500 font-bold uppercase mb-4 leading-tight">Ingresa el número ganador de la lotería</p>
+                  
+                  <div className="flex flex-col gap-3">
                     <input 
                       type="number" 
                       placeholder="N° Ganador" 
-                      className="flex-1 p-4 bg-white rounded-2xl border border-slate-200 font-black outline-none focus:border-yellow-400 text-center text-lg"
+                      className="w-full p-4 bg-white rounded-2xl border border-slate-200 font-black outline-none focus:border-yellow-400 text-center text-xl shadow-inner"
                       value={manualWinningNumber}
                       onChange={e => setManualWinningNumber(e.target.value)}
                     />
@@ -619,10 +620,10 @@ const AdminPanel = ({ tasaBcv }) => {
                         if(!manualWinningNumber) return alert("Por favor ingresa un número primero.");
                         realizarSorteo('manual', manualWinningNumber);
                       }}
-                      className="bg-black text-white px-6 rounded-2xl font-black text-xs uppercase hover:bg-zinc-800 transition-all shadow-md active:scale-95"
+                      className="w-full bg-black text-white p-4 rounded-2xl font-black text-xs uppercase hover:bg-zinc-800 transition-all shadow-md active:scale-95"
                       disabled={loadingAction}
                     >
-                      OK
+                      Confirmar Número
                     </button>
                   </div>
                 </div>
