@@ -20,99 +20,139 @@ const ESTADOS = {
   pagado: { bg: 'bg-black', border: 'border-zinc-800', text: 'text-white', label: 'Vendido' }
 };
 
-// --- COMPONENTE DE ACCESO ---
+// --- COMPONENTE DE ACCESO (LOGIN / REGISTRO) ---
 const Auth = () => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({ nombre: '', apellido: '', telefono: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  
+  // Recuperar datos temporales del formulario si el navegador se recargó
+  const [formData, setFormData] = useState(() => {
+    const saved = localStorage.getItem('temp_auth_form');
+    return saved ? JSON.parse(saved) : { 
+      nombre: '', apellido: '', telefono: '', password: '', email: '' 
+    };
+  });
+
+  // Guardar cambios en el formulario para evitar pérdida de datos al minimizar
+  useEffect(() => {
+    localStorage.setItem('temp_auth_form', JSON.stringify(formData));
+  }, [formData]);
 
   const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // Creamos un email ficticio usando el teléfono para el sistema de Auth
-    const finalEmail = `${formData.telefono}@alexcars.com`;
-
-    if (isRegistering) {
-      // REGISTRO
-      const { data, error } = await supabase.auth.signUp({
-        email: finalEmail,
-        password: formData.password,
-        options: {
-          // ESTA PARTE ES LA MÁS IMPORTANTE PARA EL TRIGGER
-          data: {
-            nombre: formData.nombre,
-            apellido: formData.apellido,
-            telefono: formData.telefono
+    try {
+      if (isRegistering) {
+        // Registro de usuario
+        const { data, error } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              nombre: formData.nombre,
+              apellido: formData.apellido,
+              telefono: formData.telefono,
+            }
           }
-        }
-      });
-
-      if (error) {
-        alert("Error al registrar: " + error.message);
+        });
+        if (error) throw error;
+        alert('Registro exitoso. Revisa tu correo o inicia sesión.');
       } else {
-        alert("¡Registro exitoso! Ya puedes iniciar sesión.");
-        setIsRegistering(false);
+        // Inicio de sesión
+        const { error } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
+        if (error) throw error;
       }
-    } else {
-      // INICIO DE SESIÓN
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: finalEmail,
-        password: formData.password
-      });
-
-      if (error) {
-        alert("Datos incorrectos. Verifica tu teléfono y contraseña.");
-      }
+      // Limpiar datos temporales tras éxito
+      localStorage.removeItem('temp_auth_form');
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-900 p-4 font-sans">
-      <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-slate-200 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-red-700 via-red-500 to-black"></div>
-        <div className="flex justify-center mb-4 mt-2">
-    <img 
-      src={logo} 
-      alt="Logo" 
-      className="w-40 h-auto object-contain" 
-    />
-</div>
-        <h2 className="text-4xl font-black text-center mb-1 italic tracking-tighter text-black uppercase">AlexCars' Edition</h2>
-        <p className="text-center text-red-600 text-[10px] mb-8 font-black uppercase tracking-[0.2em]">Sistema Profesional de Sorteos</p>
+    <div className="min-h-screen flex items-center justify-center bg-zinc-900 p-4">
+      <div className="w-full max-w-md bg-black rounded-[2.5rem] p-8 border border-zinc-800 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1 bg-red-600"></div>
         
+        <div className="flex flex-col items-center mb-8">
+          <img src={logo} alt="Logo" className="w-20 h-20 object-contain mb-4" />
+          <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
+            {isRegistering ? 'Crear Cuenta' : 'AlexCars Edition'}
+          </h2>
+          <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mt-1">
+            {isRegistering ? 'Únete a la experiencia' : 'Inicia sesión para continuar'}
+          </p>
+        </div>
+
         <form onSubmit={handleAuth} className="space-y-4">
           {isRegistering && (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 ml-2 uppercase">Nombre</label>
-                <input type="text" required className="w-full p-4 bg-slate-50 rounded-2xl outline-none border border-slate-100 focus:border-red-600 transition-all text-sm font-bold" onChange={e => setFormData({...formData, nombre: e.target.value})} />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 ml-2 uppercase">Apellido</label>
-                <input type="text" required className="w-full p-4 bg-slate-50 rounded-2xl outline-none border border-slate-100 focus:border-red-600 transition-all text-sm font-bold" onChange={e => setFormData({...formData, apellido: e.target.value})} />
-              </div>
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="NOMBRE"
+                className="bg-zinc-900 border border-zinc-800 text-white p-4 rounded-2xl w-full text-xs font-bold focus:border-red-600 outline-none transition-all"
+                value={formData.nombre}
+                onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+                required
+              />
+              <input
+                type="text"
+                placeholder="APELLIDO"
+                className="bg-zinc-900 border border-zinc-800 text-white p-4 rounded-2xl w-full text-xs font-bold focus:border-red-600 outline-none transition-all"
+                value={formData.apellido}
+                onChange={(e) => setFormData({...formData, apellido: e.target.value})}
+                required
+              />
             </div>
           )}
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 ml-2 uppercase">Teléfono</label>
-            <div className="relative">
-                <Smartphone className="absolute left-4 top-4 text-slate-300" size={18}/>
-                <input type="tel" required className="w-full p-4 pl-12 bg-slate-50 rounded-2xl outline-none border border-slate-100 focus:border-red-600 transition-all text-sm font-bold" onChange={e => setFormData({...formData, telefono: e.target.value})} />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 ml-2 uppercase">Contraseña</label>
-            <input type="password" required className="w-full p-4 bg-slate-50 rounded-2xl outline-none border border-slate-100 focus:border-red-600 transition-all text-sm font-bold" onChange={e => setFormData({...formData, password: e.target.value})} />
-          </div>
           
-          <button className="w-full bg-red-600 text-white p-5 rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-red-700 shadow-xl shadow-red-200 transition-all active:scale-95 flex items-center justify-center gap-2 border border-red-800">
-            {loading ? <Loader2 className="animate-spin" /> : (isRegistering ? 'Crear Cuenta' : 'Iniciar Sesión')}
+          <input
+            type="email"
+            placeholder="CORREO ELECTRÓNICO"
+            className="bg-zinc-900 border border-zinc-800 text-white p-4 rounded-2xl w-full text-xs font-bold focus:border-red-600 outline-none transition-all"
+            value={formData.email}
+            onChange={(e) => setFormData({...formData, email: e.target.value})}
+            required
+          />
+
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="CONTRASEÑA"
+              className="bg-zinc-900 border border-zinc-800 text-white p-4 rounded-2xl w-full text-xs font-bold focus:border-red-600 outline-none transition-all"
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              required
+            />
+            <button 
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-red-900/20 flex items-center justify-center gap-2 text-xs uppercase tracking-widest"
+          >
+            {loading ? <Loader2 className="animate-spin" size={18} /> : (isRegistering ? 'REGISTRARME' : 'ENTRAR AHORA')}
           </button>
         </form>
-        
-        <button onClick={() => setIsRegistering(!isRegistering)} className="w-full text-center mt-8 text-[11px] font-black text-slate-400 uppercase tracking-tighter hover:text-red-600 transition-all">
-          {isRegistering ? '¿Ya tienes una cuenta? Entrar ahora' : '¿Eres nuevo? Regístrate aquí'}
+
+        <button
+          onClick={() => setIsRegistering(!isRegistering)}
+          className="w-full mt-6 text-zinc-500 hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors"
+        >
+          {isRegistering ? '¿Ya tienes cuenta? Inicia Sesión' : '¿No tienes cuenta? Regístrate aquí'}
         </button>
       </div>
     </div>
@@ -829,9 +869,7 @@ const AdminPanel = ({ tasaBcv }) => {
 const ClientePanel = ({ session, tasaBcv }) => {
   const userId = session.user.id;
   const [rifas, setRifas] = useState([]);
-  const [selectedRifa, setSelectedRifa] = useState(null);
   const [nums, setNums] = useState([]);
-  const [cart, setCart] = useState([]);
   const [showPay, setShowPay] = useState(false);
   const [payData, setPayData] = useState({ ref: '' });
   const [hideSold, setHideSold] = useState(false);
@@ -839,9 +877,38 @@ const ClientePanel = ({ session, tasaBcv }) => {
   const [misNumeros, setMisNumeros] = useState([]);
   const [showMisTickets, setShowMisTickets] = useState(false);
 
+  // 1. PERSISTENCIA: Recuperar Rifa Seleccionada
+  const [selectedRifa, setSelectedRifa] = useState(() => {
+    const saved = localStorage.getItem('active_rifa');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  // 2. PERSISTENCIA: Recuperar Carrito (Números seleccionados)
+  const [cart, setCart] = useState(() => {
+    const saved = localStorage.getItem('user_cart');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Guardar en localStorage cuando cambien
+  useEffect(() => {
+    if (selectedRifa) {
+      localStorage.setItem('active_rifa', JSON.stringify(selectedRifa));
+    } else {
+      localStorage.removeItem('active_rifa');
+    }
+  }, [selectedRifa]);
+
+  useEffect(() => {
+    localStorage.setItem('user_cart', JSON.stringify(cart));
+  }, [cart]);
+
   useEffect(() => { 
     fetchRifas(); 
     fetchMisNumeros();
+    // Si al recargar había una rifa seleccionada, cargar sus números
+    if (selectedRifa) {
+      fetchNumbersForRifa(selectedRifa.id_rifa);
+    }
   }, [userId]);
 
   const fetchRifas = async () => {
@@ -851,7 +918,6 @@ const ClientePanel = ({ session, tasaBcv }) => {
 
   const fetchMisNumeros = async () => {
     try {
-      // Especificamos la relación exacta usando !numeros_id_rifa_fkey
       const { data, error } = await supabase
         .from('numeros')
         .select(`
@@ -867,22 +933,23 @@ const ClientePanel = ({ session, tasaBcv }) => {
         `)
         .eq('comprador_id', userId);
 
-      if (error) {
-        console.error("Error al obtener tickets:", error);
-      } else {
-        console.log("Tickets obtenidos:", data);
-        setMisNumeros(data || []);
-      }
+      if (error) console.error("Error al obtener tickets:", error);
+      else setMisNumeros(data || []);
     } catch (err) {
       console.error("Error inesperado:", err);
     }
   };
 
+  // Función separada para poder llamarla al recargar
+  const fetchNumbersForRifa = async (rifaId) => {
+    const { data } = await supabase.from('numeros').select('*').eq('id_rifa', rifaId).order('numero', { ascending: true });
+    setNums(data || []);
+  };
+
   const selectRifa = async (rifa) => {
     setSelectedRifa(rifa);
-    const { data } = await supabase.from('numeros').select('*').eq('id_rifa', rifa.id_rifa).order('numero', { ascending: true });
-    setNums(data || []);
-    setCart([]);
+    fetchNumbersForRifa(rifa.id_rifa);
+    setCart([]); // Solo limpiamos el carrito si entra a una rifa NUEVA manualmente
   };
 
   const reportarPago = async () => {
@@ -896,7 +963,10 @@ const ClientePanel = ({ session, tasaBcv }) => {
         setSelectedRifa(null); 
         setShowPay(false); 
         setPaymentMethod(null);
-        await fetchMisNumeros(); // Refresca la lista inmediatamente
+        setCart([]); // IMPORTANTE: Limpiar carrito tras éxito
+        localStorage.removeItem('user_cart');
+        localStorage.removeItem('active_rifa');
+        await fetchMisNumeros();
     }
   };
 
@@ -1203,6 +1273,13 @@ const App = () => {
   const [loading, setLoading] = useState(true);
   const [tasaBcv, setTasaBcv] = useState(null);
 
+  // 1. PERSISTENCIA DE VISTA: Para que si el navegador se cierra, 
+  // al volver sepa si estaba en Admin o Cliente
+  const [currentRole, setCurrentRole] = useState(() => {
+    return localStorage.getItem('app_role') || null;
+  });
+
+  // Cargar Tasa BCV (Tu lógica original)
   useEffect(() => {
     const fetchTasa = async () => {
       try {
@@ -1218,19 +1295,15 @@ const App = () => {
 
   const checkRole = async (userId) => {
     try {
-      // Intentamos obtener el rol, controlando errores de Supabase explícitamente
       const { data, error } = await supabase
         .from('usuarios')
         .select('rol')
         .eq('id_usuario', userId)
         .single();
       
-      if (error) {
-        console.error("Error al obtener rol:", error.message);
-        setRole('cliente');
-      } else {
-        setRole(data?.rol || 'cliente');
-      }
+      const userRole = error ? 'cliente' : (data?.rol || 'cliente');
+      setRole(userRole);
+      localStorage.setItem('app_role', userRole); // Guardamos para persistencia
     } catch (err) { 
       console.error("Excepción en checkRole:", err);
       setRole('cliente'); 
@@ -1243,29 +1316,43 @@ const App = () => {
     let isMounted = true;
 
     // Sesión inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
       if (isMounted) {
-        setSession(session); 
-        if (session) {
-          checkRole(session.user.id); 
+        setSession(s); 
+        if (s) {
+          checkRole(s.user.id); 
         } else {
           setLoading(false);
         }
       }
     });
 
-    // Escuchar cambios (login/logout)
+    // --- SOLUCIÓN AL PROBLEMA DEL BANCO ---
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      if (isMounted) {
-        setSession(s); 
+      if (!isMounted) return;
+
+      setSession((prevSession) => {
+        // Si el ID de usuario es el mismo que ya teníamos, NO ponemos loading en true.
+        // Esto evita que la pantalla se ponga en negro y se resetee al volver del banco.
+        if (s && prevSession?.user?.id === s.user.id) {
+          return s;
+        }
+
+        // Si hay un cambio real de usuario (Login nuevo)
         if (s) {
           setLoading(true);
-          checkRole(s.user.id); 
-        } else { 
-          setRole(null); 
-          setLoading(false); 
+          checkRole(s.user.id);
+          return s;
         }
-      }
+
+        // Logout
+        setRole(null);
+        setLoading(false);
+        localStorage.removeItem('app_role');
+        localStorage.removeItem('active_rifa'); // Limpiar datos de ClientePanel
+        localStorage.removeItem('user_cart');
+        return null;
+      });
     });
 
     return () => {
@@ -1274,12 +1361,15 @@ const App = () => {
     };
   }, []);
 
+  // Pantalla de carga (Tu estilo original)
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-900">
         <div className="bg-black p-10 rounded-[3rem] shadow-2xl flex flex-col items-center border border-zinc-800 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-red-600"></div>
             <Loader2 className="animate-spin text-red-600 mb-4" size={48}/>
-            <p className="text-[10px] font-black uppercase text-zinc-400 tracking-[0.4em] animate-pulse">Cargando AlexCars' Edition...</p>
+            <p className="text-[10px] font-black uppercase text-zinc-400 tracking-[0.4em] animate-pulse text-center">
+              Sincronizando AlexCars...<br/>Mantén la pestaña abierta
+            </p>
         </div>
     </div>
   );
@@ -1288,9 +1378,12 @@ const App = () => {
   
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      {role === 'admin' ? <AdminPanel tasaBcv={tasaBcv} /> : <ClientePanel session={session} tasaBcv={tasaBcv} />}
+      {/* Usamos el estado 'role' para decidir qué panel mostrar */}
+      {role === 'admin' ? (
+        <AdminPanel tasaBcv={tasaBcv} />
+      ) : (
+        <ClientePanel session={session} tasaBcv={tasaBcv} />
+      )}
     </div>
   );
 };
-
-export default App;
