@@ -24,17 +24,20 @@ const ESTADOS = {
 const Auth = () => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  
-  // Recuperar datos temporales del formulario si el navegador se recargó
-  const [formData, setFormData] = useState(() => {
-    const saved = localStorage.getItem('temp_auth_form');
-    return saved ? JSON.parse(saved) : { 
-      nombre: '', apellido: '', telefono: '', password: '', email: '' 
-    };
+  const [showPassword, setShowPassword] = useState(false); // El ojito que te gustó
+  const [formData, setFormData] = useState({ 
+    nombre: '', 
+    apellido: '', 
+    telefono: '', 
+    password: '' 
   });
 
-  // Guardar cambios en el formulario para evitar pérdida de datos al minimizar
+  // Persistencia de formulario por si el usuario cambia de app
+  useEffect(() => {
+    const saved = localStorage.getItem('temp_auth_form');
+    if (saved) setFormData(JSON.parse(saved));
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('temp_auth_form', JSON.stringify(formData));
   }, [formData]);
@@ -42,98 +45,112 @@ const Auth = () => {
   const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
+    
+    // Tu lógica original de correo autogenerado
+    const fakeEmail = `${formData.telefono}@alexcars.com`;
+
     try {
       if (isRegistering) {
-        // Registro de usuario
-        const { data, error } = await supabase.auth.signUp({
-          email: formData.email,
+        // 1. Registro en Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: fakeEmail,
           password: formData.password,
-          options: {
-            data: {
-              nombre: formData.nombre,
-              apellido: formData.apellido,
-              telefono: formData.telefono,
-            }
-          }
         });
-        if (error) throw error;
-        alert('Registro exitoso. Revisa tu correo o inicia sesión.');
+
+        if (authError) throw authError;
+
+        // 2. Registro en tu tabla de usuarios (Tu lógica original)
+        const { error: dbError } = await supabase.from('usuarios').insert([{
+          id_usuario: authData.user.id,
+          nombre: formData.nombre,
+          apellido: formData.apellido,
+          telefono: formData.telefono,
+          rol: 'cliente'
+        }]);
+
+        if (dbError) throw dbError;
+        alert("¡Registro exitoso! Ya puedes iniciar sesión.");
+        setIsRegistering(false);
       } else {
         // Inicio de sesión
         const { error } = await supabase.auth.signInWithPassword({
-          email: formData.email,
+          email: fakeEmail,
           password: formData.password,
         });
         if (error) throw error;
       }
-      // Limpiar datos temporales tras éxito
-      localStorage.removeItem('temp_auth_form');
-    } catch (error) {
-      alert(error.message);
+    } catch (err) {
+      alert(err.message || "Error en la operación");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-900 p-4">
-      <div className="w-full max-w-md bg-black rounded-[2.5rem] p-8 border border-zinc-800 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-red-600"></div>
+    <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-4 font-sans">
+      <div className="w-full max-w-md bg-black border border-zinc-800 rounded-[3rem] p-8 shadow-2xl animate-in fade-in zoom-in duration-500">
         
+        {/* LOGO - Mantengo tu tamaño original de w-32 */}
         <div className="flex flex-col items-center mb-8">
-          <img src={logo} alt="Logo" className="w-20 h-20 object-contain mb-4" />
-          <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
-            {isRegistering ? 'Crear Cuenta' : 'AlexCars Edition'}
+          <img src={logo} className="w-32 mb-4 drop-shadow-[0_0_15px_rgba(220,38,38,0.3)]" alt="logo" />
+          <h2 className="text-2xl font-black italic uppercase tracking-tighter text-white">
+            {isRegistering ? 'Crear Cuenta' : 'Bienvenido'}
           </h2>
-          <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mt-1">
-            {isRegistering ? 'Únete a la experiencia' : 'Inicia sesión para continuar'}
+          <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em]">
+            AlexCars' Edition
           </p>
         </div>
 
         <form onSubmit={handleAuth} className="space-y-4">
           {isRegistering && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
               <input
                 type="text"
-                placeholder="NOMBRE"
-                className="bg-zinc-900 border border-zinc-800 text-white p-4 rounded-2xl w-full text-xs font-bold focus:border-red-600 outline-none transition-all"
+                placeholder="Nombre"
+                className="w-full p-4 bg-zinc-900 border border-zinc-800 rounded-2xl text-white outline-none focus:border-red-600 transition-all text-sm"
                 value={formData.nombre}
-                onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+                onChange={e => setFormData({...formData, nombre: e.target.value})}
                 required
               />
               <input
                 type="text"
-                placeholder="APELLIDO"
-                className="bg-zinc-900 border border-zinc-800 text-white p-4 rounded-2xl w-full text-xs font-bold focus:border-red-600 outline-none transition-all"
+                placeholder="Apellido"
+                className="w-full p-4 bg-zinc-900 border border-zinc-800 rounded-2xl text-white outline-none focus:border-red-600 transition-all text-sm"
                 value={formData.apellido}
-                onChange={(e) => setFormData({...formData, apellido: e.target.value})}
+                onChange={e => setFormData({...formData, apellido: e.target.value})}
                 required
               />
             </div>
           )}
-          
-          <input
-            type="email"
-            placeholder="CORREO ELECTRÓNICO"
-            className="bg-zinc-900 border border-zinc-800 text-white p-4 rounded-2xl w-full text-xs font-bold focus:border-red-600 outline-none transition-all"
-            value={formData.email}
-            onChange={(e) => setFormData({...formData, email: e.target.value})}
-            required
-          />
 
+          {/* CAMPO DE TELÉFONO - Volvemos a tu lógica original */}
           <div className="relative">
+            <User className="absolute left-4 top-4 text-zinc-500" size={18} />
             <input
-              type={showPassword ? "text" : "password"}
-              placeholder="CONTRASEÑA"
-              className="bg-zinc-900 border border-zinc-800 text-white p-4 rounded-2xl w-full text-xs font-bold focus:border-red-600 outline-none transition-all"
-              value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              type="tel"
+              placeholder="Número de Teléfono"
+              className="w-full p-4 pl-12 bg-zinc-900 border border-zinc-800 rounded-2xl text-white outline-none focus:border-red-600 transition-all text-sm"
+              value={formData.telefono}
+              onChange={e => setFormData({...formData, telefono: e.target.value})}
               required
             />
+          </div>
+
+          <div className="relative">
+            <CreditCard className="absolute left-4 top-4 text-zinc-500" size={18} />
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Contraseña"
+              className="w-full p-4 pl-12 bg-zinc-900 border border-zinc-800 rounded-2xl text-white outline-none focus:border-red-600 transition-all text-sm"
+              value={formData.password}
+              onChange={e => setFormData({...formData, password: e.target.value})}
+              required
+            />
+            {/* BOTÓN DEL OJITO */}
             <button 
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+              className="absolute right-4 top-4 text-zinc-500 hover:text-white transition-colors"
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -142,17 +159,17 @@ const Auth = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-red-900/20 flex items-center justify-center gap-2 text-xs uppercase tracking-widest"
+            className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-red-900/20 transition-all active:scale-95 flex items-center justify-center gap-2 uppercase text-xs tracking-widest disabled:opacity-50"
           >
-            {loading ? <Loader2 className="animate-spin" size={18} /> : (isRegistering ? 'REGISTRARME' : 'ENTRAR AHORA')}
+            {loading ? <Loader2 className="animate-spin" /> : (isRegistering ? 'Registrarme' : 'Entrar')}
           </button>
         </form>
 
         <button
           onClick={() => setIsRegistering(!isRegistering)}
-          className="w-full mt-6 text-zinc-500 hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors"
+          className="w-full mt-6 text-zinc-500 hover:text-white text-[10px] font-bold uppercase tracking-widest transition-colors"
         >
-          {isRegistering ? '¿Ya tienes cuenta? Inicia Sesión' : '¿No tienes cuenta? Regístrate aquí'}
+          {isRegistering ? '¿Ya tienes cuenta? Inicia Sesión' : '¿No tienes cuenta? Regístrate'}
         </button>
       </div>
     </div>
