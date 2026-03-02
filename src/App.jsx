@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import { 
+import {
   LogOut, Plus, Ticket, X, CheckCircle2, Loader2, CreditCard, 
   User, Phone, ChevronLeft, Trash2, Download, Eye, EyeOff, FileText, 
   Image as ImageIcon, Edit3, Printer, Trophy, PartyPopper, Calendar, 
