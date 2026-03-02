@@ -1046,7 +1046,7 @@ const ClientePanel = ({ session, tasaBcv }) => {
     const seleccionados = shuffled.slice(0, cantidad).map(n => n.id_numero);
 
     setCart(seleccionados);
-    setShowPay(true);
+    alert(`${cantidad} números añadidos al carrito. Haz clic en el botón de pagar cuando estés listo.`);
   };
 
   const descargarComprobante = (rifaNombre, numeros) => {
