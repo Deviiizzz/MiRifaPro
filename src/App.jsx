@@ -269,7 +269,7 @@ const AdminPanel = ({ tasaBcv }) => {
     
     // NOTIFICACIÓN WHATSAPP PAGO INDIVIDUAL
     if (nuevoEstado === 'pagado' && numDetail && numDetail.usuarios) {
-      const mensaje = `¡Hola ${numDetail.usuarios.nombre} ${numDetail.usuarios.apellido}! ✅ Tu ticket #${numDetail.numero} para el sorteo *${selectedRifa.nombre}* ha sido aprobado. Oficialmente estás participando. ¡Mucha suerte! 🍀`;
+      const mensaje = `¡Hola ${numDetail.usuarios.nombre} ${numDetail.usuarios.apellido}! Te contactamos de AlexCars' Edition.\n\n✅ Tu ticket: #${numDetail.numero}, para el sorteo: *${selectedRifa.nombre}* ha sido aprobado.\nOficialmente estás participando.\n¡Mucha suerte! 🍀`;
       enviarWhatsapp(numDetail.usuarios.telefono, mensaje);
     }
 
@@ -296,7 +296,7 @@ const AdminPanel = ({ tasaBcv }) => {
     if(!error) {
       // NOTIFICACIÓN WHATSAPP PAGO MASIVO
       if (clienteData?.info?.telefono && numerosTickets) {
-        const mensaje = `¡Hola ${clienteData.info.nombre} ${clienteData.info.apellido}! ✅ Tus tickets #${numerosTickets} para el sorteo *${selectedRifa.nombre}* han sido aprobados. Oficialmente estás participando. ¡Mucha suerte! 🍀`;
+        const mensaje = `¡Hola ${clienteData.info.nombre} ${clienteData.info.apellido}! Te contactamos de AlexCars' Edition.\n\n✅ Tus tickets: #${numerosTickets}, para el sorteo: *${selectedRifa.nombre}* han sido aprobados.\nOficialmente estás participando.\n¡Mucha suerte! 🍀`;
         enviarWhatsapp(clienteData.info.telefono, mensaje);
       }
       openRifaDetail(selectedRifa);
