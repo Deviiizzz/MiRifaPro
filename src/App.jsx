@@ -122,8 +122,27 @@ const Auth = () => {
 // --- PANEL ADMINISTRADOR ---
 const AdminPanel = ({ tasaBcv }) => {
   const [rifas, setRifas] = useState([]);
-  const [view, setView] = useState('list');
-  const [selectedRifa, setSelectedRifa] = useState(null);
+  const [view, setView] = useState(() => {
+  return localStorage.getItem('alexcars_view') || 'list';
+});
+
+  useEffect(() => {
+  localStorage.setItem('alexcars_view', view);
+}, [view]);
+  
+  const [selectedRifa, setSelectedRifa] = useState(() => {
+  const saved = localStorage.getItem('alexcars_rifa_actual');
+  return saved ? JSON.parse(saved) : null;
+});
+
+  useEffect(() => {
+  if (selectedRifa) {
+    localStorage.setItem('alexcars_rifa_actual', JSON.stringify(selectedRifa));
+  } else {
+    localStorage.removeItem('alexcars_rifa_actual');
+  }
+}, [selectedRifa]);
+  
   const [numsRifa, setNumsRifa] = useState([]);
   const [newRifa, setNewRifa] = useState({ nombre: '', descripcion: '', cantidad: 100, precio: 0, fecha: '' });
   const [imageFile, setImageFile] = useState(null);
@@ -831,7 +850,15 @@ const ClientePanel = ({ session, tasaBcv }) => {
   const [rifas, setRifas] = useState([]);
   const [selectedRifa, setSelectedRifa] = useState(null);
   const [nums, setNums] = useState([]);
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(() => {
+  const saved = localStorage.getItem('alexcars_cart');
+  return saved ? JSON.parse(saved) : [];
+});
+
+  useEffect(() => {
+  localStorage.setItem('alexcars_cart', JSON.stringify(cart));
+}, [cart]);
+  
   const [showPay, setShowPay] = useState(false);
   const [payData, setPayData] = useState({ ref: '' });
   const [hideSold, setHideSold] = useState(false);
@@ -887,19 +914,34 @@ const ClientePanel = ({ session, tasaBcv }) => {
 
   const reportarPago = async () => {
     if(!payData.ref || payData.ref.length < 4) return alert("Ingresa los últimos 4 dígitos de la referencia");
+    
     const { error } = await supabase.from('numeros').update({ 
-        estado: 'apartado', comprador_id: userId, referencia_pago: payData.ref 
+        estado: 'apartado', 
+        comprador_id: userId, 
+        referencia_pago: payData.ref 
     }).in('id_numero', cart);
     
     if(!error) { 
         alert("¡Reporte de pago enviado! Tu ticket estará en revisión."); 
-        setSelectedRifa(null); 
+
+        // --- LIMPIEZA CRÍTICA PARA MÓVILES ---
+        localStorage.removeItem('alexcars_cart');
+        localStorage.removeItem('alexcars_view');
+        localStorage.removeItem('alexcars_rifa_actual');
+
+        // Resetear estados de la UI
+        setCart([]);           // Limpia el carrito en pantalla
+        setSelectedRifa(null); // Quita la rifa seleccionada
+        setView('list');       // Devuelve al usuario a la lista de rifas
         setShowPay(false); 
         setPaymentMethod(null);
+        
         await fetchMisNumeros(); // Refresca la lista inmediatamente
+    } else {
+        alert("Error al reportar pago: " + error.message);
     }
   };
-
+  
   const handleSeleccionAutomatica = () => {
     const disponibles = nums.filter(n => n.estado === 'disponible');
     if (disponibles.length === 0) return alert("Lo sentimos, no hay números disponibles en este sorteo.");
