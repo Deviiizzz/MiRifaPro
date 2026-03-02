@@ -245,7 +245,7 @@ const AdminPanel = ({ tasaBcv }) => {
       
       // NOTIFICACIÓN WHATSAPP GANADOR
       if (ganador.usuarios && ganador.usuarios.telefono) {
-        const mensaje = `¡FELICIDADES ${ganador.usuarios.nombre} ${ganador.usuarios.apellido}! 🎉 Eres el ganador del sorteo *${selectedRifa.nombre}* con el ticket de la suerte #${ganador.numero}. Nos comunicaremos contigo para la entrega de tu premio. 🏆`;
+        const mensaje = `¡FELICIDADES ${ganador.usuarios.nombre} ${ganador.usuarios.apellido}! 🥳🎉\nEres el ganador del sorteo: *${selectedRifa.nombre}*, con el ticket de la suerte: #${ganador.numero}.\nNos comunicaremos contigo para la entrega de tu premio. 🏆\n\n_Att: La Familia AlexCars'9801_.`;
         enviarWhatsapp(ganador.usuarios.telefono, mensaje);
       }
 
