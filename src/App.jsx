@@ -50,28 +50,35 @@ const Auth = () => {
     const fakeEmail = `${formData.telefono}@alexcars.com`;
 
     try {
-      if (isRegistering) {
-        // 1. Registro en Supabase Auth
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: fakeEmail,
-          password: formData.password,
-        });
+      // Localiza esta parte en tu componente Auth dentro de App (4).jsx
+if (isRegistering) {
+  // 1. Registro en Supabase Auth con metadatos
+  const { data: authData, error: authError } = await supabase.auth.signUp({
+    email: fakeEmail,
+    password: formData.password,
+    options: {
+      data: {
+        nombre: formData.nombre,
+        apellido: formData.apellido,
+      }
+    }
+  });
 
-        if (authError) throw authError;
+  if (authError) throw authError;
 
-        // 2. Registro en tu tabla de usuarios (Tu lógica original)
-        const { error: dbError } = await supabase.from('usuarios').insert([{
-          id_usuario: authData.user.id,
-          nombre: formData.nombre,
-          apellido: formData.apellido,
-          telefono: formData.telefono,
-          rol: 'cliente'
-        }]);
+  // 2. Registro en tu tabla de usuarios
+  const { error: dbError } = await supabase.from('usuarios').insert([{
+    id_usuario: authData.user.id,
+    nombre: formData.nombre,
+    apellido: formData.apellido,
+    telefono: formData.telefono,
+    rol: 'cliente'
+  }]);
 
-        if (dbError) throw dbError;
-        alert("¡Registro exitoso! Ya puedes iniciar sesión.");
-        setIsRegistering(false);
-      } else {
+  if (dbError) throw dbError;
+  alert("¡Registro exitoso! Ya puedes iniciar sesión.");
+  setIsRegistering(false);
+} else {
         // Inicio de sesión
         const { error } = await supabase.auth.signInWithPassword({
           email: fakeEmail,
