@@ -197,7 +197,7 @@ const AdminPanel = ({ tasaBcv }) => {
   const [showManualAssign, setShowManualAssign] = useState(false);
   const [manualData, setManualData] = useState({ numeros: '', nombre: '', apellido: '', telefono: '', estado: 'apartado' });
   const [pendientesNotif, setPendientesNotif] = useState({});
-  
+  const [whatsappPending, setWhatsappPending] = useState(null); // Para guardar { tel, msg }
   // Nuevos estados para el control del Sorteo
   const [showSorteoModal, setShowSorteoModal] = useState(false);
   const [manualWinningNumber, setManualWinningNumber] = useState('');
@@ -310,7 +310,7 @@ const AdminPanel = ({ tasaBcv }) => {
       // NOTIFICACIÓN WHATSAPP GANADOR
       if (ganador.usuarios && ganador.usuarios.telefono) {
         const mensaje = `¡FELICIDADES ${ganador.usuarios.nombre} ${ganador.usuarios.apellido}! 🥳🎉\nEres el ganador del sorteo: *${selectedRifa.nombre}*, con el ticket de la suerte: #${ganador.numero}.\nComunícate con nosotros para coordinar la entrega de tu premio: +58 412-9604999 🏆.\n\n_Att: La Familia AlexCars'9801_.`;
-        enviarWhatsapp(ganador.usuarios.telefono, mensaje);
+        setWhatsappPending({ telefono: ganador.usuarios.telefono, mensaje });
       }
 
       const updatedRifa = { ...selectedRifa, estado: 'finalizada', id_ganador: ganador.id_numero };
@@ -334,7 +334,7 @@ const AdminPanel = ({ tasaBcv }) => {
     // NOTIFICACIÓN WHATSAPP PAGO INDIVIDUAL
     if (nuevoEstado === 'pagado' && numDetail && numDetail.usuarios) {
       const mensaje = `¡Hola ${numDetail.usuarios.nombre} ${numDetail.usuarios.apellido}! Te contactamos de AlexCars' Edition.\n\n✅ Tu ticket: #${numDetail.numero}, para el sorteo: *${selectedRifa.nombre}* ha sido aprobado.\nOficialmente estás participando.\n¡Mucha suerte! 🍀`;
-      enviarWhatsapp(numDetail.usuarios.telefono, mensaje);
+      setWhatsappPending({ telefono: numDetail.usuarios.telefono, mensaje });
     }
 
     setNumDetail(null);
@@ -361,7 +361,7 @@ const AdminPanel = ({ tasaBcv }) => {
       // NOTIFICACIÓN WHATSAPP PAGO MASIVO
       if (clienteData?.info?.telefono && numerosTickets) {
         const mensaje = `¡Hola ${clienteData.info.nombre} ${clienteData.info.apellido}! Te contactamos de AlexCars' Edition.\n\n✅ Tus tickets: #${numerosTickets}, para el sorteo: *${selectedRifa.nombre}* han sido aprobados.\nOficialmente estás participando.\n¡Mucha suerte! 🍀`;
-        enviarWhatsapp(clienteData.info.telefono, mensaje);
+        setWhatsappPending({ telefono: clienteData.info.telefono, mensaje });
       }
       openRifaDetail(selectedRifa);
     }
@@ -768,6 +768,43 @@ const AdminPanel = ({ tasaBcv }) => {
             </div>
           </div>
         )}
+
+        {/* MODAL DE CONFIRMACIÓN WHATSAPP */}
+{whatsappPending && (
+  <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
+    <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[3rem] w-full max-w-sm shadow-2xl text-center relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-1 bg-green-500"></div>
+      
+      <div className="bg-green-500/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/20">
+        <Smartphone className="text-green-500" size={40} />
+      </div>
+
+      <h3 className="text-xl font-black uppercase italic text-white mb-2 italic">Tarea Completada</h3>
+      <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-8">
+        ¿Deseas enviar el comprobante por WhatsApp ahora?
+      </p>
+
+      <div className="space-y-3">
+        <button
+          onClick={() => {
+            enviarWhatsapp(whatsappPending.telefono, whatsappPending.mensaje);
+            setWhatsappPending(null);
+          }}
+          className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 uppercase text-xs tracking-widest"
+        >
+          Enviar a WhatsApp
+        </button>
+        
+        <button
+          onClick={() => setWhatsappPending(null)}
+          className="w-full bg-transparent border border-zinc-800 text-zinc-500 hover:text-white font-black py-4 rounded-2xl transition-all uppercase text-[10px] tracking-widest"
+        >
+          Omitir por ahora
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
         {(view === 'create' || view === 'edit') && (
           <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-200 max-w-2xl mx-auto">
