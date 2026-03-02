@@ -1204,18 +1204,38 @@ const App = () => {
   const [tasaBcv, setTasaBcv] = useState(null);
 
   useEffect(() => {
-    const fetchTasa = async () => {
-      try {
-        const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
-        const data = await res.json();
+  const fetchTasa = async () => {
+    try {
+      // 1. Añadimos un "Timestamp" único a la URL (?t=...) para que no sea igual a la anterior
+      // 2. Agregamos cabeceras de control de cache
+      const res = await fetch(`https://ve.dolarapi.com/v1/dolares/oficial?t=${new Date().getTime()}`, {
+        method: 'GET',
+        cache: 'no-store', // Indica al navegador que no guarde esto en disco
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      const data = await res.json();
+      
+      // Verificación de seguridad: usamos data.promedio o data.venta según prefieras
+      if (data && data.promedio) {
         setTasaBcv(data.promedio);
-      } catch (err) {
-        console.error("Error al cargar la tasa BCV", err);
+        console.log("Tasa actualizada con éxito:", data.promedio);
       }
-    };
-    fetchTasa();
-  }, []);
+    } catch (err) {
+      console.error("Error al cargar la tasa BCV", err);
+    }
+  };
 
+  fetchTasa();
+  
+  // Opcional: Refrescar automáticamente cada 30 minutos mientras la app esté abierta
+  const interval = setInterval(fetchTasa, 30 * 60 * 1000);
+  return () => clearInterval(interval);
+}, []);
+  
   const checkRole = async (userId) => {
     try {
       // Intentamos obtener el rol, controlando errores de Supabase explícitamente
