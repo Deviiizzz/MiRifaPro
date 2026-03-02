@@ -455,11 +455,15 @@ const AdminPanel = ({ tasaBcv }) => {
             <h1 className="font-black italic text-xl text-slate-900 tracking-tighter uppercase">AlexCars' Edition <span className="text-red-600">ADMIN</span></h1>
         </div>
         <div className="flex items-center gap-3">
-          {tasaBcv && (
-            <div className="text-yellow-600 bg-yellow-50 border border-yellow-200 px-3 py-2 rounded-xl text-xs font-black uppercase tracking-widest shadow-sm">
-              BCV: {tasaBcv.toFixed(2)} BS
-            </div>
-          )}
+          {typeof tasaBcv === 'number' && tasaBcv > 0 ? (
+  <div className="text-yellow-600 bg-yellow-50 border border-yellow-200 px-3 py-2 rounded-xl text-xs font-black uppercase tracking-widest shadow-sm">
+    BCV: {tasaBcv.toFixed(2)} BS
+  </div>
+) : (
+  <div className="text-slate-400 text-[9px] font-bold animate-pulse">
+    Cargando tasa...
+  </div>
+)}
           <button onClick={async () => { await supabase.auth.signOut(); }} className="text-red-600 p-2 bg-red-50 rounded-xl transition-all hover:bg-red-100 flex items-center gap-2 text-xs font-black">
             <LogOut size={18}/> SALIR
           </button>
@@ -967,11 +971,15 @@ const ClientePanel = ({ session, tasaBcv }) => {
             <h1 className="font-black italic text-2xl tracking-tighter text-black uppercase">AlexCars' Edition</h1>
         </div>
         <div className="flex items-center gap-3">
-            {tasaBcv && (
-              <div className="text-yellow-600 bg-yellow-50 border border-yellow-200 px-3 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm">
-                BCV: {tasaBcv.toFixed(2)} BS
-              </div>
-            )}
+            {typeof tasaBcv === 'number' && tasaBcv > 0 ? (
+  <div className="text-yellow-600 bg-yellow-50 border border-yellow-200 px-3 py-2 rounded-xl text-xs font-black uppercase tracking-widest shadow-sm">
+    BCV: {tasaBcv.toFixed(2)} BS
+  </div>
+) : (
+  <div className="text-slate-400 text-[9px] font-bold animate-pulse">
+    Cargando tasa...
+  </div>
+)}
             <button onClick={() => {setShowMisTickets(true); setSelectedRifa(null);}} className="p-3 text-slate-600 bg-slate-100 rounded-2xl hover:text-red-600 hover:bg-red-50 transition-all flex items-center gap-2 font-black text-[10px] uppercase">
                 <Ticket size={18}/> Mis Tickets
             </button>
@@ -1206,34 +1214,28 @@ const App = () => {
   useEffect(() => {
   const fetchTasa = async () => {
     try {
-      // 1. Añadimos un "Timestamp" único a la URL (?t=...) para que no sea igual a la anterior
-      // 2. Agregamos cabeceras de control de cache
+      // Usamos el timestamp para saltar el cache
       const res = await fetch(`https://ve.dolarapi.com/v1/dolares/oficial?t=${new Date().getTime()}`, {
-        method: 'GET',
-        cache: 'no-store', // Indica al navegador que no guarde esto en disco
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
+        cache: 'no-store'
       });
       
       const data = await res.json();
       
-      // Verificación de seguridad: usamos data.promedio o data.venta según prefieras
-      if (data && data.promedio) {
-        setTasaBcv(data.promedio);
-        console.log("Tasa actualizada con éxito:", data.promedio);
+      // IMPORTANTE: DolarApi a veces devuelve 'promedio' y otras 'venta'
+      // Esta línea asegura que tome un valor válido sí o sí
+      const valorFinal = data.promedio || data.venta || data.compra;
+
+      if (valorFinal) {
+        setTasaBcv(parseFloat(valorFinal));
+      } else {
+        console.error("La API no devolvió un número válido:", data);
       }
     } catch (err) {
-      console.error("Error al cargar la tasa BCV", err);
+      console.error("Error de conexión con la API:", err);
     }
   };
 
   fetchTasa();
-  
-  // Opcional: Refrescar automáticamente cada 30 minutos mientras la app esté abierta
-  const interval = setInterval(fetchTasa, 30 * 60 * 1000);
-  return () => clearInterval(interval);
 }, []);
   
   const checkRole = async (userId) => {
