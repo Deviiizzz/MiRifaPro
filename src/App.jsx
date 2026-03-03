@@ -12,6 +12,7 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import './index.css'; 
 import logo from './logo.png';
+import fondoLogin from './fondo-login.jpg';
 
 // --- COLORES ESPECÍFICOS PARA EL ADMIN ---
 const ESTADOS = {
@@ -94,7 +95,10 @@ if (isRegistering) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-4 font-sans">
+    <div 
+  className="min-h-screen flex items-center justify-center p-4 font-sans bg-cover bg-center bg-no-repeat"
+  style={{ backgroundImage: `url(${fondoLogin})` }}
+>
       <div className="w-full max-w-md bg-black border border-zinc-800 rounded-[3rem] p-8 shadow-2xl animate-in fade-in zoom-in duration-500">
         
         {/* LOGO - Mantengo tu tamaño original de w-32 */}
