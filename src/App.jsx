@@ -13,6 +13,7 @@ import * as XLSX from 'xlsx';
 import './index.css'; 
 import logo from './logo.png';
 import fondoLogin from './fondo-login.jpg';
+import { FaWhatsapp, FaInstagram, FaTiktok, FaFacebookF } from 'react-icons/fa';
 
 // --- COLORES ESPECÍFICOS PARA EL ADMIN ---
 const ESTADOS = {
@@ -176,12 +177,62 @@ if (isRegistering) {
           </button>
         </form>
 
+        {/* ... (tu código anterior del botón de cambiar entre login/registro) ... */}
         <button
           onClick={() => setIsRegistering(!isRegistering)}
           className="w-full mt-6 text-zinc-500 hover:text-white text-[10px] font-bold uppercase tracking-widest transition-colors"
         >
           {isRegistering ? '¿Ya tienes cuenta? Inicia Sesión' : '¿No tienes cuenta? Regístrate'}
         </button>
+
+        {/* --- NUEVO BLOQUE DE REDES SOCIALES --- */}
+        <div className="mt-8 pt-6 border-t border-zinc-900 animate-in fade-in duration-700">
+          <p className="text-center text-zinc-600 text-[9px] font-bold uppercase tracking-widest mb-4">
+            Síguenos en nuestras redes
+          </p>
+          <div className="flex justify-center items-center gap-4">
+            {/* WhatsApp */}
+            <a 
+              href="https://wa.me/584129604999" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="bg-zinc-900 p-3 rounded-full text-zinc-500 hover:text-green-500 hover:bg-zinc-800 transition-all shadow-md hover:-translate-y-1"
+            >
+              <FaWhatsapp size={18} />
+            </a>
+            
+            {/* Instagram */}
+            <a 
+              href="https://www.instagram.com/alexcars9801?igsh=MXgyZm1wMWI4cXpnZA==" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="bg-zinc-900 p-3 rounded-full text-zinc-500 hover:text-pink-500 hover:bg-zinc-800 transition-all shadow-md hover:-translate-y-1"
+            >
+              <FaInstagram size={18} />
+            </a>
+            
+            {/* TikTok */}
+            <a 
+              href="https://www.tiktok.com/@alexcars_9801?_r=1&_t=ZS-94OB081191g" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="bg-zinc-900 p-3 rounded-full text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all shadow-md hover:-translate-y-1"
+            >
+              <FaTiktok size={18} />
+            </a>
+            
+            {/* Facebook */}
+            <a 
+              href="https://www.facebook.com/share/1Hd84sQesM/" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="bg-zinc-900 p-3 rounded-full text-zinc-500 hover:text-blue-500 hover:bg-zinc-800 transition-all shadow-md hover:-translate-y-1"
+            >
+              <FaFacebookF size={18} />
+            </a>
+          </div>
+        </div>
+        {/* --- FIN DEL BLOQUE DE REDES SOCIALES --- */}
       </div>
     </div>
   );
