@@ -198,6 +198,7 @@ const AdminPanel = ({ tasaBcv }) => {
   const [manualData, setManualData] = useState({ numeros: '', nombre: '', apellido: '', telefono: '', estado: 'apartado' });
   const [pendientesNotif, setPendientesNotif] = useState({});
   const [whatsappPending, setWhatsappPending] = useState(null); // Para guardar { tel, msg }
+  const [progresoRifas, setProgresoRifas] = useState({});
   // Nuevos estados para el control del Sorteo
   const [showSorteoModal, setShowSorteoModal] = useState(false);
   const [manualWinningNumber, setManualWinningNumber] = useState('');
@@ -251,19 +252,32 @@ const AdminPanel = ({ tasaBcv }) => {
   };
   
   const fetchRifas = async () => {
-    const { data } = await supabase.from('rifas').select('*').order('creado_en', { ascending: false });
-    const rifasData = data || [];
-    setRifas(rifasData);
+  const { data } = await supabase.from('rifas').select('*').order('creado_en', { ascending: false });
+  const rifasData = data || [];
+  setRifas(rifasData);
 
-    const notifs = {};
-    for (const rifa of rifasData) {
-        if(rifa.estado !== 'finalizada') {
-            const { count } = await supabase.from('numeros').select('*', { count: 'exact', head: true }).eq('id_rifa', rifa.id_rifa).eq('estado', 'apartado');
-            notifs[rifa.id_rifa] = count || 0;
-        }
-    }
-    setPendientesNotif(notifs);
-  };
+  const notifs = {};
+  const progresos = {};
+
+  for (const rifa of rifasData) {
+      if(rifa.estado !== 'finalizada') {
+          // Consultar pendientes
+          const { count: countPendientes } = await supabase.from('numeros').select('*', { count: 'exact', head: true }).eq('id_rifa', rifa.id_rifa).eq('estado', 'apartado');
+          notifs[rifa.id_rifa] = countPendientes || 0;
+      }
+      
+      // Consultar pagados (para el porcentaje)
+      const { count: countPagados } = await supabase.from('numeros').select('*', { count: 'exact', head: true }).eq('id_rifa', rifa.id_rifa).eq('estado', 'pagado');
+      
+      const porcentaje = rifa.cantidad_numeros > 0 
+        ? Math.round(((countPagados || 0) / rifa.cantidad_numeros) * 100) 
+        : 0;
+        
+      progresos[rifa.id_rifa] = porcentaje;
+  }
+  setPendientesNotif(notifs);
+  setProgresoRifas(progresos);
+};
 
   const openRifaDetail = async (rifa) => {
     setSelectedRifa(rifa);
@@ -575,6 +589,19 @@ const AdminPanel = ({ tasaBcv }) => {
                     </div>
                     <p className="text-[10px] text-slate-400 font-bold mt-1">Finaliza: {r.fecha_fin}</p>
                     <p className="text-red-600 font-black text-xs mt-1">${r.precio} USD</p>
+                    {/* Barra de Progreso Admin */}
+<div className="mt-3 w-full">
+    <div className="flex justify-between text-[9px] font-black text-slate-400 mb-1 uppercase">
+        <span>Vendido</span>
+        <span>{progresoRifas[r.id_rifa] || 0}%</span>
+    </div>
+    <div className="w-full bg-slate-100 rounded-full h-1.5">
+        <div 
+            className="bg-green-500 h-1.5 rounded-full transition-all duration-500" 
+            style={{ width: `${progresoRifas[r.id_rifa] || 0}%` }}
+        ></div>
+    </div>
+</div>
                   </div>
                   <div className="flex flex-col gap-2">
                     <button onClick={() => { setSelectedRifa(r); setView('edit'); }} className="text-slate-600 bg-slate-100 p-3 rounded-2xl hover:bg-slate-200 transition-all"><Edit3 size={18}/></button>
@@ -937,6 +964,7 @@ const ClientePanel = ({ session, tasaBcv }) => {
   const [paymentMethod, setPaymentMethod] = useState(null);
   const [misNumeros, setMisNumeros] = useState([]);
   const [showMisTickets, setShowMisTickets] = useState(false);
+  const [progresoRifas, setProgresoRifas] = useState({});
 
   // 1. PERSISTENCIA: Recuperar Rifa Seleccionada
   const [selectedRifa, setSelectedRifa] = useState(() => {
@@ -973,9 +1001,22 @@ const ClientePanel = ({ session, tasaBcv }) => {
   }, [userId]);
 
   const fetchRifas = async () => {
-    const { data } = await supabase.from('rifas').select('*').order('estado', { ascending: true }).order('creado_en', { ascending: false });
-    setRifas(data || []);
-  };
+  const { data } = await supabase.from('rifas').select('*').order('estado', { ascending: true }).order('creado_en', { ascending: false });
+  const rifasData = data || [];
+  setRifas(rifasData);
+
+  const progresos = {};
+  for (const rifa of rifasData) {
+      const { count: countPagados } = await supabase.from('numeros').select('*', { count: 'exact', head: true }).eq('id_rifa', rifa.id_rifa).eq('estado', 'pagado');
+      
+      const porcentaje = rifa.cantidad_numeros > 0 
+        ? Math.round(((countPagados || 0) / rifa.cantidad_numeros) * 100) 
+        : 0;
+        
+      progresos[rifa.id_rifa] = porcentaje;
+  }
+  setProgresoRifas(progresos);
+};
 
   const fetchMisNumeros = async () => {
     try {
@@ -1170,12 +1211,27 @@ const ClientePanel = ({ session, tasaBcv }) => {
               <div key={r.id_rifa} onClick={() => selectRifa(r)} className={`p-5 rounded-[2.8rem] border flex gap-5 items-center transition-all group active:scale-95 cursor-pointer relative overflow-hidden ${cardClasses}`}>
                 <img src={r.imagen_url || 'https://via.placeholder.com/150'} className={`w-24 h-24 rounded-[2rem] object-cover bg-slate-50 shadow-xl shadow-slate-200 group-hover:rotate-3 transition-transform ${isFinished && !iWon ? 'grayscale opacity-70' : ''}`} />
                 <div className="flex-1 z-10">
-                  <h3 className="text-xl font-black uppercase italic leading-none text-black">{r.nombre}</h3>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="bg-red-50 text-red-600 border border-red-100 text-[10px] font-black px-2 py-1 rounded-lg">${r.precio} USD</span>
-                    <span className="text-[10px] text-slate-500 font-bold uppercase">{r.cantidad_numeros} Números</span>
-                  </div>
-                  <div className="mt-4 flex items-center justify-between">
+  <h3 className="text-xl font-black uppercase italic leading-none text-black">{r.nombre}</h3>
+  <div className="flex items-center gap-2 mt-2">
+    <span className="bg-red-50 text-red-600 border border-red-100 text-[10px] font-black px-2 py-1 rounded-lg">${r.precio} USD</span>
+    <span className="text-[10px] text-slate-500 font-bold uppercase">{r.cantidad_numeros} Números</span>
+  </div>
+
+  {/* NUEVA BARRA DE PROGRESO */}
+  <div className="mt-3">
+      <div className="flex justify-between text-[9px] font-black text-slate-400 mb-1 uppercase tracking-widest">
+          <span>Progreso del Sorteo</span>
+          <span className="text-red-600">{progresoRifas[r.id_rifa] || 0}%</span>
+      </div>
+      <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+          <div 
+              className="bg-red-600 h-1.5 rounded-full transition-all duration-1000 ease-out" 
+              style={{ width: `${progresoRifas[r.id_rifa] || 0}%` }}
+          ></div>
+      </div>
+  </div>
+
+  <div className="mt-4 flex items-center justify-between">
                       {isFinished ? (
                           iWon ? (<div className="text-yellow-600 font-black text-[10px] uppercase flex items-center gap-1 bg-yellow-100 px-3 py-1.5 rounded-full"><Crown size={14}/> ¡GANASTE! Ver Detalles</div>) : (<div className="text-slate-400 font-black text-[10px] uppercase bg-slate-100 px-3 py-1.5 rounded-full">Sorteo Finalizado</div>)
                       ) : (<div className="text-red-600 font-black text-[10px] uppercase flex items-center gap-1">Participar <ChevronLeft size={14} className="rotate-180"/></div>)}
