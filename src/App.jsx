@@ -583,7 +583,7 @@ const AdminPanel = ({ tasaBcv }) => {
   const ticketGanador = selectedRifa?.id_ganador ? numsRifa.find(n => n.id_numero === selectedRifa.id_ganador) : null;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20 font-sans text-slate-800">
+    <div className="min-h-screen bg-transparent pb-20 font-sans text-slate-800">
       <nav className="bg-white border-b border-red-100 p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
         <div className="flex items-center gap-2">
             <div className="bg-red-600 p-2 rounded-xl text-white shadow-md border border-red-800"><Building2 size={18}/></div>
@@ -1189,7 +1189,7 @@ const ClientePanel = ({ session, tasaBcv }) => {
   }, {});
   
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
+    <div className="min-h-screen bg-transparent font-sans text-slate-800">
       <header className="bg-white p-5 border-b border-slate-200 flex justify-between items-center sticky top-0 z-20 shadow-sm">
         <div className="flex items-center gap-2">
             <div className="bg-red-600 p-2 rounded-xl text-white shadow-lg shadow-red-200 border-2 border-black"><Trophy size={20}/></div>
