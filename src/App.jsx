@@ -13,6 +13,8 @@ import * as XLSX from 'xlsx';
 import './index.css'; 
 import logo from './logo.png';
 import fondoLogin from './fondo-login.jpg';
+import fondoAdmin from './fondo-admin.jpg'; 
+import fondoCliente from './fondo-cliente.jpg';
 import { FaWhatsapp, FaInstagram, FaTiktok, FaFacebookF } from 'react-icons/fa';
 
 // --- COLORES ESPECÍFICOS PARA EL ADMIN ---
@@ -1549,15 +1551,31 @@ const App = () => {
   if (!session) return <Auth />; 
   
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
-      {/* Usamos el estado 'role' para decidir qué panel mostrar */}
+    <div className="min-h-screen text-white">
       {role === 'admin' ? (
-        <AdminPanel tasaBcv={tasaBcv} />
+        /* --- FONDO PARA EL ADMINISTRADOR --- */
+        <div 
+          className="min-h-screen bg-cover bg-center bg-fixed"
+          style={{ backgroundImage: `url(${fondoAdmin})` }}
+        >
+          {/* Capa oscura para que el panel de admin resalte */}
+          <div className="min-h-screen bg-zinc-950/80 backdrop-blur-sm">
+            <AdminPanel tasaBcv={tasaBcv} />
+          </div>
+        </div>
       ) : (
-        <ClientePanel session={session} tasaBcv={tasaBcv} />
+        /* --- FONDO PARA EL CLIENTE --- */
+        <div 
+          className="min-h-screen bg-cover bg-center bg-fixed"
+          style={{ backgroundImage: `url(${fondoCliente})` }}
+        >
+          {/* Capa semi-transparente para el cliente */}
+          <div className="min-h-screen bg-black/60 backdrop-blur-[2px]">
+            <ClientePanel session={session} tasaBcv={tasaBcv} />
+          </div>
+        </div>
       )}
     </div>
   );
-};
 
 export default App;
