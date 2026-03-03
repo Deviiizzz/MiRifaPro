@@ -583,15 +583,15 @@ const AdminPanel = ({ tasaBcv }) => {
   const ticketGanador = selectedRifa?.id_ganador ? numsRifa.find(n => n.id_numero === selectedRifa.id_ganador) : null;
 
   return (
-    <div className="min-h-screen bg-transparent pb-20 font-sans text-white">
-      <nav className="bg-zinc-900/60 backdrop-blur-md border-b border-red-100 p-4 flex justify-between items-center sticky top-0 z-30 shadow-2xl">
+    <div className="min-h-screen bg-transparent pb-20 font-sans text-slate-800">
+      <nav className="bg-white border-b border-red-100 p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
         <div className="flex items-center gap-2">
             <div className="bg-red-600 p-2 rounded-xl text-white shadow-md border border-red-800"><Building2 size={18}/></div>
-            <h1 className="font-black italic text-xl text-white tracking-tighter uppercase">AlexCars' Edition <span className="text-red-600">ADMIN</span></h1>
+            <h1 className="font-black italic text-xl text-slate-900 tracking-tighter uppercase">AlexCars' Edition <span className="text-red-600">ADMIN</span></h1>
         </div>
         <div className="flex items-center gap-3">
           {tasaBcv && (
-            <div className="text-yellow-600 bg-yellow-50 border border-yellow-200 px-3 py-2 rounded-xl text-xs font-black uppercase tracking-widest shadow-2xl">
+            <div className="text-yellow-600 bg-yellow-50 border border-yellow-200 px-3 py-2 rounded-xl text-xs font-black uppercase tracking-widest shadow-sm">
               BCV: {tasaBcv.toFixed(2)} BS
             </div>
           )}
@@ -605,15 +605,15 @@ const AdminPanel = ({ tasaBcv }) => {
         {view === 'list' && (
           <div className="max-w-5xl mx-auto space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-zinc-900/60 backdrop-blur-md p-6 rounded-[2rem] border border-zinc-700 shadow-2xl flex items-center gap-4">
+              <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center gap-4">
                 <div className="bg-green-100 p-3 rounded-2xl text-green-600"><CreditCard/></div>
-                <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recaudado</p><p className="text-2xl font-black text-white">${stats.recaudado}</p></div>
+                <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recaudado</p><p className="text-2xl font-black text-slate-900">${stats.recaudado}</p></div>
               </div>
               <div className="bg-black p-6 rounded-[2rem] shadow-md flex items-center gap-4 border border-zinc-800">
                 <div className="bg-zinc-800 p-3 rounded-2xl text-white"><Ticket/></div>
                 <div><p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Vendidos</p><p className="text-2xl font-black text-white">{stats.vendidos}</p></div>
               </div>
-              <div className="bg-zinc-900/60 backdrop-blur-md p-6 rounded-[2rem] border border-red-200 shadow-2xl flex items-center gap-4">
+              <div className="bg-white p-6 rounded-[2rem] border border-red-200 shadow-sm flex items-center gap-4">
                 <div className="bg-red-100 p-3 rounded-2xl text-red-600 animate-pulse"><AlertCircle/></div>
                 <div><p className="text-[10px] font-black text-red-400 uppercase tracking-widest">En Revisión</p><p className="text-2xl font-black text-red-600">{stats.pendientes}</p></div>
               </div>
@@ -628,16 +628,16 @@ const AdminPanel = ({ tasaBcv }) => {
             
             <div className="grid gap-4 md:grid-cols-2">
               {rifas.map(r => (
-                <div key={r.id_rifa} className="bg-zinc-900/60 backdrop-blur-md p-4 rounded-[2.5rem] shadow-2xl border border-zinc-700 flex items-center gap-4 group transition-all hover:shadow-xl hover:border-red-200 relative overflow-hidden">
+                <div key={r.id_rifa} className="bg-white p-4 rounded-[2.5rem] shadow-sm border border-slate-200 flex items-center gap-4 group transition-all hover:shadow-xl hover:border-red-200 relative overflow-hidden">
                   {r.estado === 'finalizada' && <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-[9px] font-black px-4 py-1 rounded-bl-xl z-10">FINALIZADA</div>}
                   {r.imagen_url ? (
-                    <img src={r.imagen_url} className={`w-20 h-20 rounded-[1.8rem] object-cover bg-zinc-800/50 shadow-md shadow-slate-200 ${r.estado === 'finalizada' ? 'grayscale opacity-80' : ''}`} />
+                    <img src={r.imagen_url} className={`w-20 h-20 rounded-[1.8rem] object-cover bg-slate-100 shadow-md shadow-slate-200 ${r.estado === 'finalizada' ? 'grayscale opacity-80' : ''}`} />
                   ) : (
                     <div className="w-20 h-20 rounded-[1.8rem] bg-slate-50 flex items-center justify-center text-slate-300"><ImageIcon size={32}/></div>
                   )}
                   <div onClick={() => openRifaDetail(r)} className="cursor-pointer flex-1">
                     <div className="flex items-center gap-2">
-                        <h3 className="font-black uppercase text-sm leading-tight text-white">{r.nombre}</h3>
+                        <h3 className="font-black uppercase text-sm leading-tight text-slate-900">{r.nombre}</h3>
                         {pendientesNotif[r.id_rifa] > 0 && (
                             <span className="bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full animate-bounce shadow-md">
                                 {pendientesNotif[r.id_rifa]} PENDIENTES
@@ -652,7 +652,7 @@ const AdminPanel = ({ tasaBcv }) => {
         <span>Vendido</span>
         <span>{progresoRifas[r.id_rifa] || 0}%</span>
     </div>
-    <div className="w-full bg-zinc-800/50 rounded-full h-1.5">
+    <div className="w-full bg-slate-100 rounded-full h-1.5">
         <div 
             className="bg-green-500 h-1.5 rounded-full transition-all duration-500" 
             style={{ width: `${progresoRifas[r.id_rifa] || 0}%` }}
@@ -661,7 +661,7 @@ const AdminPanel = ({ tasaBcv }) => {
 </div>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <button onClick={() => { setSelectedRifa(r); setView('edit'); }} className="text-zinc-400 bg-zinc-800/50 p-3 rounded-2xl hover:bg-slate-200 transition-all"><Edit3 size={18}/></button>
+                    <button onClick={() => { setSelectedRifa(r); setView('edit'); }} className="text-slate-600 bg-slate-100 p-3 rounded-2xl hover:bg-slate-200 transition-all"><Edit3 size={18}/></button>
                     <button onClick={async () => { if(window.confirm("¿Seguro de borrar esta rifa? Todos los números se perderán.")) { await supabase.from('rifas').delete().eq('id_rifa', r.id_rifa); fetchRifas(); calculateStats(); } }} className="text-red-400 hover:text-red-600 bg-red-50 p-3 rounded-2xl transition-all"><Trash2 size={18}/></button>
                   </div>
                 </div>
@@ -672,7 +672,7 @@ const AdminPanel = ({ tasaBcv }) => {
 
         {view === 'detail' && selectedRifa && (
           <div className="space-y-6">
-            <div className="flex flex-wrap justify-between items-center gap-4 bg-zinc-900/60 backdrop-blur-md p-4 rounded-3xl border border-zinc-700 shadow-2xl">
+            <div className="flex flex-wrap justify-between items-center gap-4 bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
                 <button onClick={() => setView('list')} className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase tracking-widest hover:text-black"><ChevronLeft size={18}/> Volver</button>
                 <div className="flex flex-wrap gap-2">
                     <button onClick={exportToPDF} className="bg-slate-900 text-white p-3 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 hover:bg-black"><FileText size={16}/> PDF</button>
@@ -692,10 +692,10 @@ const AdminPanel = ({ tasaBcv }) => {
               <div className="lg:w-2/3 space-y-4">
                 {selectedRifa.estado === 'finalizada' && ticketGanador && (
                     <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-yellow-200 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden border-4 border-yellow-300">
-                        <div className="bg-zinc-900/60 backdrop-blur-md/20 p-5 rounded-3xl backdrop-blur-sm animate-celebration relative z-10"><Crown size={56} className="text-white drop-shadow-md"/></div>
+                        <div className="bg-white/20 p-5 rounded-3xl backdrop-blur-sm animate-celebration relative z-10"><Crown size={56} className="text-white drop-shadow-md"/></div>
                         <div className="text-center md:text-left relative z-10">
                             <h3 className="text-3xl font-black italic uppercase tracking-tighter drop-shadow-md">¡Tenemos un Ganador!</h3>
-                            <p className="text-sm font-bold mt-2 uppercase tracking-widest opacity-90">Ticket de la suerte: <span className="bg-zinc-900/60 backdrop-blur-md text-yellow-600 px-2 py-1 rounded-md font-black">#{ticketGanador.numero}</span></p>
+                            <p className="text-sm font-bold mt-2 uppercase tracking-widest opacity-90">Ticket de la suerte: <span className="bg-white text-yellow-600 px-2 py-1 rounded-md font-black">#{ticketGanador.numero}</span></p>
                             <div className="mt-4 bg-black/10 p-4 rounded-2xl inline-block backdrop-blur-md">
                                 <p className="font-black text-lg">
                                   {ticketGanador.usuarios ? `${ticketGanador.usuarios.nombre} ${ticketGanador.usuarios.apellido}` : "Ticket no vendido (Vacante)"}
@@ -713,18 +713,18 @@ const AdminPanel = ({ tasaBcv }) => {
                     </div>
                 )}
 
-                <div className="bg-zinc-900/60 backdrop-blur-md p-6 rounded-[2.5rem] border border-zinc-700 shadow-2xl flex gap-6 items-center">
+                <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm flex gap-6 items-center">
                     {selectedRifa.imagen_url && <img src={selectedRifa.imagen_url} className="w-24 h-24 rounded-3xl object-cover shadow-lg" />}
                     <div>
-                        <h2 className="text-3xl font-black uppercase italic text-white leading-none">{selectedRifa.nombre}</h2>
+                        <h2 className="text-3xl font-black uppercase italic text-slate-900 leading-none">{selectedRifa.nombre}</h2>
                         <p className="text-xs text-red-600 font-bold mt-2 uppercase tracking-widest">{selectedRifa.estado === 'activa' ? 'Control de tickets en tiempo real' : 'Sorteo Finalizado'}</p>
                     </div>
                 </div>
                 
-                <div className="bg-zinc-900/60 backdrop-blur-md p-6 rounded-[2.5rem] border border-zinc-700 shadow-2xl">
+                <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm">
                   <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
                     {numsRifa.map(n => {
-                      let btnClass = `aspect-square rounded-xl text-[10px] font-black border-2 transition-all shadow-2xl ${ESTADOS[n.estado].bg} ${ESTADOS[n.estado].border} ${ESTADOS[n.estado].text}`;
+                      let btnClass = `aspect-square rounded-xl text-[10px] font-black border-2 transition-all shadow-sm ${ESTADOS[n.estado].bg} ${ESTADOS[n.estado].border} ${ESTADOS[n.estado].text}`;
                       if (n.estado !== 'disponible') btnClass += ' scale-95';
                       else btnClass += ' hover:scale-105 hover:bg-slate-300';
                       
@@ -740,7 +740,7 @@ const AdminPanel = ({ tasaBcv }) => {
               </div>
 
               <div className="lg:w-1/3">
-                <div className="bg-zinc-900/60 backdrop-blur-md p-6 rounded-[2.5rem] border border-zinc-700 shadow-2xl sticky top-24 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm sticky top-24 max-h-[80vh] overflow-y-auto custom-scrollbar">
                   <h3 className="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-[0.2em] flex items-center gap-2"><User size={14}/> Lista de Participantes</h3>
                   <div className="space-y-4">
                     {Object.values(clientesAgrupados).map((item) => {
@@ -750,10 +750,10 @@ const AdminPanel = ({ tasaBcv }) => {
                       const montoBS = tasaBcv ? (numPendientes * selectedRifa.precio * tasaBcv).toFixed(2) : null;
 
                       return (
-                      <div key={item.info?.id_usuario} className={`p-5 rounded-3xl border-2 transition-all ${tieneGanador ? 'border-yellow-300 bg-yellow-50' : item.tienePendientes ? 'border-red-200 bg-red-50/50' : 'border-zinc-800 bg-slate-50/50'}`}>
+                      <div key={item.info?.id_usuario} className={`p-5 rounded-3xl border-2 transition-all ${tieneGanador ? 'border-yellow-300 bg-yellow-50' : item.tienePendientes ? 'border-red-200 bg-red-50/50' : 'border-slate-100 bg-slate-50/50'}`}>
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1">
-                            <p className="font-black text-xs uppercase leading-tight text-white flex items-center gap-2">
+                            <p className="font-black text-xs uppercase leading-tight text-slate-900 flex items-center gap-2">
                                 {item.info?.nombre} {item.info?.apellido}
                                 {tieneGanador && <Star size={12} className="text-yellow-500 fill-yellow-500"/>}
                             </p>
@@ -768,7 +768,7 @@ const AdminPanel = ({ tasaBcv }) => {
                               <button onClick={() => aprobarTodoElCliente(item.info?.id_usuario)} className="bg-red-600 text-white text-[9px] font-black px-3 py-1.5 rounded-xl shadow-lg shadow-red-200 hover:bg-red-700 uppercase mb-1">Aprobar</button>
                             )}
                             {item.tienePendientes && selectedRifa?.precio > 0 && selectedRifa.estado === 'activa' && (
-                              <div className="text-right bg-zinc-900/60 backdrop-blur-md px-2 py-1 rounded-lg border border-red-100 shadow-2xl">
+                              <div className="text-right bg-white px-2 py-1 rounded-lg border border-red-100 shadow-sm">
                                 <p className="text-[10px] font-black text-red-600">A COBRAR: ${montoUSD}</p>
                                 {montoBS && <p className="text-[9px] font-bold text-slate-500">{montoBS} Bs</p>}
                               </div>
@@ -779,7 +779,7 @@ const AdminPanel = ({ tasaBcv }) => {
                           {item.numeros.map(n => {
                             const esEsteGanador = n.id_numero === selectedRifa.id_ganador;
                             return (
-                                <span key={n.id_numero} className={`text-[9px] font-black px-2 py-1 rounded-lg border ${esEsteGanador ? 'bg-yellow-400 text-white border-yellow-500 shadow-2xl' : n.estado === 'apartado' ? 'bg-red-600 text-white border-red-700 animate-pulse' : 'bg-black text-white border-zinc-800'}`}>
+                                <span key={n.id_numero} className={`text-[9px] font-black px-2 py-1 rounded-lg border ${esEsteGanador ? 'bg-yellow-400 text-white border-yellow-500 shadow-sm' : n.estado === 'apartado' ? 'bg-red-600 text-white border-red-700 animate-pulse' : 'bg-black text-white border-zinc-800'}`}>
                                     {esEsteGanador && <Crown size={8} className="inline mr-1 -mt-0.5"/>}#{n.numero}
                                 </span>
                             )
@@ -797,7 +797,7 @@ const AdminPanel = ({ tasaBcv }) => {
         {/* Modal de Opciones de Sorteo Corregido */}
         {showSorteoModal && (
           <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
-            <div className="bg-zinc-900/60 backdrop-blur-md p-8 rounded-[3rem] w-full max-w-sm shadow-2xl border-2 border-yellow-400 relative overflow-hidden">
+            <div className="bg-white p-8 rounded-[3rem] w-full max-w-sm shadow-2xl border-2 border-yellow-400 relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-2 bg-yellow-400"></div>
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-2xl font-black uppercase italic text-black tracking-tighter">Opciones de Sorteo</h3>
@@ -806,15 +806,15 @@ const AdminPanel = ({ tasaBcv }) => {
 
               <div className="space-y-6">
                 {/* Opción 1: Lotería Manual - Botón abajo corregido */}
-                <div className="bg-slate-50 p-5 rounded-[2rem] border border-zinc-700">
-                  <h4 className="font-black text-sm uppercase mb-1 flex items-center gap-2 text-white"><Building2 size={16} className="text-slate-400"/> Agencia de Lotería</h4>
+                <div className="bg-slate-50 p-5 rounded-[2rem] border border-slate-200">
+                  <h4 className="font-black text-sm uppercase mb-1 flex items-center gap-2 text-slate-800"><Building2 size={16} className="text-slate-400"/> Agencia de Lotería</h4>
                   <p className="text-[10px] text-slate-500 font-bold uppercase mb-4 leading-tight">Ingresa el número ganador de la lotería</p>
                   
                   <div className="flex flex-col gap-3">
                     <input 
                       type="number" 
                       placeholder="N° Ganador" 
-                      className="w-full p-4 bg-zinc-900/60 backdrop-blur-md rounded-2xl border border-zinc-700 font-black outline-none focus:border-yellow-400 text-center text-xl shadow-inner"
+                      className="w-full p-4 bg-white rounded-2xl border border-slate-200 font-black outline-none focus:border-yellow-400 text-center text-xl shadow-inner"
                       value={manualWinningNumber}
                       onChange={e => setManualWinningNumber(e.target.value)}
                     />
@@ -891,13 +891,13 @@ const AdminPanel = ({ tasaBcv }) => {
 )}
 
         {(view === 'create' || view === 'edit') && (
-          <div className="bg-zinc-900/60 backdrop-blur-md p-8 rounded-[3rem] shadow-xl border border-zinc-700 max-w-2xl mx-auto">
+          <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-200 max-w-2xl mx-auto">
             <button onClick={() => setView('list')} className="mb-6 flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest"><ChevronLeft size={18}/> Cancelar</button>
             <h2 className="text-3xl font-black mb-8 uppercase italic text-black tracking-tighter">{view === 'create' ? 'Nueva Rifa' : 'Editar Sorteo'}</h2>
             <form onSubmit={view === 'create' ? crearRifa : handleEditRifa} className="space-y-6">
               <div className="flex justify-center">
-                <label className="group w-full flex flex-col items-center px-4 py-8 bg-slate-50 text-red-600 rounded-[2rem] border-4 border-dashed border-zinc-700 cursor-pointer hover:border-red-300 hover:bg-red-50 transition-all">
-                  <div className="bg-zinc-900/60 backdrop-blur-md p-4 rounded-full shadow-md text-red-600 mb-4 group-hover:scale-110 transition-transform">
+                <label className="group w-full flex flex-col items-center px-4 py-8 bg-slate-50 text-red-600 rounded-[2rem] border-4 border-dashed border-slate-200 cursor-pointer hover:border-red-300 hover:bg-red-50 transition-all">
+                  <div className="bg-white p-4 rounded-full shadow-md text-red-600 mb-4 group-hover:scale-110 transition-transform">
                     <ImageIcon size={40} />
                   </div>
                   <span className="text-xs font-black uppercase tracking-widest text-slate-500">{imageFile ? imageFile.name : 'Cargar Foto del Premio'}</span>
@@ -907,24 +907,24 @@ const AdminPanel = ({ tasaBcv }) => {
               <div className="space-y-4">
                   <div className="space-y-1">
                     <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Nombre del Premio</label>
-                    <input type="text" placeholder="Ej: Pintura General Sedan" className="w-full p-5 bg-slate-50 rounded-3xl border border-zinc-700 outline-none focus:border-red-500 font-bold text-white" required 
+                    <input type="text" placeholder="Ej: Pintura General Sedan" className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-200 outline-none focus:border-red-500 font-bold text-slate-900" required 
                         value={view === 'edit' ? selectedRifa.nombre : newRifa.nombre}
                         onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, nombre: e.target.value}) : setNewRifa({...newRifa, nombre: e.target.value})} />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Descripción Detallada</label>
-                    <textarea placeholder="Cuéntale a tus clientes sobre el sorteo..." className="w-full p-5 bg-slate-50 rounded-3xl border border-zinc-700 outline-none focus:border-red-500 font-bold h-32 text-white" 
+                    <textarea placeholder="Cuéntale a tus clientes sobre el sorteo..." className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-200 outline-none focus:border-red-500 font-bold h-32 text-slate-900" 
                         value={view === 'edit' ? selectedRifa.descripcion : newRifa.descripcion}
                         onChange={e => view === 'edit' ? setSelectedRifa({...selectedRifa, descripcion: e.target.value}) : setNewRifa({...newRifa, descripcion: e.target.value})} />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                         <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Cant. Números</label>
-                        <input type="number" disabled={view === 'edit'} className="w-full p-5 bg-slate-50 rounded-3xl border border-zinc-700 font-black text-lg text-black" value={view === 'edit' ? selectedRifa.cantidad_numeros : newRifa.cantidad} onChange={e => setNewRifa({...newRifa, cantidad: e.target.value})} />
+                        <input type="number" disabled={view === 'edit'} className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-200 font-black text-lg text-black" value={view === 'edit' ? selectedRifa.cantidad_numeros : newRifa.cantidad} onChange={e => setNewRifa({...newRifa, cantidad: e.target.value})} />
                     </div>
                     <div className="space-y-1">
                         <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Precio x Ticket ($)</label>
-                        <input type="number" step="0.01" disabled={view === 'edit'} className="w-full p-5 bg-slate-50 rounded-3xl border border-zinc-700 font-black text-lg text-red-600" value={view === 'edit' ? selectedRifa.precio : newRifa.precio} onChange={e => setNewRifa({...newRifa, precio: parseFloat(e.target.value)})} />
+                        <input type="number" step="0.01" disabled={view === 'edit'} className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-200 font-black text-lg text-red-600" value={view === 'edit' ? selectedRifa.precio : newRifa.precio} onChange={e => setNewRifa({...newRifa, precio: parseFloat(e.target.value)})} />
                     </div>
                   </div>
                   <div className="space-y-1 bg-zinc-900 p-4 rounded-3xl border border-zinc-800">
@@ -942,19 +942,19 @@ const AdminPanel = ({ tasaBcv }) => {
 
       {showManualAssign && (
         <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
-           <div className="bg-zinc-900/60 backdrop-blur-md p-8 rounded-[3rem] w-full max-w-md shadow-2xl border-2 border-red-600">
+           <div className="bg-white p-8 rounded-[3rem] w-full max-w-md shadow-2xl border-2 border-red-600">
             <div className="flex justify-between items-center mb-8">
                 <h3 className="text-2xl font-black uppercase italic text-black tracking-tighter">Venta Directa</h3>
                 <button onClick={() => setShowManualAssign(false)} className="text-slate-300 hover:text-red-600"><X/></button>
             </div>
             <form onSubmit={handleManualAssignment} className="space-y-4">
-              <input type="text" required placeholder="Tickets (Separar por comas)" className="w-full p-4 bg-slate-50 rounded-2xl border border-zinc-700 font-bold outline-none focus:border-red-500" onChange={e => setManualData({...manualData, numeros: e.target.value})} />
+              <input type="text" required placeholder="Tickets (Separar por comas)" className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 font-bold outline-none focus:border-red-500" onChange={e => setManualData({...manualData, numeros: e.target.value})} />
               <div className="grid grid-cols-2 gap-3">
-                <input type="text" placeholder="Nombre" required className="p-4 bg-slate-50 rounded-2xl border border-zinc-700 font-bold outline-none focus:border-red-500" onChange={e => setManualData({...manualData, nombre: e.target.value})} />
-                <input type="text" placeholder="Apellido" required className="p-4 bg-slate-50 rounded-2xl border border-zinc-700 font-bold outline-none focus:border-red-500" onChange={e => setManualData({...manualData, apellido: e.target.value})} />
+                <input type="text" placeholder="Nombre" required className="p-4 bg-slate-50 rounded-2xl border border-slate-200 font-bold outline-none focus:border-red-500" onChange={e => setManualData({...manualData, nombre: e.target.value})} />
+                <input type="text" placeholder="Apellido" required className="p-4 bg-slate-50 rounded-2xl border border-slate-200 font-bold outline-none focus:border-red-500" onChange={e => setManualData({...manualData, apellido: e.target.value})} />
               </div>
-              <input type="tel" placeholder="Teléfono" required className="w-full p-4 bg-slate-50 rounded-2xl border border-zinc-700 font-bold outline-none focus:border-red-500" onChange={e => setManualData({...manualData, telefono: e.target.value})} />
-              <select className="w-full p-4 bg-slate-50 rounded-2xl border border-zinc-700 font-black uppercase text-xs outline-none focus:border-red-500" onChange={e => setManualData({...manualData, estado: e.target.value})}>
+              <input type="tel" placeholder="Teléfono" required className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 font-bold outline-none focus:border-red-500" onChange={e => setManualData({...manualData, telefono: e.target.value})} />
+              <select className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 font-black uppercase text-xs outline-none focus:border-red-500" onChange={e => setManualData({...manualData, estado: e.target.value})}>
                 <option value="apartado">🔴 PONER EN REVISIÓN</option>
                 <option value="pagado">⚫ MARCAR COMO VENDIDO</option>
               </select>
@@ -966,29 +966,29 @@ const AdminPanel = ({ tasaBcv }) => {
 
       {numDetail && (
         <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="bg-zinc-900/60 backdrop-blur-md p-8 rounded-[3.5rem] w-full max-w-sm shadow-2xl relative overflow-hidden">
+          <div className="bg-white p-8 rounded-[3.5rem] w-full max-w-sm shadow-2xl relative overflow-hidden">
             <div className={`absolute top-0 left-0 right-0 h-2 ${ESTADOS[numDetail.estado].bg}`}></div>
             {selectedRifa?.estado === 'finalizada' && numDetail.id_numero === selectedRifa.id_ganador && (
                 <div className="absolute top-0 left-0 right-0 h-8 bg-yellow-400 flex items-center justify-center text-yellow-900 text-[10px] font-black uppercase animate-pulse"><Crown size={12} className="mr-1"/> TICKET GANADOR</div>
             )}
             <div className={`flex justify-between items-center mb-6 ${selectedRifa?.estado === 'finalizada' && numDetail.id_numero === selectedRifa.id_ganador ? 'mt-6' : ''}`}>
                 <h3 className="text-3xl font-black italic uppercase text-black tracking-tighter">Ticket #{numDetail.numero}</h3>
-                <button onClick={() => setNumDetail(null)} className="text-slate-300 hover:text-white"><X/></button>
+                <button onClick={() => setNumDetail(null)} className="text-slate-300 hover:text-slate-900"><X/></button>
             </div>
-            <div className="space-y-4 mb-8 bg-slate-50 p-6 rounded-[2rem] border border-zinc-700">
+            <div className="space-y-4 mb-8 bg-slate-50 p-6 rounded-[2rem] border border-slate-200">
                 <div className="flex items-center gap-3">
-                    <div className="bg-zinc-900/60 backdrop-blur-md p-2 rounded-xl text-black shadow-2xl"><User size={18}/></div>
-                    <div><p className="text-[9px] font-black text-slate-400 uppercase">Cliente</p><p className="text-sm font-black text-white">{numDetail.usuarios?.nombre} {numDetail.usuarios?.apellido}</p></div>
+                    <div className="bg-white p-2 rounded-xl text-black shadow-sm"><User size={18}/></div>
+                    <div><p className="text-[9px] font-black text-slate-400 uppercase">Cliente</p><p className="text-sm font-black text-slate-800">{numDetail.usuarios?.nombre} {numDetail.usuarios?.apellido}</p></div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button onClick={() => enviarWhatsapp(numDetail.usuarios?.telefono, `¡Hola ${numDetail.usuarios?.nombre}! Te contactamos de AlexCars' Edition sobre tu ticket #${numDetail.numero}.`)} className="bg-zinc-900/60 backdrop-blur-md p-2 rounded-xl text-green-600 shadow-2xl hover:bg-green-50 transition-all cursor-pointer" title="Contactar por WhatsApp">
+                    <button onClick={() => enviarWhatsapp(numDetail.usuarios?.telefono, `¡Hola ${numDetail.usuarios?.nombre}! Te contactamos de AlexCars' Edition sobre tu ticket #${numDetail.numero}.`)} className="bg-white p-2 rounded-xl text-green-600 shadow-sm hover:bg-green-50 transition-all cursor-pointer" title="Contactar por WhatsApp">
                         <Smartphone size={18}/>
                     </button>
-                    <div><p className="text-[9px] font-black text-slate-400 uppercase">Teléfono</p><p className="text-sm font-black text-white">{numDetail.usuarios?.telefono}</p></div>
+                    <div><p className="text-[9px] font-black text-slate-400 uppercase">Teléfono</p><p className="text-sm font-black text-slate-800">{numDetail.usuarios?.telefono}</p></div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="bg-zinc-900/60 backdrop-blur-md p-2 rounded-xl text-zinc-400 shadow-2xl"><CreditCard size={18}/></div>
-                    <div><p className="text-[9px] font-black text-slate-400 uppercase">Referencia</p><p className="text-sm font-black text-white tracking-widest">{numDetail.referencia_pago || 'SIN REF.'}</p></div>
+                    <div className="bg-white p-2 rounded-xl text-slate-600 shadow-sm"><CreditCard size={18}/></div>
+                    <div><p className="text-[9px] font-black text-slate-400 uppercase">Referencia</p><p className="text-sm font-black text-slate-800 tracking-widest">{numDetail.referencia_pago || 'SIN REF.'}</p></div>
                 </div>
             </div>
             {selectedRifa.estado === 'activa' && (
@@ -1189,22 +1189,22 @@ const ClientePanel = ({ session, tasaBcv }) => {
   }, {});
   
   return (
-    <div className="min-h-screen bg-transparent font-sans text-white">
-      <header className="bg-zinc-900/60 backdrop-blur-md p-5 border-b border-zinc-700 flex justify-between items-center sticky top-0 z-20 shadow-2xl">
+    <div className="min-h-screen bg-transparent font-sans text-slate-800">
+      <header className="bg-white p-5 border-b border-slate-200 flex justify-between items-center sticky top-0 z-20 shadow-sm">
         <div className="flex items-center gap-2">
             <div className="bg-red-600 p-2 rounded-xl text-white shadow-lg shadow-red-200 border-2 border-black"><Trophy size={20}/></div>
             <h1 className="font-black italic text-2xl tracking-tighter text-black uppercase">AlexCars' Edition</h1>
         </div>
         <div className="flex items-center gap-3">
             {tasaBcv && (
-              <div className="text-yellow-600 bg-yellow-50 border border-yellow-200 px-3 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl">
+              <div className="text-yellow-600 bg-yellow-50 border border-yellow-200 px-3 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm">
                 BCV: {tasaBcv.toFixed(2)} BS
               </div>
             )}
-            <button onClick={() => {setShowMisTickets(true); setSelectedRifa(null);}} className="p-3 text-zinc-400 bg-zinc-800/50 rounded-2xl hover:text-red-600 hover:bg-red-50 transition-all flex items-center gap-2 font-black text-[10px] uppercase">
+            <button onClick={() => {setShowMisTickets(true); setSelectedRifa(null);}} className="p-3 text-slate-600 bg-slate-100 rounded-2xl hover:text-red-600 hover:bg-red-50 transition-all flex items-center gap-2 font-black text-[10px] uppercase">
                 <Ticket size={18}/> Mis Tickets
             </button>
-            <button onClick={async () => { await supabase.auth.signOut(); }} className="p-3 text-slate-400 bg-zinc-800/50 rounded-2xl hover:text-red-600 hover:bg-red-50 transition-all">
+            <button onClick={async () => { await supabase.auth.signOut(); }} className="p-3 text-slate-400 bg-slate-100 rounded-2xl hover:text-red-600 hover:bg-red-50 transition-all">
                 <LogOut size={22}/>
             </button>
         </div>
@@ -1215,17 +1215,17 @@ const ClientePanel = ({ session, tasaBcv }) => {
             <div className="space-y-6 mt-4 pb-20">
                 <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-black italic uppercase tracking-tighter text-black">Mis Sorteos</h2>
-                    <button onClick={() => setShowMisTickets(false)} className="flex items-center gap-2 font-black text-slate-500 hover:text-black text-[10px] uppercase tracking-widest px-4 py-2 bg-zinc-900/60 backdrop-blur-md rounded-full border border-zinc-700 shadow-2xl"><ChevronLeft size={16}/> Volver</button>
+                    <button onClick={() => setShowMisTickets(false)} className="flex items-center gap-2 font-black text-slate-500 hover:text-black text-[10px] uppercase tracking-widest px-4 py-2 bg-white rounded-full border border-slate-200 shadow-sm"><ChevronLeft size={16}/> Volver</button>
                 </div>
                 
                 {Object.keys(misTicketsAgrupados).length === 0 ? (
-                    <div className="bg-zinc-900/60 backdrop-blur-md p-10 rounded-[3rem] border border-zinc-700 text-center shadow-2xl">
+                    <div className="bg-white p-10 rounded-[3rem] border border-slate-200 text-center shadow-sm">
                         <AlertCircle size={40} className="mx-auto text-slate-300 mb-4"/>
                         <p className="text-slate-500 font-bold uppercase text-xs">Aún no tienes tickets comprados.</p>
                     </div>
                 ) : (
                     Object.values(misTicketsAgrupados).map((grupo, idx) => (
-                        <div key={idx} className="bg-zinc-900/60 backdrop-blur-md p-6 rounded-[2.5rem] border border-zinc-700 shadow-2xl mb-4">
+                        <div key={idx} className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm mb-4">
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <h3 className="text-xl font-black uppercase italic leading-none text-black">{grupo.infoRifa.nombre}</h3>
@@ -1263,7 +1263,7 @@ const ClientePanel = ({ session, tasaBcv }) => {
             {rifas.map(r => {
               const isFinished = r.estado === 'finalizada';
               const iWon = isFinished && r.id_ganador && misNumeros.some(n => n.id_numero === r.id_ganador);
-              const cardClasses = iWon ? "bg-gradient-to-r from-yellow-100 to-yellow-50 border-yellow-400 shadow-md" : "bg-zinc-900/60 backdrop-blur-md border-zinc-700 hover:border-red-600 shadow-2xl";
+              const cardClasses = iWon ? "bg-gradient-to-r from-yellow-100 to-yellow-50 border-yellow-400 shadow-md" : "bg-white border-slate-200 hover:border-red-600 shadow-sm";
               return (
               <div key={r.id_rifa} onClick={() => selectRifa(r)} className={`p-5 rounded-[2.8rem] border flex gap-5 items-center transition-all group active:scale-95 cursor-pointer relative overflow-hidden ${cardClasses}`}>
                 <img src={r.imagen_url || 'https://via.placeholder.com/150'} className={`w-24 h-24 rounded-[2rem] object-cover bg-slate-50 shadow-xl shadow-slate-200 group-hover:rotate-3 transition-transform ${isFinished && !iWon ? 'grayscale opacity-70' : ''}`} />
@@ -1280,7 +1280,7 @@ const ClientePanel = ({ session, tasaBcv }) => {
           <span>Progreso del Sorteo</span>
           <span className="text-red-600">{progresoRifas[r.id_rifa] || 0}%</span>
       </div>
-      <div className="w-full bg-zinc-800/50 rounded-full h-1.5 overflow-hidden">
+      <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
           <div 
               className="bg-red-600 h-1.5 rounded-full transition-all duration-1000 ease-out" 
               style={{ width: `${progresoRifas[r.id_rifa] || 0}%` }}
@@ -1290,7 +1290,7 @@ const ClientePanel = ({ session, tasaBcv }) => {
 
   <div className="mt-4 flex items-center justify-between">
                       {isFinished ? (
-                          iWon ? (<div className="text-yellow-600 font-black text-[10px] uppercase flex items-center gap-1 bg-yellow-100 px-3 py-1.5 rounded-full"><Crown size={14}/> ¡GANASTE! Ver Detalles</div>) : (<div className="text-slate-400 font-black text-[10px] uppercase bg-zinc-800/50 px-3 py-1.5 rounded-full">Sorteo Finalizado</div>)
+                          iWon ? (<div className="text-yellow-600 font-black text-[10px] uppercase flex items-center gap-1 bg-yellow-100 px-3 py-1.5 rounded-full"><Crown size={14}/> ¡GANASTE! Ver Detalles</div>) : (<div className="text-slate-400 font-black text-[10px] uppercase bg-slate-100 px-3 py-1.5 rounded-full">Sorteo Finalizado</div>)
                       ) : (<div className="text-red-600 font-black text-[10px] uppercase flex items-center gap-1">Participar <ChevronLeft size={14} className="rotate-180"/></div>)}
                   </div>
                 </div>
@@ -1307,13 +1307,13 @@ const ClientePanel = ({ session, tasaBcv }) => {
                 return (
                     <>
                         <div className="flex flex-wrap justify-between items-center mb-6 pt-2 gap-2">
-                          <button onClick={() => setSelectedRifa(null)} className="flex items-center gap-2 font-black text-slate-500 hover:text-black text-[10px] uppercase tracking-widest px-4 py-2 bg-zinc-900/60 backdrop-blur-md rounded-full border border-zinc-700 shadow-2xl"><ChevronLeft size={16}/> Atrás</button>
+                          <button onClick={() => setSelectedRifa(null)} className="flex items-center gap-2 font-black text-slate-500 hover:text-black text-[10px] uppercase tracking-widest px-4 py-2 bg-white rounded-full border border-slate-200 shadow-sm"><ChevronLeft size={16}/> Atrás</button>
                           {!isFinished && (
                               <div className="flex gap-2">
                                   <button onClick={handleSeleccionAutomatica} className="flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-md bg-zinc-900 text-white hover:bg-black">
                                     <PartyPopper size={14}/> Selección Azar
                                   </button>
-                                  <button onClick={() => setHideSold(!hideSold)} className={`flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-md ${hideSold ? 'bg-red-600 text-white shadow-red-200' : 'bg-zinc-900/60 backdrop-blur-md text-slate-500 border border-zinc-700'}`}>
+                                  <button onClick={() => setHideSold(!hideSold)} className={`flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-md ${hideSold ? 'bg-red-600 text-white shadow-red-200' : 'bg-white text-slate-500 border border-slate-200'}`}>
                                     {hideSold ? <Eye size={16}/> : <EyeOff size={16}/>} {hideSold ? 'Ver Todo' : 'Ver Libres'}
                                   </button>
                               </div>
@@ -1321,31 +1321,31 @@ const ClientePanel = ({ session, tasaBcv }) => {
                         </div>
                         {isFinished && iWonThisRifa && (
                             <div className="fireworks-bg bg-yellow-500 p-8 rounded-[3rem] text-white shadow-2xl shadow-yellow-200 mb-8 text-center border-4 border-yellow-300 relative overflow-hidden">
-                                <div className="animate-celebration inline-block mb-4 bg-zinc-900/60 backdrop-blur-md/20 p-5 rounded-[2rem] backdrop-blur-md"><Crown size={64} className="text-yellow-100 drop-shadow-lg"/></div>
+                                <div className="animate-celebration inline-block mb-4 bg-white/20 p-5 rounded-[2rem] backdrop-blur-md"><Crown size={64} className="text-yellow-100 drop-shadow-lg"/></div>
                                 <h2 className="text-4xl font-black italic uppercase leading-none mb-2 drop-shadow-md">¡FELICIDADES!</h2>
-                                <p className="text-yellow-100 text-sm font-bold uppercase tracking-widest drop-shadow-2xl mb-6">Eres el afortunado ganador</p>
-                                <div className="bg-zinc-900/60 backdrop-blur-md text-yellow-600 font-black text-3xl py-4 px-10 rounded-full inline-block shadow-lg border-2 border-yellow-100">TICKET #{elTicketGanador?.numero}</div>
+                                <p className="text-yellow-100 text-sm font-bold uppercase tracking-widest drop-shadow-sm mb-6">Eres el afortunado ganador</p>
+                                <div className="bg-white text-yellow-600 font-black text-3xl py-4 px-10 rounded-full inline-block shadow-lg border-2 border-yellow-100">TICKET #{elTicketGanador?.numero}</div>
                             </div>
                         )}
                         {isFinished && !iWonThisRifa && elTicketGanador && (
                             <div className="bg-slate-200 p-8 rounded-[3rem] text-slate-500 text-center mb-8 border border-slate-300">
                                 <Trophy size={40} className="mx-auto mb-4 opacity-40"/><h3 className="text-2xl font-black uppercase italic tracking-tighter text-slate-700 mb-2">Sorteo Finalizado</h3>
-                                <p className="text-xs font-bold">El ticket ganador fue el <span className="text-black font-black px-3 py-1 bg-zinc-900/60 backdrop-blur-md rounded-xl border border-slate-300 ml-1 text-sm">#{elTicketGanador.numero}</span></p>
+                                <p className="text-xs font-bold">El ticket ganador fue el <span className="text-black font-black px-3 py-1 bg-white rounded-xl border border-slate-300 ml-1 text-sm">#{elTicketGanador.numero}</span></p>
                             </div>
                         )}
                         {!isFinished && (
-                            <div className="bg-zinc-900/60 backdrop-blur-md p-8 rounded-[3rem] border border-zinc-700 mb-8 shadow-2xl relative overflow-hidden">
+                            <div className="bg-white p-8 rounded-[3rem] border border-slate-200 mb-8 shadow-sm relative overflow-hidden">
                               <div className="absolute top-6 right-8 bg-red-600 text-white text-[10px] font-black px-4 py-2 rounded-2xl shadow-lg shadow-red-200 border border-red-800">${selectedRifa.precio} USD</div>
                               <h2 className="text-3xl font-black uppercase italic leading-none text-black pr-20">{selectedRifa.nombre}</h2>
                               <div className="flex items-center gap-2 mt-4 text-slate-500 font-bold text-xs"><Calendar size={14} className="text-red-600"/> Finaliza el: {selectedRifa.fecha_fin}</div>
-                              <div className="mt-6 p-4 bg-slate-50 rounded-[1.5rem] border border-zinc-800"><p className="text-[11px] text-zinc-400 leading-relaxed font-bold uppercase tracking-tight">{selectedRifa.descripcion}</p></div>
+                              <div className="mt-6 p-4 bg-slate-50 rounded-[1.5rem] border border-slate-100"><p className="text-[11px] text-slate-600 leading-relaxed font-bold uppercase tracking-tight">{selectedRifa.descripcion}</p></div>
                             </div>
                         )}
-                        <div className={`grid grid-cols-5 sm:grid-cols-8 gap-3 bg-zinc-900/60 backdrop-blur-md p-6 rounded-[3rem] shadow-inner ${isFinished ? 'opacity-70 pointer-events-none border border-slate-300' : 'border border-zinc-700'}`}>
+                        <div className={`grid grid-cols-5 sm:grid-cols-8 gap-3 bg-white p-6 rounded-[3rem] shadow-inner ${isFinished ? 'opacity-70 pointer-events-none border border-slate-300' : 'border border-slate-200'}`}>
                           {nums.map(n => {
                             const isMine = n.comprador_id === userId;
                             const isSelected = cart.includes(n.id_numero);
-                            let bgColor = 'bg-red-600 border-red-700 text-white hover:bg-red-500 shadow-2xl'; 
+                            let bgColor = 'bg-red-600 border-red-700 text-white hover:bg-red-500 shadow-sm'; 
                             let showCheck = false;
                             
                             if (n.estado === 'pagado' || n.estado === 'apartado') {
@@ -1367,7 +1367,7 @@ const ClientePanel = ({ session, tasaBcv }) => {
                               <button key={n.id_numero} disabled={(n.estado !== 'disponible' && !isMine) || isFinished} onClick={() => { if(n.estado === 'disponible' && !isFinished) setCart(prev => prev.includes(n.id_numero) ? prev.filter(id => id !== n.id_numero) : [...prev, n.id_numero]); }} className={`aspect-square rounded-[1.2rem] text-[10px] font-black border-2 transition-all relative flex items-center justify-center ${bgColor}`}>
                                 {n.numero}
                                 {showCheck && !isFinished && (
-                                    <div className="absolute -top-2 -right-2 bg-zinc-900/60 backdrop-blur-md text-black rounded-full border-2 border-black p-0.5 shadow-md">
+                                    <div className="absolute -top-2 -right-2 bg-white text-black rounded-full border-2 border-black p-0.5 shadow-md">
                                         <CheckCircle2 size={10} strokeWidth={4}/>
                                     </div>
                                 )}
@@ -1399,17 +1399,17 @@ const ClientePanel = ({ session, tasaBcv }) => {
 
       {showPay && (
         <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-md flex items-center justify-center p-4 z-50">
-           <div className="bg-zinc-900/60 backdrop-blur-md p-8 rounded-[3.5rem] w-full max-w-sm shadow-2xl relative overflow-hidden">
+           <div className="bg-white p-8 rounded-[3.5rem] w-full max-w-sm shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-2 bg-red-600"></div>
             <h3 className="text-3xl font-black mb-2 uppercase italic text-black tracking-tighter">Completar Pago</h3>
             {!paymentMethod ? (
                 <div className="space-y-3">
-                    <button onClick={() => setPaymentMethod('pago_movil')} className="w-full p-6 bg-slate-50 rounded-3xl border border-zinc-700 flex items-center gap-4 hover:bg-red-50 hover:border-red-200 transition-all group">
-                        <div className="bg-zinc-900/60 backdrop-blur-md p-3 rounded-2xl text-red-600 shadow-2xl group-hover:bg-red-600 group-hover:text-white transition-all"><Smartphone/></div>
+                    <button onClick={() => setPaymentMethod('pago_movil')} className="w-full p-6 bg-slate-50 rounded-3xl border border-slate-200 flex items-center gap-4 hover:bg-red-50 hover:border-red-200 transition-all group">
+                        <div className="bg-white p-3 rounded-2xl text-red-600 shadow-sm group-hover:bg-red-600 group-hover:text-white transition-all"><Smartphone/></div>
                         <div className="text-left"><p className="font-black uppercase text-xs text-black">Pago Móvil</p><p className="text-[9px] text-slate-500 font-bold uppercase">Transf. Inmediata</p></div>
                     </button>
-                    <button onClick={() => setPaymentMethod('transferencia')} className="w-full p-6 bg-slate-50 rounded-3xl border border-zinc-700 flex items-center gap-4 hover:bg-red-50 hover:border-red-200 transition-all group">
-                        <div className="bg-zinc-900/60 backdrop-blur-md p-3 rounded-2xl text-red-600 shadow-2xl group-hover:bg-red-600 group-hover:text-white transition-all"><Building2/></div>
+                    <button onClick={() => setPaymentMethod('transferencia')} className="w-full p-6 bg-slate-50 rounded-3xl border border-slate-200 flex items-center gap-4 hover:bg-red-50 hover:border-red-200 transition-all group">
+                        <div className="bg-white p-3 rounded-2xl text-red-600 shadow-sm group-hover:bg-red-600 group-hover:text-white transition-all"><Building2/></div>
                         <div className="text-left"><p className="font-black uppercase text-xs text-black">Zelle / Transferencia</p><p className="text-[9px] text-slate-500 font-bold uppercase">Bancos nacionales / USA</p></div>
                     </button>
                     <button onClick={() => setShowPay(false)} className="w-full mt-4 text-slate-400 font-black text-[10px] hover:text-red-600 uppercase tracking-widest">Cancelar</button>
@@ -1427,7 +1427,7 @@ const ClientePanel = ({ session, tasaBcv }) => {
                     </div>
                     <div className="space-y-2 mb-6">
                         <label className="text-[10px] font-black text-slate-500 ml-4 uppercase">Ref. de pago (4 últimos dígitos)</label>
-                        <input type="text" maxLength="4" placeholder="Ej: 9821" className="w-full p-5 bg-slate-50 border-2 border-zinc-700 rounded-[2rem] font-black text-center outline-none focus:border-red-600 text-2xl tracking-[0.5em] shadow-inner text-black" onChange={e => setPayData({ref: e.target.value})} />
+                        <input type="text" maxLength="4" placeholder="Ej: 9821" className="w-full p-5 bg-slate-50 border-2 border-slate-200 rounded-[2rem] font-black text-center outline-none focus:border-red-600 text-2xl tracking-[0.5em] shadow-inner text-black" onChange={e => setPayData({ref: e.target.value})} />
                     </div>
                     <button onClick={reportarPago} className="w-full bg-red-600 text-white p-6 rounded-[2rem] font-black uppercase text-xs shadow-xl shadow-red-200 transition-all hover:bg-red-700 active:scale-95 border border-red-800">Confirmar Mi Reporte</button>
                     <button onClick={() => {setPaymentMethod(null);}} className="w-full mt-4 text-slate-400 hover:text-red-600 font-black text-[10px] uppercase py-2">Volver Atrás</button>
