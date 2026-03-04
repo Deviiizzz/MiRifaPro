@@ -1192,7 +1192,7 @@ const ClientePanel = ({ session, tasaBcv }) => {
     <div className="min-h-screen bg-transparent font-sans text-slate-800">
       <header className="bg-black/60 backdrop-blur-xl p-5 border-b border-white/10 flex justify-between items-center sticky top-0 z-20 shadow-2xl">
         <div className="flex items-center gap-2">
-            <div className="bg-red-600 p-2 rounded-xl text-white shadow-lg shadow-red-950/40 border-2 border-zinc-900"><Trophy size={20}/></div>
+            <div className="bg-red-600 p-2 rounded-xl text-white border border-red-700/50"><Trophy size={20}/></div>
             <h1 className="font-black italic text-2xl tracking-tighter text-white uppercase">AlexCars' Edition</h1>
         </div>
         <div className="flex items-center gap-3">
