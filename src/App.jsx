@@ -13,7 +13,7 @@ import * as XLSX from 'xlsx';
 import './index.css'; 
 import logo from './logo.png';
 import fondoLogin from './fondo-login.jpg';
-import fondoAdmin from './fondo-admin.jpg'; 
+import fondoAdmin from './fondo-admin.jpeg'; 
 import fondoCliente from './fondo-cliente.jpg';
 import { FaWhatsapp, FaInstagram, FaTiktok, FaFacebookF } from 'react-icons/fa';
 
