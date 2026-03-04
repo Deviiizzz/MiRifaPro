@@ -1190,25 +1190,43 @@ const ClientePanel = ({ session, tasaBcv }) => {
   
   return (
     <div className="min-h-screen bg-transparent font-sans text-slate-800">
-      <header className="bg-black/60 backdrop-blur-xl p-5 border-b border-white/10 flex justify-between items-center sticky top-0 z-20 shadow-2xl">
-        <div className="flex items-center gap-2">
-            <div className="bg-red-600 p-2 rounded-xl text-white border border-red-700/50"><Trophy size={20}/></div>
-            <h1 className="font-black italic text-2xl tracking-tighter text-white uppercase">AlexCars' Edition</h1>
+      <header className="bg-black/60 backdrop-blur-xl p-3 md:p-5 border-b border-white/10 flex justify-between items-center sticky top-0 z-20 shadow-2xl">
+  {/* Sección del Logo/Nombre */}
+  <div className="flex items-center gap-2 min-w-0 flex-shrink">
+      <div className="bg-red-600 p-2 rounded-xl text-white border border-red-700/50 flex-shrink-0">
+          <Trophy size={18} className="md:w-5 md:h-5"/>
+      </div>
+      <h1 className="font-black italic text-lg md:text-2xl tracking-tighter text-white uppercase truncate">
+          AlexCars' Edition
+      </h1>
+  </div>
+
+  {/* Sección de Botones y BCV */}
+  <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+      {tasaBcv && (
+        <div className="text-yellow-600 bg-yellow-50 border border-yellow-200 px-2 py-1.5 md:px-3 md:py-2 rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-sm">
+          <span className="hidden xs:inline">BCV: </span>{tasaBcv.toFixed(2)}
         </div>
-        <div className="flex items-center gap-3">
-            {tasaBcv && (
-              <div className="text-yellow-600 bg-yellow-50 border border-yellow-200 px-3 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm">
-                BCV: {tasaBcv.toFixed(2)} BS
-              </div>
-            )}
-            <button onClick={() => {setShowMisTickets(true); setSelectedRifa(null);}} className="p-3 text-slate-600 bg-slate-100 rounded-2xl hover:text-red-600 hover:bg-red-50 transition-all flex items-center gap-2 font-black text-[10px] uppercase">
-                <Ticket size={18}/> Mis Tickets
-            </button>
-            <button onClick={async () => { await supabase.auth.signOut(); }} className="p-3 text-slate-400 bg-slate-100 rounded-2xl hover:text-red-600 hover:bg-red-50 transition-all">
-                <LogOut size={22}/>
-            </button>
-        </div>
-      </header>
+      )}
+      
+      <button 
+          onClick={() => {setShowMisTickets(true); setSelectedRifa(null);}} 
+          className="p-2.5 md:p-3 text-slate-600 bg-slate-100 rounded-xl md:rounded-2xl hover:text-red-600 hover:bg-red-50 transition-all flex items-center gap-2 font-black text-[10px] uppercase"
+          title="Mis Tickets"
+      >
+          <Ticket size={18}/> 
+          <span className="hidden sm:inline">Mis Tickets</span>
+      </button>
+
+      <button 
+          onClick={async () => { await supabase.auth.signOut(); }} 
+          className="p-2.5 md:p-3 text-slate-400 bg-slate-100 rounded-xl md:rounded-2xl hover:text-red-600 hover:bg-red-50 transition-all"
+          title="Cerrar Sesión"
+      >
+          <LogOut size={20}/>
+      </button>
+  </div>
+</header>
 
       <main className="p-4 max-w-2xl mx-auto">
         {showMisTickets ? (
