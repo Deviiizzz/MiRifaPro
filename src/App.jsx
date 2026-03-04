@@ -1214,7 +1214,7 @@ const ClientePanel = ({ session, tasaBcv }) => {
         {showMisTickets ? (
             <div className="space-y-6 mt-4 pb-20">
                 <div className="flex justify-between items-center">
-                    <h2 className="text-2xl font-black italic uppercase tracking-tighter text-black">Mis Sorteos</h2>
+                    <h2 className="text-2xl font-black italic uppercase tracking-tighter text-white">Mis Sorteos</h2>
                     <button onClick={() => setShowMisTickets(false)} className="flex items-center gap-2 font-black text-slate-500 hover:text-black text-[10px] uppercase tracking-widest px-4 py-2 bg-white rounded-full border border-slate-200 shadow-sm"><ChevronLeft size={16}/> Volver</button>
                 </div>
                 
