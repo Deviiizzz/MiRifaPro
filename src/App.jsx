@@ -70,16 +70,16 @@ if (isRegistering) {
 
   if (authError) throw authError;
 
-  // 2. Registro en tu tabla de usuarios
-  const { error: dbError } = await supabase.from('usuarios').insert([{
-    id_usuario: authData.user.id,
-    nombre: formData.nombre,
-    apellido: formData.apellido,
-    telefono: formData.telefono,
-    rol: 'cliente'
-  }]);
+ const { error: dbError } = await supabase
+    .from('usuarios')
+    .update({
+      telefono: formData.telefono,
+      rol: 'cliente' // o dejar que el valor por defecto de tu BD lo maneje
+    })
+    .eq('id_usuario', authData.user.id);
 
   if (dbError) throw dbError;
+  
   alert("¡Registro exitoso! Ya puedes iniciar sesión.");
   setIsRegistering(false);
 } else {
