@@ -1559,7 +1559,7 @@ const App = () => {
           style={{ backgroundImage: `url(${fondoAdmin})` }}
         >
           {/* Capa oscura para que el panel de admin resalte */}
-          <div className="min-h-screen bg-zinc-950/80 backdrop-blur-sm">
+          <div className="min-h-screen bg-transparent">
             <AdminPanel tasaBcv={tasaBcv} />
           </div>
         </div>
@@ -1570,7 +1570,7 @@ const App = () => {
           style={{ backgroundImage: `url(${fondoCliente})` }}
         >
           {/* Capa semi-transparente para el cliente */}
-          <div className="min-h-screen bg-black/60 backdrop-blur-[2px]">
+         <div className="min-h-screen bg-transparent">
             <ClientePanel session={session} tasaBcv={tasaBcv} />
           </div>
         </div>
