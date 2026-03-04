@@ -620,7 +620,7 @@ const AdminPanel = ({ tasaBcv }) => {
             </div>
 
             <div className="flex justify-between items-center">
-                <h2 className="text-xl font-black italic uppercase tracking-tighter text-slate-400">Tus Sorteos</h2>
+                <h2 className="text-xl font-black italic uppercase tracking-tighter text-black">Tus Sorteos</h2>
                 <button onClick={() => setView('create')} className="bg-red-600 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg shadow-red-200 hover:bg-red-700 transition-all active:scale-95 text-xs uppercase">
                     <Plus size={18}/> Crear Rifa
                 </button>
