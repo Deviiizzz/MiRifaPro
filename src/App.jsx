@@ -1275,7 +1275,7 @@ const ClientePanel = ({ session, tasaBcv }) => {
             </div>
             <div className="flex items-center gap-4 px-2">
                 <div className="h-px bg-slate-300 flex-1"></div>
-                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Sorteos</h3>
+                <h3 className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Sorteos</h3>
                 <div className="h-px bg-slate-300 flex-1"></div>
             </div>
             {rifas.map(r => {
