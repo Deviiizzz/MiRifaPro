@@ -1201,11 +1201,11 @@ const ClientePanel = ({ session, tasaBcv }) => {
       </h1>
   </div>
 
-  {/* Sección de Botones y BCV */}
-  <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+  {/* Sección de Botones y BCV - No se permite encoger para que no se desborde */}
+  <div className="flex items-center gap-1.5 md:gap-3 flex-shrink-0 relative z-10">
       {tasaBcv && (
-        <div className="text-yellow-600 bg-yellow-50 border border-yellow-200 px-2 py-1.5 md:px-3 md:py-2 rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-sm">
-          <span className="hidden xs:inline">BCV: </span>{tasaBcv.toFixed(2)}
+        <div className="text-yellow-600 bg-yellow-50 border border-yellow-200 px-1.5 py-1 md:px-3 md:py-2 rounded-lg md:rounded-2xl text-[8px] md:text-[10px] font-bold uppercase tracking-tighter md:tracking-widest shadow-sm whitespace-nowrap">
+          BCV: {tasaBcv.toFixed(2)}
         </div>
       )}
       
