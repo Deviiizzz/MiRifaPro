@@ -1584,7 +1584,7 @@ const App = () => {
       ) : (
         /* --- FONDO PARA EL CLIENTE --- */
         <div 
-          className="min-h-screen bg-cover bg-center bg-fixed"
+          className="min-h-screen bg-cover bg-top bg-fixed"
           style={{ backgroundImage: `url(${fondoCliente})` }}
         >
           {/* Capa semi-transparente para el cliente */}
